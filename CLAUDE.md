@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Basic gem scaffolding is in place (gemspec, `lib/`, `test/`, tooling), but no plugin behavior has been
-implemented yet — `YARD::AgentDocs` is currently an empty module. We're now working through output-format
-design using a worked example before writing any generation code; see "Design" below.
+The `agentdocs` YARD template is implemented and generates output matching `example/doc` when run
+against `example/lib` (see `templates/default/{fulldoc,module,class}/agentdocs/`, registered via
+`lib/yard-agentdocs.rb`), verified by `test/test_agentdocs_template.rb`. Scope is intentionally narrow —
+see `devdocs/DESIGN.md`'s "Example coverage checklist" for what's covered vs. still open. See "Design"
+below for the full rationale and implementation notes.
 
 ## Purpose
 
