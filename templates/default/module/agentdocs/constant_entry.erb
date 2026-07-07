@@ -1,0 +1,8 @@
+### <%= @constant.name %>
+
+**Type:** <%= type_ref(@constant.tag(:return) && @constant.tag(:return).types && @constant.tag(:return).types.first) %>
+**Value:** `<%= @constant.value %>`
+
+<%= @constant.docstring.strip %>
+
+**Defined in:** `<%= @constant.file %>:<%= @constant.line %>`

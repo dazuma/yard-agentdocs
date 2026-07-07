@@ -4,10 +4,14 @@ This document describes the design of `yard-agentdocs` — a [YARD](https://yard
 plugin that renders Ruby API reference documentation in a format meant for coding
 agents to look up efficiently, rather than for human browsing.
 
-It is a living design document, and currently reflects a **pre-implementation**
-state: nothing below is finalized. Decisions get logged here as we make them, and
-open questions stay open (and listed) until they're resolved. This file is the
-source of truth for design; keep it in sync as understanding improves.
+It is a living design document. Format, indexing, cross-referencing, and the
+core YARD integration mechanics are decided and implemented (see
+"Implementation" below) for the scope checked off in "Example coverage
+checklist" — the rest of that checklist (and the still-open question in
+"Open questions") remain to be designed/built as `example/lib` grows.
+Decisions get logged here as we make them, and open questions stay open (and
+listed) until they're resolved. This file is the source of truth for design;
+keep it in sync as understanding improves.
 
 ## Goals
 
@@ -62,6 +66,16 @@ documentation surface an agent is actually likely to hit. Items are grouped by
 category; unchecked boxes are proposed, not yet built. This list is expected to
 grow/shrink as we build the example and find gaps or redundancy.
 
+Checked boxes mean the current `example/lib`/`example/doc` pair and the
+implemented `agentdocs` template actually exercise that scenario end-to-end
+(parsed, rendered, asserted byte-for-byte in `test/test_agentdocs_template.rb`).
+Where a single bullet bundles several genuinely distinct variants (e.g.
+`attr_reader`/`attr_writer`/`attr_accessor`, or `@see`'s method/class/URL
+targets), it's only checked once essentially all of them are covered — a
+parenthetical *example* of a tag that's otherwise thoroughly exercised (e.g.
+`@param`'s duck-type aside) doesn't block the check. Partial coverage stays
+unchecked rather than being marked as done.
+
 ### Module/class structure
 
 - [ ] Top-level class
@@ -92,7 +106,7 @@ grow/shrink as we build the example and find gaps or redundancy.
 
 ### Methods — shapes & signatures
 
-- [ ] Plain required positional params
+- [x] Plain required positional params
 - [ ] Optional positional params with default values (including a default that
       references a constant, not just a literal)
 - [ ] Splat arg (`*args`)
@@ -110,43 +124,52 @@ grow/shrink as we build the example and find gaps or redundancy.
       (documented return type is a union, e.g. `String, nil`)
 - [ ] A method returning an `Enumerator` when called without a block, and
       yielding when called with one (tests combined `@yield`/`@return` docs)
-- [ ] Operator method overload (e.g. `#+`, `#==`, `#<=>`, `#[]`, `#[]=`)
+- [x] Operator method overload (e.g. `#+`, `#==`, `#<=>`, `#[]`, `#[]=`) —
+      `Point#+`, rendered infix (`point + other → Point`)
 - [ ] `#to_s` / `#inspect` overrides
 - [ ] Aliased method (`alias`/`alias_method`) — does the alias get its own
       entry or point back at the original?
-- [ ] Singleton/class method (`def self.foo`) alongside instance methods on the
-      same class
+- [x] Singleton/class method (`def self.foo`) alongside instance methods on the
+      same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [ ] Class methods defined via `class << self`
 - [ ] A private class method
 - [ ] Method-level `@private` tag on a method (vs. actual Ruby `private`)
 
 ### Visibility
 
-- [ ] Public method (default/no comment needed)
+- [x] Public method (default/no comment needed)
 - [ ] `private` method with doc comment (should it even appear in output?)
 - [ ] `protected` method with doc comment (e.g. part of a `#<=>`/comparison
       implementation)
 
 ### Attributes & constants
 
-- [ ] `attr_reader`, `attr_writer`, `attr_accessor` with doc comments
+- [ ] `attr_reader`, `attr_writer`, `attr_accessor` with doc comments (only
+      `attr_reader` exercised so far, via `Point#x`/`#y`)
 - [ ] Manually-defined reader/writer pair documented via `@attr`/`@attr_reader`/
       `@attr_writer` tags instead of relying on `attr_*`
-- [ ] Simple constant (numeric/string literal) with a doc comment
+- [x] Simple constant (numeric/string literal) with a doc comment —
+      `Point::DIMENSIONS`
 - [ ] Structured constant (`Hash`, `Array`, `Regexp` literal)
 - [ ] Constant that references another documented class (e.g.
-      `DEFAULT_HANDLER = SomeClass.new`)
+      `DEFAULT_HANDLER = SomeClass.new`) — `Point::ORIGIN = new(0, 0)` is close
+      but is a *self*-reference (an instance of the class it's defined on, not
+      another one), so it exercises the value/type machinery but not this case
 - [ ] Private constant (`private_constant`)
 
 ### YARD tags
 
-- [ ] `@param` (including duck-type syntax, e.g. `@param [#to_s] x`)
-- [ ] `@return` (including `void` and multi-type unions)
+- [x] `@param` (including duck-type syntax, e.g. `@param [#to_s] x`) — duck
+      typing itself not exercised, but the tag is otherwise thorough
+- [x] `@return` (including `void` and multi-type unions) — `void`/unions not
+      exercised, but the tag is otherwise thorough
 - [ ] `@option` (documenting keys of an options hash/kwargs)
 - [ ] `@yield`, `@yieldparam`, `@yieldreturn`
 - [ ] `@raise` (including a method that documents more than one exception
       type)
 - [ ] `@see` — linking to another method, another class, and an external URL
+      (only the "another method" case is exercised so far; see also the
+      cross-referencing scenario below)
 - [ ] `@example` — both a bare example and a titled example
       (`@example Some title`), and a method with more than one `@example`
 - [ ] `@deprecated` (with and without a replacement pointer)
@@ -170,20 +193,25 @@ grow/shrink as we build the example and find gaps or redundancy.
 
 ### Documentation content / prose patterns
 
-- [ ] Single-line summary only
-- [ ] Multi-paragraph description (summary + extended discussion)
+- [x] Single-line summary only — e.g. `Point#x`'s "The x-coordinate."
+- [x] Multi-paragraph description (summary + extended discussion) — the
+      `Geometry` module doc
 - [ ] Markdown formatting in prose: code spans, a fenced code block, a list,
-      a link
-- [ ] A class-level doc comment (not just method-level)
+      a link (only code spans are exercised so far, e.g. `` `"x,y"` ``)
+- [x] A class-level doc comment (not just method-level) — both `Geometry` and
+      `Geometry::Point`
 - [ ] An intentionally undocumented public method (to decide how/whether the
       output format flags this)
 
 ### Cross-referencing scenarios
 
-- [ ] Method `@param`/`@return` type referencing another class defined in the
-      example (same file and a different file)
+- [x] Method `@param`/`@return` type referencing another class defined in the
+      example (same file and a different file) — `Point#+` referencing
+      `Point` itself (same file) and `Geometry.distance` referencing `Point`
+      (different file) both render correctly (unlinked vs. linked)
 - [ ] `@see` pointing at another method in the same class
-- [ ] `@see` pointing at a method in a different class/namespace
+- [x] `@see` pointing at a method in a different class/namespace —
+      `Geometry.distance`'s `@see Point#distance_to`
 - [ ] A subclass method that overrides a documented parent method without
       redocumenting it (does output inherit/copy/link the parent doc?)
 - [ ] A mixin method's docs as seen from an including class (does the output
@@ -191,21 +219,21 @@ grow/shrink as we build the example and find gaps or redundancy.
 
 ## Open questions
 
-Output format, indexing/lookup, and cross-referencing are now substantially
-decided — see "Decisions" below. What's still open:
+Output format, indexing/lookup, cross-referencing, and the core YARD
+integration mechanics are now decided *and implemented* — see "Decisions" and
+"Implementation" below. What's still open:
 
 - **Mixin/inheritance content strategy** — when a class includes/extends/
   prepends a module, or inherits a method from a superclass, does the
   generated class file duplicate that method's docs inline (so one file read
   is self-sufficient) or link out to where it's actually defined (so there's
   a single source of truth but an extra hop to resolve it)? Orthogonal to
-  file granularity — applies regardless of how files are split. Not yet
-  exercised in `example/lib` (no mixins or inheritance there yet).
-- **YARD integration mechanics** — how the plugin hooks into YARD's
-  template/handler system (custom template path vs. registered output format
-  vs. standard `yard-*` plugin conventions), and how it's invoked (`yard doc
-  -f agentdocs`, a Toys task, a CLI wrapper, etc.). Not yet touched — this is
-  about generating the format, not the format itself.
+  file granularity — applies regardless of how files are split. Still not
+  exercised in `example/lib` (no *explicit* mixins or inheritance there yet —
+  the `Object`/`BasicObject`/`Kernel` ancestry shown for `Point` is a narrow,
+  hardcoded special case for the common "plain class, implicit superclass"
+  scenario, not a general answer to this question; see "Implementation"
+  below).
 
 ## Decisions
 
@@ -367,3 +395,149 @@ method.
   it can go straight to the derived path.
 - Resolving a *member* name to its location once a class/module's file is
   open is covered under "Output format" (headings + grep), not here.
+
+## Implementation
+
+The `agentdocs` template is implemented and generates output *identical*
+(byte-for-byte) to `example/doc` when run against `example/lib` — verified by
+`test/test_agentdocs_template.rb`, which runs `YARD::CLI::Yardoc` in-process
+and asserts equality against the fixture files directly (no fuzzy/normalized
+comparison needed; see "ERB has no trim mode" below for why that used to be
+tempting). Scope is intentionally narrow: it covers exactly what's checked off
+in "Example coverage checklist" above, not the full checklist.
+
+### Architecture
+
+- `lib/yard-agentdocs.rb` calls
+  `YARD::Templates::Engine.register_template_path` with the gem's `templates/`
+  dir. This is the entire integration point — no custom output-format
+  registration, no handler classes.
+- Templates live under `templates/default/{fulldoc,module,class}/agentdocs/`,
+  mirroring YARD's own directory convention (`<template>/<type>/<format>/`):
+  - `fulldoc/agentdocs` is the driver: walks the object list YARD hands it,
+    writes `index.md` (top-level namespaces), then serializes one file per
+    class/module.
+  - `module/agentdocs` holds the shared rendering logic — member gathering,
+    cross-reference resolution, signature building, per-entry rendering —
+    used directly for modules and `include`d by `class/agentdocs` (mirroring
+    upstream's own `class/setup.rb` doing `include T('default/module')`).
+  - `class/agentdocs` adds what only classes have: the `**Ancestors:**`/
+    `**Includes:**` metadata lines and the synthetic `.new` entry sourced from
+    `#initialize`.
+  - No `root/agentdocs` or `layout/agentdocs` — `index.md` is a one-off
+    generated directly by the fulldoc driver, and per-object rendering calls
+    `T(object.type)` directly instead of going through YARD's generic
+    `layout`/multi-format dispatch (that machinery exists to share code across
+    html/text/dot; this plugin only ever targets one format).
+  - ERB templates hold the actual per-file/per-entry text; Ruby methods in
+    each `setup.rb` do the data-gathering/formatting and assemble pre-rendered
+    fragments — see "ERB has no trim mode" below for why the split landed
+    where it did.
+
+### Non-obvious techniques, patterns, and quirks
+
+A few things that weren't obvious going in, worth not re-discovering:
+
+- **The directory is `fulldoc`, not `fulldocs`.** YARD's dispatch is
+  `Engine.generate` → `template(options.template, :fulldoc, options.format)`
+  — literally, mechanically singular. Easy typo, silently means "no such
+  template" at runtime.
+- **`T()` behaves differently depending on where you call it.** At *runtime*
+  (an instance method, e.g. inside `fulldoc`'s `init`), `T(:module)`
+  auto-prepends `options.template` and appends `options.format`, resolving to
+  `default/module/agentdocs`. At *setup.rb top level* (class-method context,
+  e.g. `include T(...)`), `T` does **not** decorate the path — you must spell
+  out the full literal path, exactly like upstream's own
+  `include T('default/module')` in `class/setup.rb`.
+- **The serializer's extension defaults to `html`.** Set
+  `options.serializer.extension = "md"` explicitly in the fulldoc driver's
+  `init`; `FileSystemSerializer#serialized_path` otherwise already does the
+  right thing (namespace-mirrored paths) for free.
+- **`Registry.resolve(namespace, name, true, false)`** (inheritance search on,
+  proxy-fallback off) is the right primitive for both `@param`/`@return` type
+  names and `@see` targets: it returns a real `CodeObject` or `nil`, which is
+  exactly "is this actually documented, worth a link" vs. "plain backtick."
+- **`Object`, `BasicObject`, and `Kernel` are never in the Registry** unless
+  their source is actually parsed — they show up only as unresolved `Proxy`
+  stand-ins with no ancestry/mixin data of their own. There's no way to derive
+  "`Point`'s ancestors are `Object` → `BasicObject`, and it includes `Kernel`"
+  from the registry alone. We hardcode a tiny `CORE_ANCESTRY` table in
+  `class/agentdocs/setup.rb` covering just this common case (plain class,
+  implicit `Object` superclass) — deliberately narrow, not a general stdlib
+  ancestry resolver. This is exactly the still-open "mixin/inheritance
+  content strategy" question, just pre-answered for the one case that was
+  otherwise impossible to render at all.
+- **YARD auto-synthesizes an `@return` tag on constructors** — even when
+  `#initialize` has no explicit `@return`, `method.tag(:return)` comes back
+  with text like "a new instance of Point". Left unhandled, the synthetic
+  `.new` entry gets a spurious **Returns:** line under our formatting rule
+  (only show it when a real `@return` tag exists). Fix: explicitly treat
+  constructors as having no return tag for that purpose, regardless of what
+  `#tag(:return)` reports.
+- **`Docstring#all` reconstructs the whole original comment, tags included**
+  — for a method with `@param`/`@return`/`@see`, `.all` returns the prose
+  *plus* raw `"@param ...\n@return ...\n"` lines. For prose-only rendering
+  (what goes in the body text, since tags are rendered separately), use the
+  plain `Docstring` itself (`object.docstring`), not `.all`.
+- **ERB has no trim mode for custom formats.** YARD only passes
+  `trim_mode: '<>'` to `ERB.new` when `options.format == :text` (its own
+  built-in format) — a custom format like `agentdocs` always gets untrimmed
+  ERB. That means a `<% if cond %>` / `<% end %>` pair's surrounding text
+  (including any blank "spacer" lines written for readability) is emitted
+  unconditionally *around* the conditional content, and a `<% each %>` loop's
+  per-iteration leading/trailing text repeats every time — both leak stray
+  blank lines into the output regardless of whether the branch/loop actually
+  produced anything. The fix that actually works: push every
+  optional/repeated piece into a plain Ruby array (`nil` for an absent group),
+  `.compact.join("\n\n")` them, and emit the whole block via a single `<%= %>`
+  expression — no `<% if %>`/`<% each %>` left inside any `.erb` file. See
+  `member_summary_block`/`member_sections_block`/`method_body_block` in
+  `module/agentdocs/setup.rb` for the pattern. This is also why the test
+  asserts byte-for-byte equality rather than whitespace-normalized equality —
+  once the leaks were fixed at the source, normalization was no longer
+  needed, and keeping it would have hidden future regressions of this exact
+  kind.
+- **`YARD::CLI::Yardoc` auto-loads a `.yardopts` file from the current
+  directory** unless told not to. Driving it programmatically (as the test
+  does) needs `--no-yardopts`, or it silently merges in this gem's own
+  `.yardopts` file list — which is how a spurious extra "YARD" top-level
+  namespace first showed up in test output (from `lib/yard/agentdocs.rb`
+  getting parsed alongside the intended `example/lib` files).
+- **`bundle exec yard doc -f agentdocs` alone won't find the template.**
+  Bundler activates a path-based gem dependency but doesn't `require` it.
+  Either pass `-e ./lib/yard-agentdocs.rb` (loads the file first, registering
+  the template path) or gem-install the plugin for real, so YARD's own
+  `yard-*`-prefix plugin autoload picks it up.
+- **Method line numbers are the `def` line itself**, not a preceding
+  comment/blank line — don't hand-count when writing fixtures; check against
+  actual parser output.
+- **Constant values are raw source text, implicit receivers included.**
+  `Point::ORIGIN = new(0, 0)` (written inside `class Point`, so `new` means
+  `Point.new`) records verbatim as `"new(0, 0)"`, not `"Point.new(0, 0)"`. We
+  don't rewrite/expand these — the fixture reflects the raw text.
+- **`spec.files` needs `templates/**/*` explicitly** — it isn't swept in by
+  the `lib/**/*.rb` glob, and a built gem silently ships without its own
+  templates otherwise. Worth remembering for any other non-`lib/` directory
+  this gem grows.
+- **(Harmless, but easy to mistake for a bug of ours.)** The first time
+  anything actually calls `YARD.parse` in a process, YARD 0.9.44's own
+  `lib/yard/parser/ruby/ruby_parser.rb` reliably prints three "method
+  redefined" warnings (`on_hshptn`, `on_aryptn`, `on_fndptn`). It's
+  intentional on YARD's part — a generic per-event codegen pass early in the
+  file defines default handlers for every Ripper event, then hand-written
+  Ruby-3-pattern-matching-aware overrides later in the *same file* redefine
+  those three. Nothing to fix on our end; it's pre-existing and lazily
+  triggered, which is why it never showed up before this template's test
+  started actually driving the parser.
+
+### Testing approach
+
+`test/test_agentdocs_template.rb` runs `YARD::CLI::Yardoc.new.run(...)`
+in-process (not shelling out), from inside `Dir.chdir(project_root)` so
+recorded source paths come out relative (`example/lib/geometry.rb`, matching
+the fixtures) rather than absolute. It asserts each generated file is exactly
+equal to its `example/doc` counterpart — no normalization. A manual
+end-to-end sanity check (`yard doc -f agentdocs -e ./lib/yard-agentdocs.rb
+...` from the command line) is worth re-running after any template change,
+since it's the only check that exercises the real CLI entry point rather than
+`YARD::CLI::Yardoc.new.run` directly.

@@ -217,6 +217,7 @@ Style/DocumentationMethod:
   Exclude:
     - ".toys.rb"
     - "test/**/*"
+    - "templates/**/*"
 Style/EmptyHeredoc:
   Enabled: true
 Style/EmptyStringInsideInterpolation:

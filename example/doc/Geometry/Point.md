@@ -42,7 +42,7 @@ The number of coordinates a point has.
 ### ORIGIN
 
 **Type:** `Point`
-**Value:** `Point.new(0, 0)`
+**Value:** `new(0, 0)`
 
 The point at the origin, `(0, 0)`.
 

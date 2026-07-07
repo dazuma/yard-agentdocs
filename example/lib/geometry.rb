@@ -3,8 +3,10 @@
 require_relative "geometry/point"
 
 ##
-# A small toy geometry namespace, used as a worked example for the
-# `yard-agentdocs` output format. Not part of the shipped gem.
+# A small toy geometry namespace, used as a worked example and test case for
+# the `yard-agentdocs` output format.
+#
+# Not part of the shipped gem.
 #
 module Geometry
   ##

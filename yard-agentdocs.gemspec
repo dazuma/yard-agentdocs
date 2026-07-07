@@ -19,6 +19,7 @@ require "yard/agentdocs/version"
   spec.homepage = "https://github.com/dazuma/yard-agentdocs"
 
   spec.files = ::Dir.glob("lib/**/*.rb") +
+               ::Dir.glob("templates/**/*") +
                (::Dir.glob("*.md") - ["CLAUDE.md", "AGENTS.md"]) +
                [".yardopts"]
   spec.require_paths = ["lib"]

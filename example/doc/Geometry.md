@@ -2,8 +2,10 @@
 
 **Defined in:** `example/lib/geometry.rb`
 
-A small toy geometry namespace, used as a worked example for the
-`yard-agentdocs` output format. Not part of the shipped gem.
+A small toy geometry namespace, used as a worked example and test case for
+the `yard-agentdocs` output format.
+
+Not part of the shipped gem.
 
 ## Member Summary
 
@@ -34,4 +36,4 @@ Computes the distance between two points.
 
 **See also:** [`Point#distance_to`](Geometry/Point.md)
 
-**Defined in:** `example/lib/geometry.rb:17`
+**Defined in:** `example/lib/geometry.rb:20`
