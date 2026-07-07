@@ -10,6 +10,13 @@ against `example/lib` (see `templates/default/{fulldoc,module,class}/agentdocs/`
 see `devdocs/DESIGN.md`'s "Example coverage checklist" for what's covered vs. still open. See "Design"
 below for the full rationale and implementation notes.
 
+Remaining checklist coverage is built test-first and human-gated, per
+`devdocs/DESIGN.md`'s "Coverage workflow (TDD loop)": the user picks the next
+checklist item(s), Claude proposes `example/lib`/`example/doc` changes for
+review/iteration, and only once the user explicitly approves those does
+Claude touch `test/test_agentdocs_template.rb` or the template implementation.
+Do not jump ahead to implementation on your own initiative.
+
 ## Purpose
 
 `yard-agentdocs` will be a Ruby gem implementing a [YARD](https://yardoc.org/) plugin. It provides a YARD

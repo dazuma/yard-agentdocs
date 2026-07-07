@@ -58,6 +58,40 @@ it against a concrete worked example:
 This lets us iterate quickly on the format (editing markdown by hand) before
 sinking time into the YARD template/handler mechanics needed to generate it.
 
+### Coverage workflow (TDD loop)
+
+Now that the template exists, every checklist item below gets built test-first,
+one item (or a small handful of tightly-related variants) at a time. This is a
+**collaborative, human-gated loop**, not something Claude runs autonomously —
+the example files encode real design decisions (see "Decisions"/"Open
+questions"), so the human reviews and iterates on them before any
+implementation code gets touched:
+
+1. **Human** proposes which unchecked checklist item(s) to tackle next.
+2. **Claude** proposes the corresponding additions/edits to `example/lib`
+   (Ruby source exercising the item) and `example/doc` (the hand-authored
+   target output for it), asking clarifying questions along the way where the
+   item raises a design choice not already settled in "Decisions".
+3. **Human** reviews the proposed `example/lib`/`example/doc` changes; they
+   iterate with Claude as needed until both are satisfied. Nothing outside
+   `example/` (templates, `test/test_agentdocs_template.rb`) is touched during
+   this step.
+4. Once the human explicitly says the example changes are good, **Claude**
+   implements: update `test/test_agentdocs_template.rb` (new source files
+   into the `generate` call's file list, new output files into the list of
+   asserted paths), confirm `toys test` fails against the new fixture, then
+   update the template implementation until it passes byte-for-byte — no
+   normalization/fuzzy comparison; fix the generator, don't loosen the
+   assertion (see "ERB has no trim mode" for why this matters).
+5. Check off the completed item(s) in the checklist below, recording any new
+   decision reached in step 2 under "Decisions" (or "Open questions" if still
+   unresolved).
+6. Run `toys test` and `toys rubocop` before moving to the next item.
+
+Do not skip ahead to step 4 (implementation) without an explicit go-ahead from
+the human, even if the example changes look done — the review in step 3 is
+the point of doing this test-first.
+
 ## Example coverage checklist
 
 This is the working checklist of Ruby language features and YARD tags/directives
