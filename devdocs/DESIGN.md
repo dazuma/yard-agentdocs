@@ -77,11 +77,12 @@ implementation code gets touched:
    `example/` (templates, `test/test_agentdocs_template.rb`) is touched during
    this step.
 4. Once the human explicitly says the example changes are good, **Claude**
-   implements: update `test/test_agentdocs_template.rb` (new source files
-   into the `generate` call's file list, new output files into the list of
-   asserted paths), confirm `toys test` fails against the new fixture, then
-   update the template implementation until it passes byte-for-byte — no
-   normalization/fuzzy comparison; fix the generator, don't loosen the
+   implements: add any new source files to `test/test_agentdocs_template.rb`'s
+   `generate` call's file list (output files are discovered automatically —
+   no list to maintain there), confirm `toys test` fails against the new
+   fixture, then update the template implementation until it passes
+   byte-for-byte — no normalization/fuzzy comparison; fix the generator, don't
+   loosen the
    assertion (see "ERB has no trim mode" for why this matters).
 5. Check off the completed item(s) in the checklist below, recording any new
    decision reached in step 2 under "Decisions" (or "Open questions" if still
