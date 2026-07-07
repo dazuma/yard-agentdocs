@@ -1,0 +1,9 @@
+--no-private
+--title=YARD::Agents
+--markup=markdown
+--main=README.md
+./lib/yard/agents.rb
+-
+README.md
+LICENSE.md
+CHANGELOG.md

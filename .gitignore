@@ -1,0 +1,8 @@
+/.yardoc/
+/.ruby-lsp/
+.claude/
+/doc/
+/pkg/
+/tmp/
+Gemfile.lock
+.DS_Store
