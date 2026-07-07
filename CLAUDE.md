@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project status
 
 Basic gem scaffolding is in place (gemspec, `lib/`, `test/`, tooling), but no plugin behavior has been
-implemented yet — `YARD::Agents` is currently an empty module. The design questions below are still open
-and should be resolved before real implementation begins; update this file as they're settled.
+implemented yet — `YARD::Agents` is currently an empty module. We're now working through output-format
+design using a worked example before writing any generation code; see "Design" below.
 
 ## Purpose
 
@@ -19,22 +19,16 @@ return values, usage) currently have to search through source files or a human-o
 which burns a lot of input tokens and requires multi-step exploration. This gem should let an agent fetch
 exactly the reference info it needs (e.g. one method's docs) with a single, cheap file read.
 
-## Open design questions
+## Design
 
-These are not yet decided and should be resolved/documented here as they're settled:
+Read [`devdocs/DESIGN.md`](devdocs/DESIGN.md) for the current design thinking and the list of open
+questions (output format, file granularity, lookup/indexing, YARD integration mechanics, cross-referencing).
+It's a living document — keep it updated as decisions are made. `devdocs/` is not shipped in the gem.
 
-- **Output format** — likely Markdown, but exact structure (headers, sections, front matter) is undecided.
-- **File granularity** — one file per class vs. one file per method (to let an agent load a single method's
-  docs without pulling in the whole class). Method-level granularity is the leading idea but has tradeoffs
-  (file count, cross-references, shared class-level context like `@since`/inheritance).
-- **Indexing/lookup** — how an agent (or tooling around it) discovers which file corresponds to a given
-  class/method — e.g. a top-level index file, a predictable path/naming convention, or both.
-- **YARD integration mechanics** — how the plugin hooks into YARD's template/handler system (custom
-  template path vs. registered output format vs. `yard-*` plugin conventions) and how it's invoked
-  (`yard doc -f agents`, a rake task, a CLI wrapper, etc.).
-- **Cross-referencing** — how method docs that reference other methods/classes (`@see`, param types,
-  return types, mixins/inheritance) should link between the generated files without forcing an agent to
-  load unnecessary context.
+We're designing the output format example-first: `example/lib` will hold hand-written Ruby source
+exercising the YARD features we care about, and `example/doc` will hold the hand-authored target output we
+iterate on directly, before any template/generation code exists. Once stable, that pair becomes the test
+fixture for the real implementation.
 
 ## Commands
 
