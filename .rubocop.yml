@@ -159,7 +159,7 @@ Naming/BlockForwarding:
   Enabled: true
 Naming/FileName:
   Exclude:
-    - "lib/yard-agents.rb"
+    - "lib/yard-agentdocs.rb"
 Naming/PredicateMethod:
   Enabled: false
 

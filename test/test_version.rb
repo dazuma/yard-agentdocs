@@ -4,6 +4,6 @@ require "helper"
 
 describe "version constant" do
   it "is set" do
-    assert(defined?(::YARD::Agents::VERSION))
+    assert(defined?(::YARD::AgentDocs::VERSION))
   end
 end

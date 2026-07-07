@@ -4,4 +4,4 @@ require "minitest/autorun"
 require "minitest/focus"
 require "minitest/rg"
 
-require "yard-agents"
+require "yard-agentdocs"

@@ -1,6 +1,6 @@
-# yard-agents
+# yard-agentdocs
 
-`yard-agents` is a [YARD](https://yardoc.org/) plugin that renders Ruby API
+`yard-agentdocs` is a [YARD](https://yardoc.org/) plugin that renders Ruby API
 reference documentation in a format designed for coding agents (e.g.
 LLM-based tools) to look up efficiently — for example, a method's signature,
 parameters, and usage — without having to search through source files or
@@ -13,13 +13,13 @@ design questions.
 
 ## Quick start
 
-Install yard-agents as a gem, or include it in your bundle.
+Install yard-agentdocs as a gem, or include it in your bundle.
 
 ```sh
-gem install yard-agents
+gem install yard-agentdocs
 ```
 
-`yard-agents` requires Ruby 3.4.0 or later.
+`yard-agentdocs` requires Ruby 3.4.0 or later.
 
 ## Contributing
 
@@ -27,7 +27,7 @@ Contributions are welcome, although please [contact the maintainer](https://gith
 before embarking on a major change, to make sure it's something I'm willing
 to accept.
 
-Report bugs and feature requests on the [GitHub issue tracker](https://github.com/dazuma/yard-agents/issues).
+Report bugs and feature requests on the [GitHub issue tracker](https://github.com/dazuma/yard-agentdocs/issues).
 
 ## License
 

@@ -2,11 +2,11 @@
 
 lib = ::File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "yard/agents/version"
+require "yard/agentdocs/version"
 
 ::Gem::Specification.new do |spec|
-  spec.name = "yard-agents"
-  spec.version = ::YARD::Agents::VERSION
+  spec.name = "yard-agentdocs"
+  spec.version = ::YARD::AgentDocs::VERSION
   spec.authors = ["Daniel Azuma"]
   spec.email = ["dazuma@gmail.com"]
 
@@ -16,7 +16,7 @@ require "yard/agents/version"
     " designed for coding agents to look up efficiently, minimizing the tokens needed" \
     " to find a method's documentation."
   spec.license = "MIT"
-  spec.homepage = "https://github.com/dazuma/yard-agents"
+  spec.homepage = "https://github.com/dazuma/yard-agentdocs"
 
   spec.files = ::Dir.glob("lib/**/*.rb") +
                (::Dir.glob("*.md") - ["CLAUDE.md", "AGENTS.md"]) +
@@ -26,8 +26,8 @@ require "yard/agents/version"
   spec.add_dependency "yard", "~> 0.9"
   spec.required_ruby_version = ">= 3.4"
 
-  spec.metadata["bug_tracker_uri"] = "https://github.com/dazuma/yard-agents/issues"
-  spec.metadata["changelog_uri"] = "https://rubydoc.info/gems/yard-agents/#{::YARD::Agents::VERSION}/file/CHANGELOG.md"
-  spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/yard-agents/#{::YARD::Agents::VERSION}"
-  spec.metadata["homepage_uri"] = "https://github.com/dazuma/yard-agents"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/dazuma/yard-agentdocs/issues"
+  spec.metadata["changelog_uri"] = "https://rubydoc.info/gems/yard-agentdocs/#{::YARD::AgentDocs::VERSION}/file/CHANGELOG.md"
+  spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/yard-agentdocs/#{::YARD::AgentDocs::VERSION}"
+  spec.metadata["homepage_uri"] = "https://github.com/dazuma/yard-agentdocs"
 end

@@ -1,6 +1,6 @@
 # Design
 
-This document describes the design of `yard-agents` — a [YARD](https://yardoc.org/)
+This document describes the design of `yard-agentdocs` — a [YARD](https://yardoc.org/)
 plugin that renders Ruby API reference documentation in a format meant for coding
 agents to look up efficiently, rather than for human browsing.
 
@@ -74,7 +74,7 @@ should help answer:
 - **YARD integration mechanics** — how the plugin hooks into YARD's
   template/handler system (custom template path vs. registered output format vs.
   standard `yard-*` plugin conventions), and how it's invoked (`yard doc -f
-  agents`, a Toys task, a CLI wrapper, etc.).
+  agentdocs`, a Toys task, a CLI wrapper, etc.).
 - **Cross-referencing** — how method docs that reference other methods/classes
   (`@see`, param types, return types, mixins/inheritance) should link between
   generated files without forcing an agent to load unnecessary context to

@@ -1,8 +1,8 @@
 --no-private
---title=YARD::Agents
+--title=YARD::AgentDocs
 --markup=markdown
 --main=README.md
-./lib/yard/agents.rb
+./lib/yard/agentdocs.rb
 -
 README.md
 LICENSE.md

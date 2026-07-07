@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module YARD
-  module Agents
+  module AgentDocs
     ##
-    # The version of the yard-agents gem
+    # The version of the yard-agentdocs gem
     #
     # @return [String]
     #

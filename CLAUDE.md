@@ -5,12 +5,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project status
 
 Basic gem scaffolding is in place (gemspec, `lib/`, `test/`, tooling), but no plugin behavior has been
-implemented yet — `YARD::Agents` is currently an empty module. We're now working through output-format
+implemented yet — `YARD::AgentDocs` is currently an empty module. We're now working through output-format
 design using a worked example before writing any generation code; see "Design" below.
 
 ## Purpose
 
-`yard-agents` will be a Ruby gem implementing a [YARD](https://yardoc.org/) plugin. It provides a YARD
+`yard-agentdocs` will be a Ruby gem implementing a [YARD](https://yardoc.org/) plugin. It provides a YARD
 template that renders an "agent-friendly" yardoc output format: reference documentation structured for
 consumption by coding agents (e.g. LLM-based tools) rather than for human browsing in a web browser.
 
@@ -48,10 +48,12 @@ Run `toys test` and `toys rubocop` before committing.
 
 ## Architecture & conventions
 
-- **Namespacing:** the gem is `yard-agents`; code lives under `YARD::Agents` (require path `yard/agents`),
-  reopening the `YARD` module from the `yard` gem since this is a plugin for it. The entry point
-  `lib/yard-agents.rb` just requires `yard/agents`. Mirrors the sibling gems' pattern of nesting the module
-  under the gem name (see e.g. `ractor-wrapper` → `Ractor::Wrapper`).
+- **Namespacing:** the gem is `yard-agentdocs`; code lives under `YARD::AgentDocs` (require path
+  `yard/agentdocs`), reopening the `YARD` module from the `yard` gem since this is a plugin for it. The
+  entry point `lib/yard-agentdocs.rb` just requires `yard/agentdocs`. Note this deliberately departs from
+  the mechanical gem-name-to-module convention (`yard-agentdocs` would mechanically map to
+  `YARD::Agentdocs`) for readability — same manual override RuboCop makes (`rubocop` → `RuboCop`, not
+  `Rubocop`).
 - **Tests:** Minitest, spec-style (`describe`/`it` blocks with `assert_*` assertions, not `must`/`wont`
   expectations). Test files follow `test_*.rb`. `minitest-focus` is available — add `focus` above a test
   to run only that one.
