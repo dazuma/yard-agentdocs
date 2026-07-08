@@ -277,6 +277,12 @@ Style/MapToSet:
   Enabled: true
 Style/MinMaxComparison:
   Enabled: true
+# YARD evaluates a template's setup.rb as a class body (not real top-level
+# code), so a top-level `include` there doesn't pollute Object like this cop
+# assumes.
+Style/MixinUsage:
+  Exclude:
+    - "templates/**/setup.rb"
 Style/ModuleMemberExistenceCheck:
   Enabled: true
 Style/MultilineInPatternThen:

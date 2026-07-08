@@ -2,27 +2,14 @@
 
 require "pathname"
 
+include ::YARD::AgentDocs::ErbWithTrimMode
+
 def init
   sections :page
 end
 
 def page
   erb(:page)
-end
-
-# YARD only enables ERB's trim mode for its own built-in `:text` format
-# (`Template#erb_with`), so a custom format like `agentdocs` otherwise gets
-# untrimmed ERB: a `<% if %>`/`<% end %>` pair's surrounding line breaks
-# leak into the output regardless of whether the branch produced anything.
-# Overriding `erb_with` (the seam `#erb`/`#superb` both call to build the
-# `ERB` instance) to always request explicit trim mode lets `.erb` files use
-# `<%- -%>` to opt out of that leakage where needed, without changing
-# behavior for tags that don't use it — trim mode `-` is a no-op for a
-# template with no `-%>`/`<%-` markers.
-def erb_with(content, filename = nil)
-  erb = ::ERB.new(content, trim_mode: "-")
-  erb.filename = filename if filename
-  erb
 end
 
 # @group Member listings

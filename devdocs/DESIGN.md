@@ -453,6 +453,11 @@ in "Example coverage checklist" above, not the full checklist.
   `YARD::Templates::Engine.register_template_path` with the gem's `templates/`
   dir. This is the entire integration point — no custom output-format
   registration, no handler classes.
+- `lib/yard/agentdocs/` holds plain Ruby helpers shared across `setup.rb`
+  files belonging to different template modules (`module/agentdocs` and
+  `fulldoc/agentdocs` don't inherit from each other, so a method defined in
+  one's `setup.rb` isn't visible in the other's) — currently just
+  `ErbWithTrimMode`, `include`d by both.
 - Templates live under `templates/default/{fulldoc,module,class}/agentdocs/`,
   mirroring YARD's own directory convention (`<template>/<type>/<format>/`):
   - `fulldoc/agentdocs` is the driver: walks the object list YARD hands it,
@@ -486,15 +491,20 @@ file is meant to double as a readable skeleton of the output shape; burying
 that shape in `setup.rb` string-assembly defeats the point, even though it
 was the original workaround (see "ERB has no trim mode" below).
 
-This is viable now because `module/agentdocs/setup.rb` overrides
-`Template#erb_with` — the method YARD's `#erb`/`#superb` both call to build
-the `ERB` instance — to always construct `ERB.new(content, trim_mode: "-")`,
-rather than accepting YARD's own version (trim mode only for its built-in
-`:text` format, `nil` otherwise). `.erb` files then use explicit `<%- -%>` /
-`<%- ... -%>` tags to suppress the surrounding blank line/indentation a
-conditional or loop would otherwise leak, exactly where needed. Confirmed
-this doesn't change output for any template that uses ordinary `<% %>`/
-`<%= %>` without the dash markers — trim mode `-` is a no-op for those.
+This is viable now because `YARD::AgentDocs::ErbWithTrimMode`
+(`lib/yard/agentdocs/erb_with_trim_mode.rb`) overrides `Template#erb_with` —
+the method YARD's `#erb`/`#superb` both call to build the `ERB` instance —
+to always construct `ERB.new(content, trim_mode: "-")`, rather than
+accepting YARD's own version (trim mode only for its built-in `:text`
+format, `nil` otherwise). Both `module/agentdocs/setup.rb` and
+`fulldoc/agentdocs/setup.rb` `include` this shared mixin (it lives under
+`lib/` rather than duplicated per `setup.rb`, since neither template module
+inherits the other's overrides — see "Architecture" above). `.erb` files
+then use explicit `<%- -%>` / `<%- ... -%>` tags to suppress the surrounding
+blank line/indentation a conditional or loop would otherwise leak, exactly
+where needed. Confirmed this doesn't change output for any template that
+uses ordinary `<% %>`/`<%= %>` without the dash markers — trim mode `-` is a
+no-op for those.
 
 Applied throughout: `page.erb` composes the page from three sub-templates —
 `metadata.erb`, `member_summary.erb`, `member_sections.erb` — each an
@@ -510,9 +520,9 @@ the last one. `method_entry.erb` and `attribute_entry.erb` similarly inline
 their optional lines (constructor note, params list, returns, see-also;
 type/read-only annotation) as `<%- if/unless -%>` blocks instead of an
 array-building Ruby method. `fulldoc/agentdocs`'s `index.erb` loops over
-`@top_level_objects` the same way — it needed its own `erb_with` override
-(see `fulldoc/agentdocs/setup.rb`) since it's a separate template module
-from `module/agentdocs` and doesn't inherit that one's override.
+`@top_level_objects` the same way — it also `include`s `ErbWithTrimMode`
+directly (see `fulldoc/agentdocs/setup.rb`) since it's a separate template
+module from `module/agentdocs` and doesn't inherit its `include`.
 
 What's left as Ruby, deliberately: single-value/single-line computations
 with no optional multi-line structure to leak whitespace from — `type_ref`,

@@ -2,6 +2,7 @@
 
 require "yard"
 
+require "yard/agentdocs/erb_with_trim_mode"
 require "yard/agentdocs/version"
 
 ##
