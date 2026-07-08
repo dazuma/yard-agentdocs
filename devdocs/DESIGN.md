@@ -266,10 +266,9 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   a single source of truth but an extra hop to resolve it)? Orthogonal to
   file granularity — applies regardless of how files are split. Still not
   exercised in `example/lib` (no *explicit* mixins or inheritance there yet —
-  the `Object`/`BasicObject`/`Kernel` ancestry shown for `Point` is a narrow,
-  hardcoded special case for the common "plain class, implicit superclass"
-  scenario, not a general answer to this question; see "Implementation"
-  below).
+  `Point`/`Stopwatch` only show a bare `Superclass: Object` line, per the
+  immediate-superclass-only rule in "Output format" below, which is
+  deliberately *not* an answer to this question).
 
 ## Decisions
 
@@ -322,12 +321,18 @@ Settled shape for a class/module's Markdown file, worked out against
 
 1. **`# FullyQualifiedName`** title.
 2. **Metadata block** — bold key-value lines, only the lines that apply:
-   - `**Ancestors:**` — the pure superclass chain only (e.g. `Object` →
-     `BasicObject`), *excluding* mixed-in modules.
-   - `**Includes:**` — modules mixed into the ancestry, listed separately
-     from `Ancestors`, even if inherited transitively (e.g. `Kernel` shows up
-     here for any class, via `Object`, without that class including it
-     directly) rather than declared on the class itself.
+   - `**Superclass:**` — the class's immediate superclass only (e.g. `Object`),
+     not the full ancestor chain. We deliberately don't walk further: a more
+     distant ancestor (or a module *it* mixes in) may be defined outside the
+     parsed source (another gem, stdlib), so we can't reliably know the full
+     chain in general — better to show one reliable hop than a chain that's
+     silently incomplete for some classes.
+   - `**Includes:**` — modules `include`d directly in the class's own parsed
+     source, *not* ones mixed in transitively by its superclass (same
+     reasoning as `Superclass` — we don't walk the chain, so we can't know
+     those either). This means a plain class with an implicit `Object`
+     superclass shows no `Includes` line at all (`Kernel` is never a direct
+     `include` on the class itself).
    - `**Defined in:**` — source file path (no line number at this
      granularity; it's a whole-class/module reference).
    - No `Namespace:` line: the enclosing namespace is already fully legible
@@ -457,7 +462,7 @@ in "Example coverage checklist" above, not the full checklist.
     cross-reference resolution, signature building, per-entry rendering —
     used directly for modules and `include`d by `class/agentdocs` (mirroring
     upstream's own `class/setup.rb` doing `include T('default/module')`).
-  - `class/agentdocs` adds what only classes have: the `**Ancestors:**`/
+  - `class/agentdocs` adds what only classes have: the `**Superclass:**`/
     `**Includes:**` metadata lines and the synthetic `.new` entry sourced from
     `#initialize`.
   - No `root/agentdocs` or `layout/agentdocs` — `index.md` is a one-off
@@ -512,7 +517,7 @@ from `module/agentdocs` and doesn't inherit that one's override.
 What's left as Ruby, deliberately: single-value/single-line computations
 with no optional multi-line structure to leak whitespace from — `type_ref`,
 `link_path`, `signature_text`, `nested_summary_line`/`constant_summary_line`/
-`attribute_summary_line`/`method_summary_line`, `ancestors_line`/
+`attribute_summary_line`/`method_summary_line`, `superclass_line`/
 `includes_line`, etc. These aren't the workaround pattern being replaced;
 they're ordinary formatting helpers, same as upstream YARD templates use,
 and read fine as one-line `<%= helper(x) %>` calls inside the `.erb` loops
@@ -543,14 +548,12 @@ A few things that weren't obvious going in, worth not re-discovering:
   exactly "is this actually documented, worth a link" vs. "plain backtick."
 - **`Object`, `BasicObject`, and `Kernel` are never in the Registry** unless
   their source is actually parsed — they show up only as unresolved `Proxy`
-  stand-ins with no ancestry/mixin data of their own. There's no way to derive
-  "`Point`'s ancestors are `Object` → `BasicObject`, and it includes `Kernel`"
-  from the registry alone. We hardcode a tiny `CORE_ANCESTRY` table in
-  `class/agentdocs/setup.rb` covering just this common case (plain class,
-  implicit `Object` superclass) — deliberately narrow, not a general stdlib
-  ancestry resolver. This is exactly the still-open "mixin/inheritance
-  content strategy" question, just pre-answered for the one case that was
-  otherwise impossible to render at all.
+  stand-ins with no ancestry/mixin data of their own, so there's no way to
+  derive their own superclass/includes from the registry. This is exactly why
+  `superclass_line`/`includes_line` (`class/agentdocs/setup.rb`) stop at one
+  hop instead of walking the chain: `object.superclass` and
+  `object.mixins(:instance)` are reliable for the class actually being
+  rendered, but the same calls on an unparsed `Proxy` ancestor wouldn't be.
 - **YARD auto-synthesizes an `@return` tag on constructors** — even when
   `#initialize` has no explicit `@return`, `method.tag(:return)` comes back
   with text like "a new instance of Point". Left unhandled, the synthetic

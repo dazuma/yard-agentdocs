@@ -63,7 +63,7 @@ end
 
 # @group Ancestry (overridden for classes; modules show neither line)
 
-def ancestors_line
+def superclass_line
   nil
 end
 

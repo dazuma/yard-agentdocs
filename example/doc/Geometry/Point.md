@@ -1,7 +1,6 @@
 # Geometry::Point
 
-**Ancestors:** `Object` → `BasicObject`
-**Includes:** `Kernel`
+**Superclass:** `Object`
 **Defined in:** `example/lib/geometry/point.rb`
 
 A point in two-dimensional space.

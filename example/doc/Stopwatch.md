@@ -1,7 +1,6 @@
 # Stopwatch
 
-**Ancestors:** `Object` → `BasicObject`
-**Includes:** `Kernel`
+**Superclass:** `Object`
 **Defined in:** `example/lib/stopwatch.rb`
 
 A simple stopwatch that accumulates elapsed time, in seconds.
