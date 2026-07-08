@@ -24,6 +24,8 @@ describe "agentdocs template" do
         "example/lib/geometry/shape.rb",
         "example/lib/geometry/polygon.rb",
         "example/lib/geometry/triangle.rb",
+        "example/lib/geometry/circle.rb",
+        "example/lib/geometry/vector.rb",
         "example/lib/stopwatch.rb"
       )
     end

@@ -5,6 +5,8 @@ require_relative "geometry/computations"
 require_relative "geometry/shape"
 require_relative "geometry/polygon"
 require_relative "geometry/triangle"
+require_relative "geometry/circle"
+require_relative "geometry/vector"
 
 ##
 # A small toy geometry namespace, used as a worked example and test case for

@@ -125,9 +125,9 @@ unchecked rather than being marked as done.
       → `Polygon` → `Triangle`; also settled that `**Superclass:**` links to a
       resolved (in-example) superclass's own file, showing the name as written
       in source
-- [ ] A `Struct.new`-based class
-- [ ] A `Data.define`-based class (Ruby 3.2+ value object, relevant given the
-      gem's `>= 3.4` floor)
+- [x] A `Struct.new`-based class — `Geometry::Circle`
+- [x] A `Data.define`-based class (Ruby 3.2+ value object, relevant given the
+      gem's `>= 3.4` floor) — `Geometry::Vector`
 
 ### Mixins
 
@@ -398,6 +398,45 @@ Settled shape for a class/module's Markdown file, worked out against
 
 No YAML front matter, and not designed for human skimming as a goal (though
 it happens to be readable) — plain Markdown throughout.
+
+### `Struct.new`/`Data.define`-based classes
+
+Exercised via `Geometry::Circle` (`Circle = Struct.new(:radius) do ... end`)
+and `Geometry::Vector` (`Vector = Data.define(:dx, :dy) do ... end`). No
+template changes were needed — YARD's own `Struct`/`Data` handling maps
+cleanly onto decisions already made for other cases:
+
+- **Superclass** renders as a plain, unlinked `` `Struct` ``/`` `Data` `` —
+  same as `Object` — since YARD represents it as an unresolved `Proxy`
+  (neither is parsed source), matching the existing resolved-vs-unresolved
+  rule.
+- **No synthetic `.new` entry.** Unlike a hand-written `def initialize`,
+  `Struct.new`/`Data.define` don't give YARD a real `#initialize` method to
+  attach docs to (member accessors are synthesized, but not a constructor),
+  so `class_method_objects`' `find(&:constructor?)` comes up empty and the
+  `Class Methods` section is simply absent. Accepted as a real gap rather
+  than worked around: the file still accurately reflects everything YARD
+  could parse, and fabricating a constructor entry would violate the
+  "reflect what's actually parseable" principle. An agent still learns the
+  member names/types from `Attributes` and can infer `.new(radius)`-style
+  construction from Ruby's own `Struct`/`Data` conventions.
+- **Struct members are read-write; `Data.define` members are read-only** —
+  YARD's handlers create both a reader and a writer for each `Struct.new`
+  member but only a reader for each `Data.define` member, matching real
+  Ruby semantics (`Data` objects are immutable). `Circle#radius` is this
+  example set's first read-write attribute (no `(read-only)`/`(write-only)`
+  annotation, since neither is `nil`).
+- **Attribute type/text default to `` `Object` ``/"Returns the value of
+  attribute `name`"** when no `@attr`/`@attr_reader`/`@attr_writer` tag is
+  given on the class — confirmed this is a general YARD fallback for *any*
+  undocumented attribute (a bare `attr_reader :bar` with no comment gets
+  the same boilerplate), not specific to `Struct`/`Data`. Kept as-is rather
+  than filtered: matching YARD's exact generated strings to suppress them
+  would be fragile (silently breaks if YARD rewords them) and hard to
+  distinguish from a legitimately terse user-written docstring. Revisit
+  this as a general policy — not a `Struct`/`Data`-specific one — if/when
+  the still-unchecked undocumented-`attr_reader`/`writer`/`accessor`
+  checklist item is tackled.
 
 ### Cross-referencing
 
