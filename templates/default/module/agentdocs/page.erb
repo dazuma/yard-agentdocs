@@ -5,5 +5,7 @@
 <%= object.docstring.strip %>
 
 <%= member_summary_block %>
+<%- unless member_sections_block.empty? -%>
 
 <%= member_sections_block %>
+<%- end -%>

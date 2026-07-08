@@ -113,8 +113,9 @@ unchecked rather than being marked as done.
 
 ### Module/class structure
 
-- [ ] Top-level class
-- [ ] Top-level module (namespace only, no behavior)
+- [x] Top-level class — `Stopwatch`
+- [x] Top-level module (namespace only, no behavior) — `Geometry` itself,
+      once its one method moved to `Geometry::Computations`
 - [ ] Nested namespacing (`Foo::Bar::Baz`), including a module that exists only
       to hold nested classes/modules
 - [ ] A class reopened across two files/locations (docs should merge)
@@ -465,9 +466,43 @@ in "Example coverage checklist" above, not the full checklist.
     `layout`/multi-format dispatch (that machinery exists to share code across
     html/text/dot; this plugin only ever targets one format).
   - ERB templates hold the actual per-file/per-entry text; Ruby methods in
-    each `setup.rb` do the data-gathering/formatting and assemble pre-rendered
-    fragments — see "ERB has no trim mode" below for why the split landed
-    where it did.
+    each `setup.rb` do the data-gathering/formatting. Older sections
+    assemble pre-rendered fragments in Ruby and emit them as one block (see
+    "ERB has no trim mode" below); see "Template coding convention" below for
+    the direction new/changed templates should take instead.
+
+### Template coding convention: structure and control flow belong in `.erb`
+
+Preference, going forward: a class/module's document structure — which
+sections exist, in what order, looped over which members — should be
+visible in the `.erb` file itself via ordinary `<% if %>`/`<% each %>`, not
+hidden inside a Ruby method that pre-builds and joins strings. The `.erb`
+file is meant to double as a readable skeleton of the output shape; burying
+that shape in `setup.rb` string-assembly defeats the point, even though it
+was the original workaround (see "ERB has no trim mode" below).
+
+This is viable now because `module/agentdocs/setup.rb` overrides
+`Template#erb_with` — the method YARD's `#erb`/`#superb` both call to build
+the `ERB` instance — to always construct `ERB.new(content, trim_mode: "-")`,
+rather than accepting YARD's own version (trim mode only for its built-in
+`:text` format, `nil` otherwise). `.erb` files then use explicit `<%- -%>` /
+`<%- ... -%>` tags to suppress the surrounding blank line/indentation a
+conditional or loop would otherwise leak, exactly where needed. Confirmed
+this doesn't change output for any template that uses ordinary `<% %>`/
+`<%= %>` without the dash markers — trim mode `-` is a no-op for those.
+
+First (and so far only) use: `page.erb` wraps `member_sections_block`'s
+separator blank line and content in `<%- unless member_sections_block.empty?
+-%> ... <%- end -%>`, so a namespace-only module (e.g. `Geometry`, once its
+one method moved out to `Geometry::Computations`) renders with no trailing
+blank lines instead of the two the untrimmed version left behind.
+
+**Not retroactive yet.** The pre-existing `labeled_group`/`titled_section`/
+`member_summary_block`/`member_sections_block`/`method_body_block` helpers
+still build and join strings in Ruby, and still work correctly — they
+predate this override and weren't changed when it was introduced. Migrating
+them to native `.erb` loops is deliberately deferred to a separate cleanup
+pass, not bundled into whatever feature happens to touch that code next.
 
 ### Non-obvious techniques, patterns, and quirks
 
@@ -514,23 +549,26 @@ A few things that weren't obvious going in, worth not re-discovering:
   *plus* raw `"@param ...\n@return ...\n"` lines. For prose-only rendering
   (what goes in the body text, since tags are rendered separately), use the
   plain `Docstring` itself (`object.docstring`), not `.all`.
-- **ERB has no trim mode for custom formats.** YARD only passes
+- **ERB has no trim mode for custom formats — by default.** YARD only passes
   `trim_mode: '<>'` to `ERB.new` when `options.format == :text` (its own
-  built-in format) — a custom format like `agentdocs` always gets untrimmed
-  ERB. That means a `<% if cond %>` / `<% end %>` pair's surrounding text
-  (including any blank "spacer" lines written for readability) is emitted
-  unconditionally *around* the conditional content, and a `<% each %>` loop's
-  per-iteration leading/trailing text repeats every time — both leak stray
-  blank lines into the output regardless of whether the branch/loop actually
-  produced anything. The fix that actually works: push every
-  optional/repeated piece into a plain Ruby array (`nil` for an absent group),
-  `.compact.join("\n\n")` them, and emit the whole block via a single `<%= %>`
-  expression — no `<% if %>`/`<% each %>` left inside any `.erb` file. See
+  built-in format) — a custom format like `agentdocs` otherwise gets
+  untrimmed ERB. That means a `<% if cond %>` / `<% end %>` pair's
+  surrounding text (including any blank "spacer" lines written for
+  readability) is emitted unconditionally *around* the conditional content,
+  and a `<% each %>` loop's per-iteration leading/trailing text repeats every
+  time — both leak stray blank lines into the output regardless of whether
+  the branch/loop actually produced anything. The original fix, still used
+  by the oldest parts of the codebase: push every optional/repeated piece
+  into a plain Ruby array (`nil` for an absent group), `.compact.join("\n\n")`
+  them, and emit the whole block via a single `<%= %>` expression — no
+  `<% if %>`/`<% each %>` left inside any `.erb` file. See
   `member_summary_block`/`member_sections_block`/`method_body_block` in
-  `module/agentdocs/setup.rb` for the pattern. This is also why the test
-  asserts byte-for-byte equality rather than whitespace-normalized equality —
-  once the leaks were fixed at the source, normalization was no longer
-  needed, and keeping it would have hidden future regressions of this exact
+  `module/agentdocs/setup.rb` for the pattern — not yet migrated to the
+  approach below; see "Template coding convention" for the currently
+  preferred alternative for *new* work. This is also why the test asserts
+  byte-for-byte equality rather than whitespace-normalized equality — once
+  the leaks were fixed at the source, normalization was no longer needed,
+  and keeping it would have hidden future regressions of this exact
   kind.
 - **`YARD::CLI::Yardoc` auto-loads a `.yardopts` file from the current
   directory** unless told not to. Driving it programmatically (as the test

@@ -19,7 +19,9 @@ describe "agentdocs template" do
         "-f", "agentdocs",
         "--title", "yard-agentdocs example — API Reference",
         "example/lib/geometry.rb",
-        "example/lib/geometry/point.rb"
+        "example/lib/geometry/point.rb",
+        "example/lib/geometry/computations.rb",
+        "example/lib/stopwatch.rb"
       )
     end
   end

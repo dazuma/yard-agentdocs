@@ -5,35 +5,12 @@
 A small toy geometry namespace, used as a worked example and test case for
 the `yard-agentdocs` output format.
 
-Not part of the shipped gem.
+Exists purely to group its nested classes and modules; it defines no
+behavior of its own. Not part of the shipped gem.
 
 ## Member Summary
 
 **Nested Classes & Modules**
 
+- [`Computations`](Geometry/Computations.md) — Utility computations on `Point` values.
 - [`Point`](Geometry/Point.md) — A point in two-dimensional space.
-
-**Class Methods**
-
-- `.distance` — Computes the distance between two points.
-
-## Class Methods
-
-### .distance
-
-```ruby
-Geometry.distance(a, b) → Float
-```
-
-Computes the distance between two points.
-
-**Params:**
-
-- `a` ([`Point`](Geometry/Point.md)) — the first point
-- `b` ([`Point`](Geometry/Point.md)) — the second point
-
-**Returns:** `Float` — the distance between the two points
-
-**See also:** [`Point#distance_to`](Geometry/Point.md)
-
-**Defined in:** `example/lib/geometry.rb:20`
