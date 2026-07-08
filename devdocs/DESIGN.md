@@ -120,13 +120,14 @@ unchecked rather than being marked as done.
       to hold nested classes/modules
 - [ ] A class reopened across two files/locations (docs should merge)
 - [ ] Plain-old class with no superclass mentioned vs. explicit `< Object`
-- [ ] Subclassing a class defined elsewhere in the example (inheritance chain
-      of at least 3 levels, to test how ancestry is presented)
+- [x] Subclassing a class defined elsewhere in the example (inheritance chain
+      of at least 3 levels, to test how ancestry is presented) — `Geometry::Shape`
+      → `Polygon` → `Triangle`; also settled that `**Superclass:**` links to a
+      resolved (in-example) superclass's own file, showing the name as written
+      in source
 - [ ] A `Struct.new`-based class
 - [ ] A `Data.define`-based class (Ruby 3.2+ value object, relevant given the
       gem's `>= 3.4` floor)
-- [ ] Custom exception hierarchy (`class FooError < StandardError`, plus a more
-      specific subclass of that)
 
 ### Mixins
 
@@ -326,7 +327,15 @@ Settled shape for a class/module's Markdown file, worked out against
      distant ancestor (or a module *it* mixes in) may be defined outside the
      parsed source (another gem, stdlib), so we can't reliably know the full
      chain in general — better to show one reliable hop than a chain that's
-     silently incomplete for some classes.
+     silently incomplete for some classes. Rendered as a Markdown link to the
+     superclass's own file when it resolves in the registry (e.g.
+     `` [`Shape`](Shape.md) `` for `Geometry::Polygon`), or a plain backtick
+     when it doesn't (e.g. `` `Object` ``, never parsed from source). Display
+     text is always the name as it was actually written after `<` in the
+     source, never forced to a fully-qualified path — same convention as
+     `@param`/`@return`/`@see` cross-references (below), which also show
+     whatever name the docstring author literally wrote rather than a
+     resolved path.
    - `**Includes:**` — modules `include`d directly in the class's own parsed
      source, *not* ones mixed in transitively by its superclass (same
      reasoning as `Superclass` — we don't walk the chain, so we can't know
