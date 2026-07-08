@@ -1,0 +1,44 @@
+<%- if constant_objects.any? -%>
+
+## Constants
+
+<%- constant_objects.each_with_index do |const, i| -%>
+<%- unless i.zero? -%>
+
+<%- end -%>
+<%= render_constant(const) %>
+<%- end -%>
+<%- end -%>
+<%- if attribute_objects.any? -%>
+
+## Attributes
+
+<%- attribute_objects.each_with_index do |attr, i| -%>
+<%- unless i.zero? -%>
+
+<%- end -%>
+<%= render_attribute(attr) %>
+<%- end -%>
+<%- end -%>
+<%- if class_method_objects.any? -%>
+
+## Class Methods
+
+<%- class_method_objects.each_with_index do |meth, i| -%>
+<%- unless i.zero? -%>
+
+<%- end -%>
+<%= render_method(meth) %>
+<%- end -%>
+<%- end -%>
+<%- if instance_method_objects.any? -%>
+
+## Instance Methods
+
+<%- instance_method_objects.each_with_index do |meth, i| -%>
+<%- unless i.zero? -%>
+
+<%- end -%>
+<%= render_method(meth) %>
+<%- end -%>
+<%- end -%>

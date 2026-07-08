@@ -1,0 +1,41 @@
+## Member Summary
+<%- if nested_objects.any? -%>
+
+**Nested Classes & Modules**
+
+<%- nested_objects.each do |nested| -%>
+<%= nested_summary_line(nested) %>
+<%- end -%>
+<%- end -%>
+<%- if constant_objects.any? -%>
+
+**Constants**
+
+<%- constant_objects.each do |const| -%>
+<%= constant_summary_line(const) %>
+<%- end -%>
+<%- end -%>
+<%- if attribute_objects.any? -%>
+
+**Attributes**
+
+<%- attribute_objects.each do |attr| -%>
+<%= attribute_summary_line(attr) %>
+<%- end -%>
+<%- end -%>
+<%- if class_method_objects.any? -%>
+
+**Class Methods**
+
+<%- class_method_objects.each do |meth| -%>
+<%= method_summary_line(meth) %>
+<%- end -%>
+<%- end -%>
+<%- if instance_method_objects.any? -%>
+
+**Instance Methods**
+
+<%- instance_method_objects.each do |meth| -%>
+<%= method_summary_line(meth) %>
+<%- end -%>
+<%- end -%>

@@ -1,6 +1,9 @@
 ### #<%= @attribute[:name] %>
 
-<%= attribute_metadata_block(@attribute) %>
+**Type:** <%= type_ref(attribute_type(@attribute)) %>
+<%- if attribute_annotation(@attribute) -%>
+**<%= attribute_annotation(@attribute) %>**
+<%- end -%>
 
 <%= attribute_docstring(@attribute) %>
 

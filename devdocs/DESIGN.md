@@ -465,11 +465,11 @@ in "Example coverage checklist" above, not the full checklist.
     `T(object.type)` directly instead of going through YARD's generic
     `layout`/multi-format dispatch (that machinery exists to share code across
     html/text/dot; this plugin only ever targets one format).
-  - ERB templates hold the actual per-file/per-entry text; Ruby methods in
-    each `setup.rb` do the data-gathering/formatting. Older sections
-    assemble pre-rendered fragments in Ruby and emit them as one block (see
-    "ERB has no trim mode" below); see "Template coding convention" below for
-    the direction new/changed templates should take instead.
+  - ERB templates hold the actual document structure and control flow
+    (loops over members, conditional sections); Ruby methods in each
+    `setup.rb` do data-gathering and single-value formatting only — see
+    "Template coding convention" below for why, and "ERB has no trim mode"
+    below for the YARD quirk that made this need a small workaround.
 
 ### Template coding convention: structure and control flow belong in `.erb`
 
@@ -491,18 +491,32 @@ conditional or loop would otherwise leak, exactly where needed. Confirmed
 this doesn't change output for any template that uses ordinary `<% %>`/
 `<%= %>` without the dash markers — trim mode `-` is a no-op for those.
 
-First (and so far only) use: `page.erb` wraps `member_sections_block`'s
-separator blank line and content in `<%- unless member_sections_block.empty?
--%> ... <%- end -%>`, so a namespace-only module (e.g. `Geometry`, once its
-one method moved out to `Geometry::Computations`) renders with no trailing
-blank lines instead of the two the untrimmed version left behind.
+Applied throughout: `page.erb` composes the page from three sub-templates —
+`metadata.erb`, `member_summary.erb`, `member_sections.erb` — each an
+`erb(:name)` call, rather than a Ruby method that pre-assembles the block as
+a string. `member_summary.erb` and `member_sections.erb` loop over the same
+`nested_objects`/`constant_objects`/`attribute_objects`/
+`class_method_objects`/`instance_method_objects` data-gathering methods
+directly with `<%- ... each do |x| -%>`, guarding each optional group/section
+with `<%- if ... -%>`/`<%- end -%>`. Within a section, entry-to-entry blank
+lines use an `each_with_index` + `unless i.zero?` leading-separator (not
+trailing), so N entries get exactly N-1 separators with no special-casing of
+the last one. `method_entry.erb` and `attribute_entry.erb` similarly inline
+their optional lines (constructor note, params list, returns, see-also;
+type/read-only annotation) as `<%- if/unless -%>` blocks instead of an
+array-building Ruby method. `fulldoc/agentdocs`'s `index.erb` loops over
+`@top_level_objects` the same way — it needed its own `erb_with` override
+(see `fulldoc/agentdocs/setup.rb`) since it's a separate template module
+from `module/agentdocs` and doesn't inherit that one's override.
 
-**Not retroactive yet.** The pre-existing `labeled_group`/`titled_section`/
-`member_summary_block`/`member_sections_block`/`method_body_block` helpers
-still build and join strings in Ruby, and still work correctly — they
-predate this override and weren't changed when it was introduced. Migrating
-them to native `.erb` loops is deliberately deferred to a separate cleanup
-pass, not bundled into whatever feature happens to touch that code next.
+What's left as Ruby, deliberately: single-value/single-line computations
+with no optional multi-line structure to leak whitespace from — `type_ref`,
+`link_path`, `signature_text`, `nested_summary_line`/`constant_summary_line`/
+`attribute_summary_line`/`method_summary_line`, `ancestors_line`/
+`includes_line`, etc. These aren't the workaround pattern being replaced;
+they're ordinary formatting helpers, same as upstream YARD templates use,
+and read fine as one-line `<%= helper(x) %>` calls inside the `.erb` loops
+above.
 
 ### Non-obvious techniques, patterns, and quirks
 
@@ -557,15 +571,12 @@ A few things that weren't obvious going in, worth not re-discovering:
   readability) is emitted unconditionally *around* the conditional content,
   and a `<% each %>` loop's per-iteration leading/trailing text repeats every
   time — both leak stray blank lines into the output regardless of whether
-  the branch/loop actually produced anything. The original fix, still used
-  by the oldest parts of the codebase: push every optional/repeated piece
-  into a plain Ruby array (`nil` for an absent group), `.compact.join("\n\n")`
-  them, and emit the whole block via a single `<%= %>` expression — no
-  `<% if %>`/`<% each %>` left inside any `.erb` file. See
-  `member_summary_block`/`member_sections_block`/`method_body_block` in
-  `module/agentdocs/setup.rb` for the pattern — not yet migrated to the
-  approach below; see "Template coding convention" for the currently
-  preferred alternative for *new* work. This is also why the test asserts
+  the branch/loop actually produced anything. Originally worked around by
+  pushing every optional/repeated piece into a plain Ruby array and
+  `.compact.join`-ing it, avoiding `<% if %>`/`<% each %>` inside `.erb`
+  entirely; superseded by the `erb_with` override described in "Template
+  coding convention" above, which enables real `<%- if -%>`/`<%- each -%>`
+  with explicit trim markers instead. This is also why the test asserts
   byte-for-byte equality rather than whitespace-normalized equality — once
   the leaks were fixed at the source, normalization was no longer needed,
   and keeping it would have hidden future regressions of this exact

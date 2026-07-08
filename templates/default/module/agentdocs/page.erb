@@ -1,11 +1,11 @@
 # <%= object.path %>
 
-<%= metadata_block %>
+<%= erb(:metadata).strip %>
 
 <%= object.docstring.strip %>
 
-<%= member_summary_block %>
-<%- unless member_sections_block.empty? -%>
+<%= erb(:member_summary).strip %>
+<%- if any_member_sections? -%>
 
-<%= member_sections_block %>
+<%= erb(:member_sections).strip %>
 <%- end -%>

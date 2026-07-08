@@ -1,3 +1,30 @@
 ### <%= member_heading(@method) %>
 
-<%= method_body_block(@method) %>
+<%- if @method.constructor? -%>
+*(Ruby's default constructor; documents `#initialize`.)*
+
+<%- end -%>
+```ruby
+<%= signature_text(@method) %>
+```
+
+<%= @method.docstring.strip %>
+<%- unless @method.tags(:param).empty? -%>
+
+**Params:**
+
+<%- @method.tags(:param).each do |p| -%>
+- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= p.text %>
+<%- end -%>
+<%- end -%>
+<%- return_tag = method_return_tag(@method) -%>
+<%- if return_tag -%>
+
+**Returns:** <%= type_ref(return_tag.types && return_tag.types.first) %> — <%= return_tag.text %>
+<%- end -%>
+<%- unless @method.tags(:see).empty? -%>
+
+**See also:** <%= @method.tags(:see).map { |t| see_ref(t) }.join(', ') %>
+<%- end -%>
+
+**Defined in:** `<%= @method.file %>:<%= @method.line %>`
