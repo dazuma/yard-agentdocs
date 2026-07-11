@@ -10,6 +10,10 @@ Defined at the top level (not nested inside any module), to exercise how
 
 ## Member Summary
 
+**Constants**
+
+- `DEFAULT_ELAPSED` — The elapsed time a newly created stopwatch starts at, and the default value `#reset` resets to.
+
 **Class Methods**
 
 - `.new` — Creates a stopwatch with no elapsed time yet recorded.
@@ -17,6 +21,19 @@ Defined at the top level (not nested inside any module), to exercise how
 **Instance Methods**
 
 - `#add` — Adds to the elapsed time.
+- `#reset` — Resets the elapsed time.
+
+## Constants
+
+### DEFAULT_ELAPSED
+
+**Type:** `Float`
+**Value:** `0.0`
+
+The elapsed time a newly created stopwatch starts at, and the default
+value `#reset` resets to.
+
+**Defined in:** `example/lib/stopwatch.rb:16`
 
 ## Class Methods
 
@@ -30,7 +47,7 @@ Stopwatch.new() → Stopwatch
 
 Creates a stopwatch with no elapsed time yet recorded.
 
-**Defined in:** `example/lib/stopwatch.rb:13`
+**Defined in:** `example/lib/stopwatch.rb:21`
 
 ## Instance Methods
 
@@ -48,4 +65,20 @@ Adds to the elapsed time.
 
 **Returns:** `Float` — the new total elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:23`
+**Defined in:** `example/lib/stopwatch.rb:31`
+
+### #reset
+
+```ruby
+stopwatch.reset(to = DEFAULT_ELAPSED) → Float
+```
+
+Resets the elapsed time.
+
+**Params:**
+
+- `to` (`Float`) — the elapsed time to reset to; defaults to `DEFAULT_ELAPSED`
+
+**Returns:** `Float` — the new elapsed time
+
+**Defined in:** `example/lib/stopwatch.rb:41`

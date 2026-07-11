@@ -8,9 +8,26 @@ Utility computations on `Point` values.
 
 **Class Methods**
 
+- `.centroid` — Computes the centroid (average position) of one or more points.
 - `.distance` — Computes the distance between two points.
 
 ## Class Methods
+
+### .centroid
+
+```ruby
+Computations.centroid(*points) → Point
+```
+
+Computes the centroid (average position) of one or more points.
+
+**Params:**
+
+- `points` (`Array<`[`Point`](Point.md)`>`) — the points to average
+
+**Returns:** [`Point`](Point.md) — the centroid of the given points
+
+**Defined in:** `example/lib/geometry/computations.rb:26`
 
 ### .distance
 

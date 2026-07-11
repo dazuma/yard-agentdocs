@@ -153,9 +153,16 @@ unchecked rather than being marked as done.
 ### Methods — shapes & signatures
 
 - [x] Plain required positional params
-- [ ] Optional positional params with default values (including a default that
-      references a constant, not just a literal)
-- [ ] Splat arg (`*args`)
+- [x] Optional positional params with default values (including a default that
+      references a constant, not just a literal) — `Stopwatch#reset(to = DEFAULT_ELAPSED)`;
+      settled that the default renders in the signature only (natural `def`
+      syntax, e.g. `stopwatch.reset(to = DEFAULT_ELAPSED) → Float`), not as
+      extra annotation on the `**Params:**` bullet — see "Optional param
+      default rendering" under "Decisions"
+- [x] Splat arg (`*args`) — `Geometry::Computations.centroid(*points)`; also
+      surfaced the need for compound-type inner-identifier linking (a
+      `Array<Point>`-shaped `@param`), see "Compound-type cross-referencing"
+      under "Decisions"
 - [ ] Required keyword args
 - [ ] Optional keyword args with defaults
 - [ ] Double-splat (`**opts`)
@@ -412,6 +419,23 @@ Settled shape for a class/module's Markdown file, worked out against
 No YAML front matter, and not designed for human skimming as a goal (though
 it happens to be readable) — plain Markdown throughout.
 
+### Optional param default rendering: signature only
+
+Settled while exercising "optional positional params with default values"
+(`Stopwatch#reset(to = DEFAULT_ELAPSED)`). An optional param's default value
+shows up **only** in the signature line, using natural Ruby `def` syntax —
+`` stopwatch.reset(to = DEFAULT_ELAPSED) → Float `` — rather than as extra
+annotation on the `**Params:**` bullet (e.g. `` `to` (`Float`, optional,
+default `DEFAULT_ELAPSED`) ``). One place to look for the default, no
+duplication between the signature and the params list; the prose/`@param`
+text is still free to mention the default in words when that reads more
+naturally (as `#reset`'s does: "defaults to `DEFAULT_ELAPSED`").
+`param_names` (`templates/default/module/agentdocs/setup.rb`) renders each
+parameter as `` "#{name} = #{default}" `` when YARD reports a default,
+`` name `` otherwise — a param with no default (required) is unaffected, so
+every already-covered signature (required-positional-only) renders exactly
+as before.
+
 ### Mixin content strategy (direct `include`): link out, not duplicate
 
 Resolves (for the `include` case) the "Mixin/inheritance content strategy"
@@ -577,6 +601,62 @@ method.
     once there, the same `grep '^### '`-then-range-read mechanism from
     "Output format" resolves the precise member, reusing a mechanism that
     already has to exist anyway rather than adding a second one.
+
+### Compound-type cross-referencing
+
+Extends the "Cross-referencing" decision above to a **compound** type string
+— one with collection/union syntax around one or more names, e.g.
+`Array<Point>` (`Geometry::Computations.centroid`'s `points` param). The
+naive option — resolve the *whole* string as one name — never links these:
+`Registry.resolve` doesn't understand `Array<Point>` as "an `Array` of
+`Point`," so it comes back `nil` and the whole thing falls back to a single
+unlinked backtick, even though `Point` itself is a real, resolvable,
+in-example type.
+
+Rejected: reparsing the type string with YARD's own `Tags::TypesExplainer`
+(the parser behind the `yard types` CLI command and `Tag#explain_types`) to
+extract the inner name(s). It builds a semantic tree (`CollectionType`,
+`HashCollectionType`, etc.) meant for generating human-readable prose like
+"an Array of (a Point)" — it doesn't preserve the original punctuation, so
+there'd be no way to get back to `Array<Point>` with just `Point` linked;
+we'd have to reinvent that rendering from the semantic tree instead of
+reusing the original text.
+
+Chosen instead: `type_ref` scans the type string with `StringScanner`,
+token by token, reusing YARD's own token-matching building blocks
+(`CodeObjects::NAMESPACEMATCH`, `ISEP`, `METHODNAMEMATCH` — the same regexes
+`TypesExplainer`'s parser is built from) to recognize a "name" (a namespace
+path, a duck-type method reference like `#to_s`, a string/symbol literal, or
+a bare word like `nil`) — `templates/default/module/agentdocs/setup.rb`'s
+`TYPE_TOKEN`. Only names that actually resolve get pulled out into their own
+Markdown link; everything else — collection/union punctuation (`<`, `>`,
+`{`, `}`, `,`) and names that don't resolve — accumulates into a plain-text
+buffer that gets flushed as one backtick span the moment a resolved name
+interrupts it (or at the end of the string). `Array<Point>` (with `Point`
+resolving) renders as `` `Array<`[`Point`](Point.md)`>` ``; `Array<Foo>`
+(nothing resolves) collapses to a single buffer flush, `` `Array<Foo>` `` —
+byte-identical to the old whole-string behavior, so every already-covered
+simple type (a lone name, resolved or not) renders exactly as before.
+
+**Why not wrap every token (including punctuation) in its own backtick
+span?** That was the first design tried, and it's broken: two backtick-
+delimited code spans placed directly adjacent with nothing between them
+(e.g. `` `Array` `` immediately followed by `` `<` ``) put two backtick
+characters next to each other in the raw text, which CommonMark parses as
+one longer opening delimiter rather than "close one span, open the next" —
+silently mangling the output. Buffering — merging all not-just-resolved
+content into a single span instead of one-per-token — sidesteps this
+entirely, since a link (not another bare backtick span) is always what
+separates two buffer flushes. It also means collection punctuation is never
+left as bare, unescaped text: leaving `<`/`>` unwrapped was considered and
+rejected too, even though tracing through CommonMark's raw-HTML-tag and
+autolink grammars shows a bare `<` here would never actually be misread
+(a link's own resolved-vs-unresolved rendering always makes the character
+immediately following `<` either `` ` `` or `[`, neither of which can start
+an HTML tag or autolink) — that safety argument is subtle and rests on
+`type_ref`'s output shape never changing, whereas keeping every character
+inside a backtick span is safe on its face, for any markdown consumer,
+without relying on that argument.
 
 ### Indexing/lookup
 

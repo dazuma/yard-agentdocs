@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "pathname"
+require "strscan"
 
 include ::YARD::AgentDocs::ErbWithTrimMode
 
@@ -71,14 +72,42 @@ end
 
 # @group Cross-referencing
 
-# Resolves a type/`@see` name to either a plain backtick (unresolved, or a
+# A single token within a YARD type string: a namespace path (`Foo::Bar`), a
+# duck-type method reference (`#to_s`), a string/symbol literal, or a bare
+# word (`nil`, `void`). Anything else (`<`, `>`, `{`, `}`, `,`, whitespace) is
+# collection/union syntax, not a name to resolve.
+TYPE_TOKEN = /#{CodeObjects::NAMESPACEMATCH}|#{CodeObjects::ISEP}#{CodeObjects::METHODNAMEMATCH}|"[^"]*"|'[^']*'|\w+/
+
+# Resolves a type name to either a plain backtick (unresolved, or a
 # self-reference to the object currently being rendered) or a markdown link
-# to the target's own file.
+# to the target's own file. A compound type (e.g. `Array<Point>`) is scanned
+# token by token: only names that actually resolve get pulled out into their
+# own link, and everything else (collection syntax, unresolved names) is
+# folded into the surrounding backtick span(s) it sits next to, so container
+# punctuation is never left bare outside a code span and no two code spans
+# ever end up touching (which markdown would misparse as one longer span).
 def type_ref(type_name)
   return "" if type_name.nil? || type_name.empty?
-  resolved = Registry.resolve(object, type_name, true, false)
-  return "`#{type_name}`" if resolved.nil? || resolved == object
-  "[`#{type_name}`](#{link_path(resolved)})"
+  scanner = StringScanner.new(type_name)
+  result = +""
+  buffer = +""
+  until scanner.eos?
+    token = scanner.scan(TYPE_TOKEN)
+    if token.nil? || token.empty?
+      buffer << scanner.getch
+      next
+    end
+    resolved = Registry.resolve(object, token, true, false)
+    unless resolved && resolved != object
+      buffer << token
+      next
+    end
+    result << "`#{buffer}`" unless buffer.empty?
+    buffer = +""
+    result << "[`#{token}`](#{link_path(resolved)})"
+  end
+  result << "`#{buffer}`" unless buffer.empty?
+  result
 end
 
 def see_ref(tag)
@@ -208,7 +237,7 @@ def receiver_name(meth)
 end
 
 def param_names(meth)
-  meth.parameters.map { |name, _default| name.to_s }
+  meth.parameters.map { |name, default| default ? "#{name} = #{default}" : name.to_s }
 end
 
 def signature_return_type(meth)

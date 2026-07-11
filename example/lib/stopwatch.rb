@@ -8,10 +8,18 @@
 #
 class Stopwatch
   ##
+  # The elapsed time a newly created stopwatch starts at, and the default
+  # value `#reset` resets to.
+  #
+  # @return [Float]
+  #
+  DEFAULT_ELAPSED = 0.0
+
+  ##
   # Creates a stopwatch with no elapsed time yet recorded.
   #
   def initialize
-    @elapsed = 0.0
+    @elapsed = DEFAULT_ELAPSED
   end
 
   ##
@@ -22,5 +30,15 @@ class Stopwatch
   #
   def add(seconds)
     @elapsed += seconds
+  end
+
+  ##
+  # Resets the elapsed time.
+  #
+  # @param to [Float] the elapsed time to reset to; defaults to `DEFAULT_ELAPSED`
+  # @return [Float] the new elapsed time
+  #
+  def reset(to = DEFAULT_ELAPSED)
+    @elapsed = to
   end
 end
