@@ -1,4 +1,4 @@
-# Geometry::Circle
+# class Geometry::Circle
 
 **Superclass:** `Struct`
 **Defined in:** `example/lib/geometry/circle.rb`

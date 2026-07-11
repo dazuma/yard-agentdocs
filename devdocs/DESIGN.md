@@ -320,7 +320,13 @@ Not needed until we have evidence a real target class needs it.
 Settled shape for a class/module's Markdown file, worked out against
 `example/doc` (see `Geometry.md` and `Geometry/Point.md`):
 
-1. **`# FullyQualifiedName`** title.
+1. **`# class FullyQualifiedName`** / **`# module FullyQualifiedName`** title —
+   explicit about which it is (`object.type`) rather than leaving an agent to
+   infer it from the presence/absence of a `**Superclass:**` line, which
+   requires already knowing that every Ruby class implicitly has `Object` as
+   a superclass even when unstated. Mirrors Ruby's own `class Foo`/
+   `module Foo` declaration syntax, same convention the format already uses
+   for method signatures (natural call syntax over an invented schema).
 2. **Metadata block** — bold key-value lines, only the lines that apply:
    - `**Superclass:**` — the class's immediate superclass only (e.g. `Object`),
      not the full ancestor chain. We deliberately don't walk further: a more

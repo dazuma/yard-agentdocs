@@ -1,4 +1,4 @@
-# Geometry::Shape
+# class Geometry::Shape
 
 **Superclass:** `Object`
 **Includes:** [`Taggable`](Taggable.md)

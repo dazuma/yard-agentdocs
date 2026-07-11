@@ -1,4 +1,4 @@
-# Stopwatch
+# class Stopwatch
 
 **Superclass:** `Object`
 **Defined in:** `example/lib/stopwatch.rb`

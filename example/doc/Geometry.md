@@ -1,4 +1,4 @@
-# Geometry
+# module Geometry
 
 **Defined in:** `example/lib/geometry.rb`
 

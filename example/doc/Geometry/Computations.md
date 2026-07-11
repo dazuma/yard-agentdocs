@@ -1,4 +1,4 @@
-# Geometry::Computations
+# module Geometry::Computations
 
 **Defined in:** `example/lib/geometry/computations.rb`
 

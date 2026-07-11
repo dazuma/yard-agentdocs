@@ -1,4 +1,4 @@
-# Geometry::Triangle
+# class Geometry::Triangle
 
 **Superclass:** [`Polygon`](Polygon.md)
 **Defined in:** `example/lib/geometry/triangle.rb`

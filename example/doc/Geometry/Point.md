@@ -1,4 +1,4 @@
-# Geometry::Point
+# class Geometry::Point
 
 **Superclass:** `Object`
 **Defined in:** `example/lib/geometry/point.rb`

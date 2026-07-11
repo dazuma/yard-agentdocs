@@ -1,4 +1,4 @@
-# Geometry::Taggable
+# module Geometry::Taggable
 
 **Defined in:** `example/lib/geometry/taggable.rb`
 

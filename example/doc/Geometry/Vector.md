@@ -1,4 +1,4 @@
-# Geometry::Vector
+# class Geometry::Vector
 
 **Superclass:** `Data`
 **Defined in:** `example/lib/geometry/vector.rb`

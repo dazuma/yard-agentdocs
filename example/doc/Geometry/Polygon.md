@@ -1,4 +1,4 @@
-# Geometry::Polygon
+# class Geometry::Polygon
 
 **Superclass:** [`Shape`](Shape.md)
 **Defined in:** `example/lib/geometry/polygon.rb`
