@@ -691,8 +691,9 @@ in "Example coverage checklist" above, not the full checklist.
 - `lib/yard/agentdocs/` holds plain Ruby helpers shared across `setup.rb`
   files belonging to different template modules (`module/agentdocs` and
   `fulldoc/agentdocs` don't inherit from each other, so a method defined in
-  one's `setup.rb` isn't visible in the other's) — currently just
-  `ErbWithTrimMode`, `include`d by both.
+  one's `setup.rb` isn't visible in the other's): `ErbWithTrimMode`,
+  `CrossReferencing`, `MethodSignature`, and `AttributeInfo`, each `include`d
+  where needed.
 - Templates live under `templates/default/{fulldoc,module,class}/agentdocs/`,
   mirroring YARD's own directory convention (`<template>/<type>/<format>/`):
   - `fulldoc/agentdocs` is the driver: walks the object list YARD hands it,
@@ -767,6 +768,28 @@ with no optional multi-line structure to leak whitespace from — `type_ref`,
 they're ordinary formatting helpers, same as upstream YARD templates use,
 and read fine as one-line `<%= helper(x) %>` calls inside the `.erb` loops
 above.
+
+### Extracting generic logic into `lib/` mixins
+
+Preference, going forward: once a `setup.rb` helper method is both (a)
+generic enough that another template module could plausibly want it, and
+(b) nontrivial enough to deserve isolated unit tests (branching logic,
+regex/parsing, anything bug-prone), move it into its own
+`lib/yard/agentdocs/*.rb` module — mirroring `ErbWithTrimMode` — and
+`include` it from `setup.rb` rather than leaving it as a bare top-level
+method there. `CrossReferencing` (`type_ref`/`see_ref`/`link_path`),
+`MethodSignature` (`signature_text` and its supporting helpers), and
+`AttributeInfo` (the `attribute_*` helpers) were split out of
+`module/agentdocs/setup.rb` this way, cutting it from 267 to about 100 lines
+of page-assembly glue.
+
+Test each mixin with `YARD.parse_string` against a minimal stub class that
+includes just the module under test (see `test/test_cross_referencing.rb`,
+`test/test_method_signature.rb`, `test/test_attribute_info.rb`), not only
+indirectly through the full `example/lib`/`example/doc` fixture — this
+keeps failures localized to the one helper that broke, and lets edge cases
+(e.g. compound-type cross-referencing) get direct coverage without needing
+a matching `example/lib` scenario for every branch.
 
 ### Non-obvious techniques, patterns, and quirks
 
