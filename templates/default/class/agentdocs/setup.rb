@@ -3,7 +3,7 @@
 include T("default/module/agentdocs")
 
 def class_method_objects
-  ctor = object.meths(inherited: false).find(&:constructor?)
+  ctor = object.meths(inherited: false, included: false).find(&:constructor?)
   list = super
   list += [ctor] if ctor
   list.sort_by { |m| member_name(m) }
@@ -29,8 +29,17 @@ end
 
 # Only modules `include`d directly in the parsed source, not ones mixed in
 # transitively by a superclass (which, per {superclass_line}, we don't walk).
+#
+# Links to the module's own file when it's a real, parsed module (an
+# unresolved `CodeObjects::Proxy` stays a plain backtick); display text is
+# always the name as written in the `include` call, same convention as
+# {superclass_line}.
 def includes_line
-  mods = object.mixins(:instance).map(&:path)
+  mods = object.mixins(:instance)
   return nil if mods.empty?
-  "**Includes:** #{mods.map { |name| "`#{name}`" }.join(', ')}"
+  refs = mods.map do |mod|
+    name = mod.name.to_s
+    mod.is_a?(CodeObjects::Proxy) ? "`#{name}`" : "[`#{name}`](#{link_path(mod)})"
+  end
+  "**Includes:** #{refs.join(', ')}"
 end

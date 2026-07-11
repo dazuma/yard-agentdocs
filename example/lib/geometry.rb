@@ -2,6 +2,7 @@
 
 require_relative "geometry/point"
 require_relative "geometry/computations"
+require_relative "geometry/taggable"
 require_relative "geometry/shape"
 require_relative "geometry/polygon"
 require_relative "geometry/triangle"

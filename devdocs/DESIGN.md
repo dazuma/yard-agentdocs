@@ -131,7 +131,10 @@ unchecked rather than being marked as done.
 
 ### Mixins
 
-- [ ] `include` of a module defining instance methods
+- [x] `include` of a module defining instance methods — `Geometry::Taggable`
+      mixed into `Geometry::Shape`; also settled the mixin content-strategy
+      open question (link out to the module's own file, don't duplicate the
+      method's docs inline)
 - [ ] `extend` of a module defining singleton methods
 - [ ] `prepend` (method resolution order should be visible/explained somehow)
 - [ ] A module meant purely to be mixed in (documented as such, e.g. via
@@ -260,16 +263,13 @@ Output format, indexing/lookup, cross-referencing, and the core YARD
 integration mechanics are now decided *and implemented* — see "Decisions" and
 "Implementation" below. What's still open:
 
-- **Mixin/inheritance content strategy** — when a class includes/extends/
-  prepends a module, or inherits a method from a superclass, does the
-  generated class file duplicate that method's docs inline (so one file read
-  is self-sufficient) or link out to where it's actually defined (so there's
-  a single source of truth but an extra hop to resolve it)? Orthogonal to
-  file granularity — applies regardless of how files are split. Still not
-  exercised in `example/lib` (no *explicit* mixins or inheritance there yet —
-  `Point`/`Stopwatch` only show a bare `Superclass: Object` line, per the
-  immediate-superclass-only rule in "Output format" below, which is
-  deliberately *not* an answer to this question).
+- **Mixin/inheritance content strategy for `extend`/`prepend`/superclass
+  inheritance** — resolved for direct `include` as "link out, not
+  duplicate" (see "Mixin content strategy" under "Decisions" below). Still
+  open for `extend` (singleton methods) and `prepend` (MRO makes "which
+  copy is authoritative" murkier), and for a subclass method inherited
+  (not overridden) from a superclass — does the subclass's file duplicate,
+  link out, or say nothing at all? Not yet exercised in `example/lib`.
 
 ## Decisions
 
@@ -398,6 +398,37 @@ Settled shape for a class/module's Markdown file, worked out against
 
 No YAML front matter, and not designed for human skimming as a goal (though
 it happens to be readable) — plain Markdown throughout.
+
+### Mixin content strategy (direct `include`): link out, not duplicate
+
+Resolves (for the `include` case) the "Mixin/inheritance content strategy"
+open question below. Exercised via `Geometry::Taggable` (a module defining
+one instance method, `#tag`) `include`d into `Geometry::Shape`.
+
+A class's own file does **not** duplicate a directly-`include`d module's
+method docs inline — `instance_method_objects`/`class_method_objects` pass
+`included: false` to `NamespaceObject#meths` to exclude them. The class file
+only gets the `**Includes:**` metadata line (a link to the module's own
+file, same link/display-name convention as `**Superclass:**`); the mixed-in
+method's full docs live solely on the module's page. Chosen over inlining
+mainly because inlining can't be made to work uniformly — a mixin whose
+docs live outside the parsed source (e.g. a stdlib module like `Comparable`,
+still an open checklist item) can't be duplicated at all, so a class's
+"is this method documented here or do I need another read" answer would
+otherwise depend on where the mixin happens to be defined. Link-out is
+simpler and consistent regardless.
+
+**Latent bug fixed along the way:** `class_method_objects`/
+`instance_method_objects` already passed `inherited: false` before this
+change (correctly suppressing a superclass's methods — `ClassObject#meths`
+overrides the base `NamespaceObject#meths` to add that option), but never
+passed `included: false`, so `included: true`'s default meant any mixin's
+methods would have leaked straight into the member list uncaught, since no
+example exercised a mixin until `Taggable` gave us a case to catch it. Both
+flags are real, independent options on `meths` — `:inherited` (superclass
+methods, `ClassObject`-only) and `:included` (mixin methods, all
+`NamespaceObject`s) — and this template wants both off, since class files
+don't duplicate either superclass or mixin member docs.
 
 ### `Struct.new`/`Data.define`-based classes
 

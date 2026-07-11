@@ -21,6 +21,7 @@ describe "agentdocs template" do
         "example/lib/geometry.rb",
         "example/lib/geometry/point.rb",
         "example/lib/geometry/computations.rb",
+        "example/lib/geometry/taggable.rb",
         "example/lib/geometry/shape.rb",
         "example/lib/geometry/polygon.rb",
         "example/lib/geometry/triangle.rb",

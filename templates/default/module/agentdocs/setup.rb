@@ -33,12 +33,19 @@ def attribute_objects
 end
 
 def class_method_objects
-  list = object.meths(inherited: false).select { |m| m.scope == :class }
+  list = object.meths(inherited: false, included: false).select { |m| m.scope == :class }
   run_verifier(list).sort_by { |m| member_name(m) }
 end
 
+# Excludes both inherited (superclass) and mixed-in (`include`d module)
+# methods: a superclass's or directly-`include`d module's methods are
+# documented on their own page (and, for a mixin, pointed to via
+# {includes_line}), not duplicated here — see the "Mixin/inheritance
+# content strategy" decision in devdocs/DESIGN.md. `:inherited` is a no-op
+# for modules (they have no superclass) but real for classes, since
+# `ClassObject#meths` overrides the base `NamespaceObject#meths` to add it.
 def instance_method_objects
-  list = object.meths(inherited: false).select do |m|
+  list = object.meths(inherited: false, included: false).select do |m|
     m.scope == :instance && !m.is_attribute? && !m.constructor?
   end
   run_verifier(list).sort_by { |m| member_name(m) }
