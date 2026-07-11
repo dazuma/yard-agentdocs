@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "pathname"
-require "strscan"
-
+include ::YARD::AgentDocs::AttributeInfo
+include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
+include ::YARD::AgentDocs::MethodSignature
 
 def init
   sections :page
@@ -70,64 +70,6 @@ def extends_line
   nil
 end
 
-# @group Cross-referencing
-
-# A single token within a YARD type string: a namespace path (`Foo::Bar`), a
-# duck-type method reference (`#to_s`), a string/symbol literal, or a bare
-# word (`nil`, `void`). Anything else (`<`, `>`, `{`, `}`, `,`, whitespace) is
-# collection/union syntax, not a name to resolve.
-TYPE_TOKEN = /#{CodeObjects::NAMESPACEMATCH}|#{CodeObjects::ISEP}#{CodeObjects::METHODNAMEMATCH}|"[^"]*"|'[^']*'|\w+/
-
-# Resolves a type name to either a plain backtick (unresolved, or a
-# self-reference to the object currently being rendered) or a markdown link
-# to the target's own file. A compound type (e.g. `Array<Point>`) is scanned
-# token by token: only names that actually resolve get pulled out into their
-# own link, and everything else (collection syntax, unresolved names) is
-# folded into the surrounding backtick span(s) it sits next to, so container
-# punctuation is never left bare outside a code span and no two code spans
-# ever end up touching (which markdown would misparse as one longer span).
-def type_ref(type_name)
-  return "" if type_name.nil? || type_name.empty?
-  scanner = StringScanner.new(type_name)
-  result = +""
-  buffer = +""
-  until scanner.eos?
-    token = scanner.scan(TYPE_TOKEN)
-    if token.nil? || token.empty?
-      buffer << scanner.getch
-      next
-    end
-    resolved = Registry.resolve(object, token, true, false)
-    unless resolved && resolved != object
-      buffer << token
-      next
-    end
-    result << "`#{buffer}`" unless buffer.empty?
-    buffer = +""
-    result << "[`#{token}`](#{link_path(resolved)})"
-  end
-  result << "`#{buffer}`" unless buffer.empty?
-  result
-end
-
-def see_ref(tag)
-  name = tag.name
-  resolved = Registry.resolve(object, name, true, false)
-  owner = resolved && (resolved.is_a?(CodeObjects::NamespaceObject) ? resolved : resolved.namespace)
-  return "`#{name}`" if resolved.nil? || owner == object
-  "[`#{name}`](#{link_path(resolved)})"
-end
-
-# @param [CodeObjects::Base] target a namespace, method, constant, or attribute
-# @return [String] a path to the target's file, relative to the file currently
-#   being rendered
-def link_path(target)
-  namespace = target.is_a?(CodeObjects::NamespaceObject) ? target : target.namespace
-  target_file = Pathname.new("#{namespace.path.split('::').join('/')}.md")
-  current_dir = Pathname.new("#{object.path.split('::').join('/')}.md").dirname
-  target_file.relative_path_from(current_dir).to_s
-end
-
 # @group Member rendering
 
 def render_constant(const)
@@ -162,105 +104,4 @@ end
 
 def method_summary_line(meth)
   "- `#{member_heading(meth)}` — #{meth.docstring.summary}"
-end
-
-# @group Attribute helpers
-
-def attribute_source_method(attr)
-  attr[:read] || attr[:write]
-end
-
-def attribute_type(attr)
-  tag = attribute_source_method(attr).tag(:return)
-  tag&.types&.first
-end
-
-# Bold-line annotation, e.g. for a `**Read-only.**` metadata line.
-def attribute_annotation(attr)
-  return "Read-only." if attr[:write].nil?
-  return "Write-only." if attr[:read].nil?
-  nil
-end
-
-# Parenthetical annotation for a Member Summary bullet, e.g. `(read-only)`.
-def attribute_annotation_short(attr)
-  return "read-only" if attr[:write].nil?
-  return "write-only" if attr[:read].nil?
-  nil
-end
-
-def attribute_docstring(attr)
-  attribute_source_method(attr).docstring.strip
-end
-
-def attribute_docstring_summary(attr)
-  attribute_source_method(attr).docstring.summary
-end
-
-def attribute_file(attr)
-  attribute_source_method(attr).file
-end
-
-def attribute_line(attr)
-  attribute_source_method(attr).line
-end
-
-# @group Method signatures
-
-OPERATOR_METHOD_NAMES = [
-  "+", "-", "*", "/", "%", "**", "==", "!=", "<=>", "<", ">", "<=", ">=",
-  "<<", ">>", "&", "|", "^", "~", "!", "[]", "[]=", "=~", "+@", "-@"
-].freeze
-
-def operator?(meth)
-  OPERATOR_METHOD_NAMES.include?(meth.name.to_s)
-end
-
-# The display name for a member: the constructor is always shown as `new`
-# (documenting `#initialize` under the synthetic `Class.new` entry).
-def member_name(meth)
-  meth.constructor? ? "new" : meth.name.to_s
-end
-
-# Whether a member is addressed with `.` (class-level, or the constructor) or
-# `#` (instance-level).
-def class_level?(meth)
-  meth.constructor? || meth.scope == :class
-end
-
-def member_heading(meth)
-  "#{class_level?(meth) ? '.' : '#'}#{member_name(meth)}"
-end
-
-def receiver_name(meth)
-  class_level?(meth) ? object.name.to_s : object.name.to_s.downcase
-end
-
-def param_names(meth)
-  meth.parameters.map { |name, default| default ? "#{name} = #{default}" : name.to_s }
-end
-
-def signature_return_type(meth)
-  return object.name.to_s if meth.constructor?
-  tag = meth.tag(:return)
-  tag&.types&.first
-end
-
-def signature_text(meth)
-  name = member_name(meth)
-  params = param_names(meth)
-  call =
-    if !meth.constructor? && operator?(meth) && meth.scope == :instance && params.size == 1
-      "#{receiver_name(meth)} #{name} #{params.first}"
-    else
-      "#{receiver_name(meth)}.#{name}(#{params.join(', ')})"
-    end
-  return_type = signature_return_type(meth)
-  return_type ? "#{call} → #{return_type}" : call
-end
-
-# @group Method body (everything below the heading in a method entry)
-
-def method_return_tag(meth)
-  meth.constructor? ? nil : meth.tag(:return)
 end
