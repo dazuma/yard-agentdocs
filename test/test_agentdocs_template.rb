@@ -23,6 +23,7 @@ describe "agentdocs template" do
         "example/lib/geometry/computations.rb",
         "example/lib/geometry/taggable.rb",
         "example/lib/geometry/named.rb",
+        "example/lib/geometry/loud.rb",
         "example/lib/geometry/shape.rb",
         "example/lib/geometry/polygon.rb",
         "example/lib/geometry/triangle.rb",

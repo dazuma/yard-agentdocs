@@ -138,7 +138,11 @@ unchecked rather than being marked as done.
 - [x] `extend` of a module defining singleton methods — `Geometry::Named`
       extended into `Triangle`; settled the `extend` content-strategy open
       question (link out via `**Extends:**`, same as `include`)
-- [ ] `prepend` (method resolution order should be visible/explained somehow)
+- [x] `prepend` (method resolution order should be visible/explained somehow)
+      — `Geometry::Loud` prepended into `Polygon`, overriding `#describe`;
+      settled the `prepend` content-strategy open question (fold into
+      `**Includes:**`, indistinguishable from `include` at the metadata
+      level — see "`prepend` content strategy" under "Decisions")
 - [ ] A module meant purely to be mixed in (documented as such, e.g. via
       `@abstract` or prose) rather than instantiated
 - [ ] `extend self` pattern (module usable both as namespace and as mixin)
@@ -265,14 +269,14 @@ Output format, indexing/lookup, cross-referencing, and the core YARD
 integration mechanics are now decided *and implemented* — see "Decisions" and
 "Implementation" below. What's still open:
 
-- **Mixin/inheritance content strategy for `prepend`/superclass
-  inheritance** — resolved for direct `include` (see "Mixin content
-  strategy" under "Decisions" below) and `extend` (see "`extend` content
-  strategy" under "Decisions" below), both "link out, not duplicate". Still
-  open for `prepend` (MRO makes "which copy is authoritative" murkier), and
-  for a subclass method inherited (not overridden) from a superclass — does
-  the subclass's file duplicate, link out, or say nothing at all? Not yet
-  exercised in `example/lib`.
+- **Content strategy for a subclass method inherited (not overridden) from a
+  superclass** — does the subclass's file duplicate, link out, or say
+  nothing at all? Resolved for `include` (see "Mixin content strategy"
+  under "Decisions"), `extend` (see "`extend` content strategy"), and
+  `prepend` (see "`prepend` content strategy") — all three "link out, not
+  duplicate" (or, for `prepend`, indistinguishable from `include`). Still
+  open for plain superclass inheritance itself. Not yet exercised in
+  `example/lib`.
 
 ## Decisions
 
@@ -441,11 +445,11 @@ don't duplicate either superclass or mixin member docs.
 
 ### `extend` content strategy: link out, same as `include`
 
-Resolves the `extend` half of the "Mixin/inheritance content strategy" open
-question (mirroring the `include` decision above; `prepend` remains open).
-Exercised via `Geometry::Named` (a module defining one instance method,
-`#kind`, meant to be `extend`ed rather than `include`d) `extend`ed into
-`Geometry::Triangle`.
+Resolves the `extend` half of the (now former) "Mixin/inheritance content
+strategy" open question, mirroring the `include` decision above (`prepend`
+is resolved separately below). Exercised via `Geometry::Named` (a module
+defining one instance method, `#kind`, meant to be `extend`ed rather than
+`include`d) `extend`ed into `Geometry::Triangle`.
 
 A class's own file does **not** duplicate an `extend`ed module's methods as
 Class Methods entries — `class_method_objects` already passed
@@ -467,6 +471,40 @@ Scoped to classes only for now, same as `**Includes:**`/`**Superclass:**`
 (`extends_line` returns `nil` unconditionally in `module/agentdocs/setup.rb`)
 — a module extending another module isn't yet exercised, matching
 `**Includes:**`'s existing class-only scope.
+
+### `prepend` content strategy: folded into `**Includes:**`, undistinguished
+
+Resolves the `prepend` half of the (now former) "Mixin/inheritance content
+strategy" open question — but as an accepted limitation, not a clean
+mirror of `include`/`extend`. Exercised via `Geometry::Loud` (overrides
+`#describe` by calling `super.upcase`) `prepend`ed into `Geometry::Polygon`,
+which defines its own `#describe`.
+
+**The limitation:** YARD's `Handlers::Ruby::MixinHandler` handles both
+`include` and `prepend` with the same code path, pushing the mixin onto the
+same `object.mixins(:instance)` array either way — confirmed by inspecting
+the handler source and by a scratch script parsing a two-mixin class: the
+resulting `ModuleObject`s are plain and untagged, with no attribute
+recording which keyword brought each one in. Array order isn't a usable
+substitute either — `include` `unshift`s and `prepend` `push`es, but tracing
+through a 4-statement example (alternating `include`/`prepend`) shows the
+two kinds interleave in the final array with no clean split to exploit.
+Getting a real distinction would need a custom `Handler` subclass to tag
+prepended modules separately, which cuts against this project's stated
+"no custom handler classes" integration principle (see "Architecture"
+below) — not worth doing for this one line.
+
+**The decision:** ship the honest, cheaper answer. `Loud` shows up under
+the ordinary `**Includes:**` line on `Polygon`'s page — no `extends_line`-style
+`prepends_line`/`**Prepends:**` counterpart, and no template code change was
+needed at all for this item (the existing `includes_line` already renders a
+`prepend`ed module correctly, since YARD hands it the same data either way).
+The one thing metadata *can't* convey — that `Loud#describe` actually wins
+over `Polygon`'s own `#describe` at call time, the opposite precedence from
+`include` — is explained only in `Polygon`'s hand-written class docstring.
+This means an agent reading just the `**Includes:**` line (without reading
+the prose) cannot tell a `prepend`ed module from an `include`d one; that's a
+real, permanent gap in the output format, not a TODO to close later.
 
 ### `Struct.new`/`Data.define`-based classes
 

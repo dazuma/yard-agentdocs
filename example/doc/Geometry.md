@@ -14,6 +14,7 @@ behavior of its own. Not part of the shipped gem.
 
 - [`Circle`](Geometry/Circle.md) — A circle, defined by its radius.
 - [`Computations`](Geometry/Computations.md) — Utility computations on `Point` values.
+- [`Loud`](Geometry/Loud.md) — Prepended onto a class to upper-case whatever its own `#describe` method returns, without needing to know that method's implementation.
 - [`Named`](Geometry/Named.md) — Mixed into shape classes via `extend` (not `include`) to add a `.kind` class method, derived from the extending class's own name.
 - [`Point`](Geometry/Point.md) — A point in two-dimensional space.
 - [`Polygon`](Geometry/Polygon.md) — A polygon: a shape with a fixed number of straight sides.
