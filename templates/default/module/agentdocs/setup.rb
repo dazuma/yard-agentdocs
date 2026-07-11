@@ -55,13 +55,17 @@ def any_member_sections?
   constant_objects.any? || attribute_objects.any? || class_method_objects.any? || instance_method_objects.any?
 end
 
-# @group Ancestry (overridden for classes; modules show neither line)
+# @group Ancestry (overridden for classes; modules show none of these lines)
 
 def superclass_line
   nil
 end
 
 def includes_line
+  nil
+end
+
+def extends_line
   nil
 end
 

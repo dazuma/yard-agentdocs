@@ -135,7 +135,9 @@ unchecked rather than being marked as done.
       mixed into `Geometry::Shape`; also settled the mixin content-strategy
       open question (link out to the module's own file, don't duplicate the
       method's docs inline)
-- [ ] `extend` of a module defining singleton methods
+- [x] `extend` of a module defining singleton methods — `Geometry::Named`
+      extended into `Triangle`; settled the `extend` content-strategy open
+      question (link out via `**Extends:**`, same as `include`)
 - [ ] `prepend` (method resolution order should be visible/explained somehow)
 - [ ] A module meant purely to be mixed in (documented as such, e.g. via
       `@abstract` or prose) rather than instantiated
@@ -263,13 +265,14 @@ Output format, indexing/lookup, cross-referencing, and the core YARD
 integration mechanics are now decided *and implemented* — see "Decisions" and
 "Implementation" below. What's still open:
 
-- **Mixin/inheritance content strategy for `extend`/`prepend`/superclass
-  inheritance** — resolved for direct `include` as "link out, not
-  duplicate" (see "Mixin content strategy" under "Decisions" below). Still
-  open for `extend` (singleton methods) and `prepend` (MRO makes "which
-  copy is authoritative" murkier), and for a subclass method inherited
-  (not overridden) from a superclass — does the subclass's file duplicate,
-  link out, or say nothing at all? Not yet exercised in `example/lib`.
+- **Mixin/inheritance content strategy for `prepend`/superclass
+  inheritance** — resolved for direct `include` (see "Mixin content
+  strategy" under "Decisions" below) and `extend` (see "`extend` content
+  strategy" under "Decisions" below), both "link out, not duplicate". Still
+  open for `prepend` (MRO makes "which copy is authoritative" murkier), and
+  for a subclass method inherited (not overridden) from a superclass — does
+  the subclass's file duplicate, link out, or say nothing at all? Not yet
+  exercised in `example/lib`.
 
 ## Decisions
 
@@ -435,6 +438,35 @@ flags are real, independent options on `meths` — `:inherited` (superclass
 methods, `ClassObject`-only) and `:included` (mixin methods, all
 `NamespaceObject`s) — and this template wants both off, since class files
 don't duplicate either superclass or mixin member docs.
+
+### `extend` content strategy: link out, same as `include`
+
+Resolves the `extend` half of the "Mixin/inheritance content strategy" open
+question (mirroring the `include` decision above; `prepend` remains open).
+Exercised via `Geometry::Named` (a module defining one instance method,
+`#kind`, meant to be `extend`ed rather than `include`d) `extend`ed into
+`Geometry::Triangle`.
+
+A class's own file does **not** duplicate an `extend`ed module's methods as
+Class Methods entries — `class_method_objects` already passed
+`included: false`, and YARD's `included_meths` uses that same flag for both
+`include` (`:instance` scope) and `extend` (`:class` scope, wrapped in
+`ExtendedMethodObject`), so no template change was needed there; the fix
+that made `included: false` apply at all was already made for `include`
+(see "Latent bug fixed along the way" above). The class file instead gets a
+new `**Extends:**` metadata line (`class/agentdocs/setup.rb#extends_line`,
+reading `object.mixins(:class)`), rendered right after `**Includes:**` in
+`metadata.erb` — same link/display-name convention as `**Superclass:**`/
+`**Includes:**`. The `extend`ed module's own file keeps documenting its
+method(s) as ordinary instance methods (how they're actually written in
+source), same as a directly-`include`d module's page does; only the
+*extending* class's page needs to know it was mixed in via `extend` rather
+than `include`.
+
+Scoped to classes only for now, same as `**Includes:**`/`**Superclass:**`
+(`extends_line` returns `nil` unconditionally in `module/agentdocs/setup.rb`)
+— a module extending another module isn't yet exercised, matching
+`**Includes:**`'s existing class-only scope.
 
 ### `Struct.new`/`Data.define`-based classes
 

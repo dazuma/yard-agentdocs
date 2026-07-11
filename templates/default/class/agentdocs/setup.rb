@@ -43,3 +43,18 @@ def includes_line
   end
   "**Includes:** #{refs.join(', ')}"
 end
+
+# Modules `extend`ed directly in the parsed source (their instance methods
+# become this class's singleton/class methods). Same link-out convention as
+# {includes_line} — the class's own Class Methods section does not duplicate
+# an extended module's methods; only this line, and the module's own file
+# has the full docs.
+def extends_line
+  mods = object.mixins(:class)
+  return nil if mods.empty?
+  refs = mods.map do |mod|
+    name = mod.name.to_s
+    mod.is_a?(CodeObjects::Proxy) ? "`#{name}`" : "[`#{name}`](#{link_path(mod)})"
+  end
+  "**Extends:** #{refs.join(', ')}"
+end
