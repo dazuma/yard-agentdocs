@@ -24,7 +24,7 @@ module Geometry
     # @return [Point] the centroid of the given points
     #
     def self.centroid(*points)
-      Point.new(points.sum(&:x) / points.size.to_f, points.sum(&:y) / points.size.to_f)
+      Point.new(average(points.map(&:x)), average(points.map(&:y)))
     end
 
     ##
@@ -38,5 +38,17 @@ module Geometry
       points.each { |p| yield p }
       points.size
     end
+
+    ##
+    # Averages an array of numbers. Shared by {.centroid}'s x/y averaging,
+    # kept out of the public API since it isn't specific to points.
+    #
+    # @param values [Array<Numeric>] the numbers to average
+    # @return [Float] the arithmetic mean of `values`
+    #
+    def self.average(values)
+      values.sum / values.size.to_f
+    end
+    private_class_method :average
   end
 end

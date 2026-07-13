@@ -18,6 +18,14 @@ class Stopwatch
   DEFAULT_ELAPSED = 0.0
 
   ##
+  # The monotonic clock ID used to measure elapsed time in {#measure}.
+  #
+  # @return [Integer]
+  #
+  CLOCK = ::Process::CLOCK_MONOTONIC
+  private_constant :CLOCK
+
+  ##
   # Creates a stopwatch with no elapsed time yet recorded.
   #
   def initialize
@@ -95,6 +103,31 @@ class Stopwatch
     @elapsed.to_s
   end
 
+  ##
+  # Compares this stopwatch's elapsed time to another's, per Ruby's `<=>`
+  # convention. Doesn't mix in `Comparable`, so this is the only comparison
+  # operator available (no `<`, `>`, etc. — see {Geometry::Point}, which
+  # makes the same choice).
+  #
+  # @param other [Stopwatch] the stopwatch to compare to
+  # @return [Integer] -1, 0, or 1
+  #
+  def <=>(other)
+    elapsed <=> other.elapsed
+  end
+
+  protected
+
+  ##
+  # The elapsed time, as tracked internally. Exposed to other `Stopwatch`
+  # instances (for {#<=>}), but not as a public accessor.
+  #
+  # @return [Float]
+  #
+  def elapsed
+    @elapsed
+  end
+
   private
 
   ##
@@ -104,6 +137,6 @@ class Stopwatch
   # @return [Float]
   #
   def current_time
-    ::Process.clock_gettime(::Process::CLOCK_MONOTONIC)
+    ::Process.clock_gettime(CLOCK)
   end
 end

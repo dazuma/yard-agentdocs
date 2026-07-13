@@ -283,8 +283,10 @@ fixing ad hoc.
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [ ] (mech) Class methods defined via `class << self` — should render
       identically to `def self.foo`
-- [ ] (mech) A private class method — depends on the visibility policy
-      decided under "Visibility"
+- [x] (mech) A private class method — `Geometry::Computations.average`
+      (`private_class_method`-marked, backing `.centroid`'s x/y averaging);
+      confirmed omitted with zero template changes, same policy as instance
+      `private`/`protected`
 
 ### Visibility
 
@@ -296,8 +298,10 @@ fixing ad hoc.
       enforcement — see "Visibility policy" under "Decisions". Also settles
       `protected`, private class methods, and `private_constant` (all `mech`
       follow-ups under the same policy).
-- [ ] (mech) `protected` method with doc comment (e.g. part of a
-      `#<=>`/comparison implementation) — same policy as `private` above
+- [x] (mech) `protected` method with doc comment (e.g. part of a
+      `#<=>`/comparison implementation) — `Stopwatch#elapsed`, backing the
+      new `Stopwatch#<=>`; confirmed omitted with zero template changes,
+      same as `private`
 - [x] (design) Tag-based privacy — `@private` tag or `@api private` on a
       technically public method — `Stopwatch#raw_elapsed_s`; settled that,
       unlike Ruby-scope privacy, these render but are flagged (`**Private
@@ -323,8 +327,9 @@ fixing ad hoc.
       `DEFAULT_HANDLER = SomeClass.new`) — `Point::ORIGIN = new(0, 0)` is close
       but is a *self*-reference (an instance of the class it's defined on, not
       another one), so it exercises the value/type machinery but not this case
-- [ ] (mech) Private constant (`private_constant`) — depends on the
-      visibility policy decided under "Visibility"
+- [x] (mech) Private constant (`private_constant`) — `Stopwatch::CLOCK`,
+      backing `#current_time`; confirmed omitted with zero template changes,
+      same policy as instance/class-method privacy
 
 ### YARD tags
 

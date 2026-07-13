@@ -22,6 +22,7 @@ Call the reset method to start over.
 
 **Instance Methods**
 
+- `#<=>` — Compares this stopwatch's elapsed time to another's, per Ruby's `<=>` convention.
 - `#add` — Adds to the elapsed time.
 - `#describe` — Builds a descriptive label for this stopwatch.
 - `#measure` — Runs the given block and adds how long it took to this stopwatch's elapsed time.
@@ -52,9 +53,28 @@ Stopwatch.new() → Stopwatch
 
 Creates a stopwatch with no elapsed time yet recorded.
 
-**Defined in:** `example/lib/stopwatch.rb:23`
+**Defined in:** `example/lib/stopwatch.rb:31`
 
 ## Instance Methods
+
+### #<=>
+
+```ruby
+stopwatch <=> other → Integer
+```
+
+Compares this stopwatch's elapsed time to another's, per Ruby's `<=>`
+convention. Doesn't mix in `Comparable`, so this is the only comparison
+operator available (no `<`, `>`, etc. — see [`Geometry::Point`](Geometry/Point.md), which
+makes the same choice).
+
+**Params:**
+
+- `other` (`Stopwatch`) — the stopwatch to compare to
+
+**Returns:** `Integer` — -1, 0, or 1
+
+**Defined in:** `example/lib/stopwatch.rb:115`
 
 ### #add
 
@@ -70,7 +90,7 @@ Adds to the elapsed time.
 
 **Returns:** `Float` — the new total elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:33`
+**Defined in:** `example/lib/stopwatch.rb:41`
 
 ### #describe
 
@@ -97,7 +117,7 @@ formatting API.
 
 **Returns:** `String` — the assembled label
 
-**Defined in:** `example/lib/stopwatch.rb:79`
+**Defined in:** `example/lib/stopwatch.rb:87`
 
 ### #measure
 
@@ -114,7 +134,7 @@ elapsed time.
 
 **Returns:** `Object` — the block's return value
 
-**Defined in:** `example/lib/stopwatch.rb:55`
+**Defined in:** `example/lib/stopwatch.rb:63`
 
 ### #raw_elapsed_s
 
@@ -130,7 +150,7 @@ part of the stable public API.
 
 **Returns:** `String` — the elapsed time, in seconds, as a plain string
 
-**Defined in:** `example/lib/stopwatch.rb:94`
+**Defined in:** `example/lib/stopwatch.rb:102`
 
 ### #reset
 
@@ -146,4 +166,4 @@ Resets the elapsed time.
 
 **Returns:** `Float` — the new elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:43`
+**Defined in:** `example/lib/stopwatch.rb:51`
