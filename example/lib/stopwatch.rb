@@ -58,4 +58,28 @@ class Stopwatch
     @elapsed += ::Process.clock_gettime(::Process::CLOCK_MONOTONIC) - before
     result
   end
+
+  ##
+  # Builds a descriptive label for this stopwatch. Combines every parameter
+  # shape this format's signature line can render — a required positional
+  # argument, an optional positional argument, a splat, a required keyword,
+  # an optional keyword, a double-splat, and a block — in one signature,
+  # purely to exercise how they assemble together; not a realistic
+  # formatting API.
+  #
+  # @param name [String] the stopwatch's label
+  # @param precision [Integer] decimal places to round the elapsed time to
+  # @param tags [Array<String>] extra tags to include
+  # @param unit [String] the unit label, e.g. `"s"`
+  # @param separator [String] the string used to join the tags
+  # @param metadata [Hash{Symbol => Object}] arbitrary extra key/value pairs to include
+  # @param block [Proc] a block to post-process the label, used instead of it if given
+  # @return [String] the assembled label
+  #
+  def describe(name, precision = 1, *tags, unit:, separator: ", ", **metadata, &block)
+    base = "#{name} (#{@elapsed.round(precision)}#{unit})"
+    base += " [#{tags.join(separator)}]" unless tags.empty?
+    base += " #{metadata}" unless metadata.empty?
+    block ? block.call(base) : base
+  end
 end

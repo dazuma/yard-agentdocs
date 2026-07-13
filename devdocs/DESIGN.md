@@ -232,9 +232,11 @@ fixing ad hoc.
       (same block-presentation decision as above); `block_given?` itself
       not separately exercised (no new rendering question — the format
       doesn't track block optionality)
-- [ ] (mech) A method combining several of the above (positional + optional +
-      splat + kwargs + block) — the "kitchen sink" signature; pure
-      signature-assembly test, tackle after its component pieces
+- [x] A method combining several of the above (positional + optional +
+      splat + kwargs + block) — `Stopwatch#describe`, the "kitchen sink"
+      signature; confirmed purely mechanical, no template changes needed —
+      `param_names`/`signature_text` already assembled every shape together
+      correctly
 - [ ] (design) Multiple overloads via `@overload` (e.g. a method whose
       behavior/args differ enough that one Ruby signature doesn't tell the
       full story)

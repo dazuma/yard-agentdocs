@@ -23,6 +23,7 @@ Call the reset method to start over.
 **Instance Methods**
 
 - `#add` — Adds to the elapsed time.
+- `#describe` — Builds a descriptive label for this stopwatch.
 - `#measure` — Runs the given block and adds how long it took to this stopwatch's elapsed time.
 - `#reset` — Resets the elapsed time.
 
@@ -69,6 +70,33 @@ Adds to the elapsed time.
 **Returns:** `Float` — the new total elapsed time
 
 **Defined in:** `example/lib/stopwatch.rb:33`
+
+### #describe
+
+```ruby
+stopwatch.describe(name, precision = 1, *tags, unit:, separator: ", ", **metadata, &block) → String
+```
+
+Builds a descriptive label for this stopwatch. Combines every parameter
+shape this format's signature line can render — a required positional
+argument, an optional positional argument, a splat, a required keyword,
+an optional keyword, a double-splat, and a block — in one signature,
+purely to exercise how they assemble together; not a realistic
+formatting API.
+
+**Params:**
+
+- `name` (`String`) — the stopwatch's label
+- `precision` (`Integer`) — decimal places to round the elapsed time to
+- `tags` (`Array<String>`) — extra tags to include
+- `unit` (`String`) — the unit label, e.g. `"s"`
+- `separator` (`String`) — the string used to join the tags
+- `metadata` (`Hash{Symbol => Object}`) — arbitrary extra key/value pairs to include
+- `block` (`Proc`) — a block to post-process the label, used instead of it if given
+
+**Returns:** `String` — the assembled label
+
+**Defined in:** `example/lib/stopwatch.rb:79`
 
 ### #measure
 
