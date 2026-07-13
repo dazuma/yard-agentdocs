@@ -25,6 +25,7 @@ Call the reset method to start over.
 - `#add` — Adds to the elapsed time.
 - `#describe` — Builds a descriptive label for this stopwatch.
 - `#measure` — Runs the given block and adds how long it took to this stopwatch's elapsed time.
+- `#raw_elapsed_s` (private API) — Formats the elapsed time for internal diagnostic tooling.
 - `#reset` — Resets the elapsed time.
 
 ## Constants
@@ -114,6 +115,22 @@ elapsed time.
 **Returns:** `Object` — the block's return value
 
 **Defined in:** `example/lib/stopwatch.rb:55`
+
+### #raw_elapsed_s
+
+```ruby
+stopwatch.raw_elapsed_s() → String
+```
+
+**Private API.**
+
+Formats the elapsed time for internal diagnostic tooling. Kept public so
+other objects in this library can call it directly, but not meant to be
+part of the stable public API.
+
+**Returns:** `String` — the elapsed time, in seconds, as a plain string
+
+**Defined in:** `example/lib/stopwatch.rb:94`
 
 ### #reset
 

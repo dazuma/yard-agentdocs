@@ -8,6 +8,10 @@
 <%= signature_text(@method) %>
 ```
 
+<%- if private_api_annotation(@method) -%>
+**<%= private_api_annotation(@method) %>**
+
+<%- end -%>
 <%= markdownify(@method.docstring) %>
 <%- unless @method.tags(:param).empty? -%>
 

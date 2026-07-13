@@ -5,6 +5,7 @@ include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::MethodSignature
+include ::YARD::AgentDocs::VisibilityInfo
 
 def init
   sections :page
@@ -104,5 +105,6 @@ def attribute_summary_line(attr)
 end
 
 def method_summary_line(meth)
-  "- `#{member_heading(meth)}` — #{markdownify(meth.docstring.summary)}"
+  suffix = private_api_annotation_short(meth)
+  "- `#{member_heading(meth)}`#{" (#{suffix})" if suffix} — #{markdownify(meth.docstring.summary)}"
 end

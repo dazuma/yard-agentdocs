@@ -14,7 +14,7 @@ describe "agentdocs template" do
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
       ::YARD::CLI::Yardoc.new.run(
-        "--no-yardopts", "--no-save", "--no-stats", "--no-private",
+        "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
         "-t", "default",
         "-f", "agentdocs",
@@ -44,7 +44,7 @@ describe "agentdocs template" do
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
       ::YARD::CLI::Yardoc.new.run(
-        "--no-yardopts", "--no-save", "--no-stats", "--no-private",
+        "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
         "-t", "default",
         "-f", "agentdocs",

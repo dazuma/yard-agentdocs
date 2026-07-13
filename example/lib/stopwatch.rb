@@ -53,9 +53,9 @@ class Stopwatch
   # @return [Object] the block's return value
   #
   def measure(&block)
-    before = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC)
+    before = current_time
     result = block.call
-    @elapsed += ::Process.clock_gettime(::Process::CLOCK_MONOTONIC) - before
+    @elapsed += current_time - before
     result
   end
 
@@ -81,5 +81,29 @@ class Stopwatch
     base += " [#{tags.join(separator)}]" unless tags.empty?
     base += " #{metadata}" unless metadata.empty?
     block ? block.call(base) : base
+  end
+
+  ##
+  # Formats the elapsed time for internal diagnostic tooling. Kept public so
+  # other objects in this library can call it directly, but not meant to be
+  # part of the stable public API.
+  #
+  # @private
+  # @return [String] the elapsed time, in seconds, as a plain string
+  #
+  def raw_elapsed_s
+    @elapsed.to_s
+  end
+
+  private
+
+  ##
+  # The current monotonic clock reading, used to measure elapsed time in
+  # {#measure}.
+  #
+  # @return [Float]
+  #
+  def current_time
+    ::Process.clock_gettime(::Process::CLOCK_MONOTONIC)
   end
 end

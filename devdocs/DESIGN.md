@@ -34,6 +34,30 @@ keep it in sync as understanding improves.
 - Being a general-purpose YARD template framework. The output format can be
   opinionated and narrow, tuned specifically for agent consumption.
 
+## Design heuristic: agent reference needs mirror human reference needs
+
+When a format/policy decision isn't dictated by the goals above, default to
+matching how a gem would already choose to present that information to a
+human reader in its own reference docs (YARD's default HTML template is the
+concrete reference point) — rather than inventing a bespoke agent-specific
+policy from scratch. An agent looking up how to use a dependency is doing
+essentially the same task a human engineer would.
+
+The two dimensions where this project *should* diverge from human-facing
+conventions are:
+
+- **Terseness/formatting** — visual affordances that help a human scan (CSS,
+  layout, verbose multi-line warning paragraphs) are dead weight for an agent
+  parsing text; prefer compact inline annotations over a human template's
+  more elaborate treatment of the same information.
+- **Structured search/cross-reference cost** — favor forms that let an
+  automation find/parse/cross-reference elements cheaply (consistent
+  headings, predictable file paths, minimal tokens) over forms optimized for
+  visual browsing.
+
+Where neither dimension is in play, don't reinvent a policy a human-facing
+template already settled.
+
 ## Design strategy: example-driven
 
 Rather than deciding the output format up front in the abstract, we're building
@@ -265,15 +289,20 @@ fixing ad hoc.
 ### Visibility
 
 - [x] Public method (default/no comment needed)
-- [ ] (design) `private` method with doc comment (should it even appear in
-      output?) — the policy decided here also drives `protected`, the
-      tag-based-privacy item below, private class methods, and
-      `private_constant`
+- [x] (design) `private` method with doc comment (should it even appear in
+      output?) — `Stopwatch#current_time`, backing `#measure`; settled that
+      Ruby-scope `private`/`protected` are omitted entirely, relying on
+      YARD's own default visibility flags rather than template-level
+      enforcement — see "Visibility policy" under "Decisions". Also settles
+      `protected`, private class methods, and `private_constant` (all `mech`
+      follow-ups under the same policy).
 - [ ] (mech) `protected` method with doc comment (e.g. part of a
       `#<=>`/comparison implementation) — same policy as `private` above
-- [ ] (design) Tag-based privacy — `@private` tag or `@api private` on a
-      technically public method; both pose the same question (does it appear
-      in output, and flagged how?), a facet of the visibility policy above
+- [x] (design) Tag-based privacy — `@private` tag or `@api private` on a
+      technically public method — `Stopwatch#raw_elapsed_s`; settled that,
+      unlike Ruby-scope privacy, these render but are flagged (`**Private
+      API.**` full-entry line, `(private API)` Member Summary suffix) —
+      see "Visibility policy" under "Decisions"
 
 ### Attributes & constants
 
@@ -1114,6 +1143,48 @@ method can legitimately use `@yield`'s bracket form *instead of*
 breakdown (`each_point`) — both styles occur in real-world YARD usage, and
 the fixtures deliberately exercise one of each rather than combining both
 on the same method.
+
+### Visibility policy: Ruby-scope privacy omitted, tag-based privacy shown-and-flagged
+
+Settles the "visibility policy" shared by `private`/`protected` methods,
+private class methods, `private_constant`, and tag-based privacy
+(`@private`/`@api private`) — following "Design heuristic: agent reference
+needs mirror human reference needs" above, which led to two *different*
+resolutions rather than one:
+
+- **Ruby-scope `private`/`protected`** (and `private_constant`): omitted
+  entirely, exercised via `Stopwatch#current_time` (a private helper backing
+  `#measure`), which doesn't appear anywhere in `Stopwatch.md`. This falls
+  out of YARD's own CLI defaults (`visibilities = [:public]` in
+  `YARD::CLI::Yardoc`) with **no template code** — the `agentdocs` templates
+  never see these objects in the first place. Deliberately relies on the
+  invoking `yardoc` command not passing `--private`/`--protected`, rather
+  than defensively filtering by `object.visibility` in the template: that
+  would block a legitimate use case (an agent doing internal maintenance on
+  the gem itself, not just consuming its public API) for a problem
+  (`.yardopts` inheriting unwanted flags from an unrelated human-doc setup)
+  that's speculative, not observed. Revisit only if the dogfood milestone
+  (see "Prioritization and roadmap") surfaces a real case.
+- **`@private` tag / `@api private` tag** on an otherwise Ruby-public method:
+  shown, not omitted — matching YARD's default HTML template, which also
+  renders these (bare `yardoc` doesn't hide `@private`/`@api private` by
+  default; `--no-private` is a flag for exactly this, off by default despite
+  the name, and had to be **removed** from `test/test_agentdocs_template.rb`'s
+  `generate`/`generate_rdoc` invocations, since it was already suppressing
+  these objects entirely rather than flagging them). Exercised via
+  `Stopwatch#raw_elapsed_s` (tagged `@private`; `@api private` resolves
+  identically via the same `VisibilityInfo#private_api?` check, so wasn't
+  separately exercised). Flagged with a `**Private API.**` bold line in
+  `method_entry.erb`, inserted between the signature code block and the
+  docstring, plus a `(private API)` parenthetical suffix on the Member
+  Summary bullet — both structurally identical to the existing
+  `attribute_annotation`/`attribute_annotation_short` (`**Read-only.**`
+  /`(read-only)`) mechanism, now generalized as
+  `YARD::AgentDocs::VisibilityInfo`. This is terser than YARD's own
+  multi-line warning paragraph (`docstring/*/private.erb`), per the
+  terseness half of the design heuristic above, and establishes the
+  precedent the not-yet-tackled auxiliary-one-line-tags item
+  (`@deprecated`/`@since`/`@note`) will likely want to follow.
 
 ## Implementation
 
