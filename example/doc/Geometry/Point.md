@@ -22,6 +22,7 @@ comparable with `<=>`.
 
 **Class Methods**
 
+- `.from_polar` — Creates a point from polar coordinates.
 - `.new` — Creates a point from its coordinates.
 - `.parse` — Parses a point from a string formatted as `"x,y"`.
 
@@ -29,6 +30,8 @@ comparable with `<=>`.
 
 - `#+` — Adds this point to another, component-wise.
 - `#distance_to` — Computes the Euclidean distance to another point.
+- `#round` — Rounds this point's coordinates to the given decimal precision.
+- `#translate` — Shifts this point by the given coordinate deltas.
 
 ## Constants
 
@@ -71,6 +74,23 @@ The y-coordinate.
 **Defined in:** `example/lib/geometry/point.rb:30`
 
 ## Class Methods
+
+### .from_polar
+
+```ruby
+Point.from_polar(radius:, angle:) → Point
+```
+
+Creates a point from polar coordinates.
+
+**Params:**
+
+- `radius` (`Numeric`) — the distance from the origin
+- `angle` (`Numeric`) — the angle from the positive x-axis, in radians
+
+**Returns:** `Point` — the point in Cartesian coordinates
+
+**Defined in:** `example/lib/geometry/point.rb:68`
 
 ### .new
 
@@ -121,7 +141,7 @@ Adds this point to another, component-wise.
 
 **Returns:** `Point` — a new point whose coordinates are the sum of the two
 
-**Defined in:** `example/lib/geometry/point.rb:67`
+**Defined in:** `example/lib/geometry/point.rb:78`
 
 ### #distance_to
 
@@ -137,4 +157,37 @@ Computes the Euclidean distance to another point.
 
 **Returns:** `Float` — the distance between the two points
 
-**Defined in:** `example/lib/geometry/point.rb:77`
+**Defined in:** `example/lib/geometry/point.rb:88`
+
+### #round
+
+```ruby
+point.round(precision: 0) → Point
+```
+
+Rounds this point's coordinates to the given decimal precision.
+
+**Params:**
+
+- `precision` (`Integer`) — the number of decimal places to round to
+
+**Returns:** `Point` — a new point with rounded coordinates
+
+**Defined in:** `example/lib/geometry/point.rb:98`
+
+### #translate
+
+```ruby
+point.translate(**deltas) → Point
+```
+
+Shifts this point by the given coordinate deltas. Any coordinate not
+given defaults to no change.
+
+**Params:**
+
+- `deltas` (`Hash{Symbol => Numeric}`) — `:x` and/or `:y` offsets to add
+
+**Returns:** `Point` — a new point shifted by the given deltas
+
+**Defined in:** `example/lib/geometry/point.rb:109`

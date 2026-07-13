@@ -50,6 +50,15 @@ describe ::YARD::AgentDocs::MethodSignature do
         def sum(*values)
         end
 
+        def required_kw(a:)
+        end
+
+        def optional_kw(b: 1)
+        end
+
+        def double_splat(**opts)
+        end
+
         def no_return_value
         end
       end
@@ -129,6 +138,18 @@ describe ::YARD::AgentDocs::MethodSignature do
 
     it "renders a splat param with its sigil intact" do
       assert_equal(["*values"], holder.param_names(meth(:sum)))
+    end
+
+    it "renders a required keyword param with its trailing colon and no default" do
+      assert_equal(["a:"], holder.param_names(meth(:required_kw)))
+    end
+
+    it "renders an optional keyword param as 'name: default', not 'name: = default'" do
+      assert_equal(["b: 1"], holder.param_names(meth(:optional_kw)))
+    end
+
+    it "renders a double-splat param with its sigil intact" do
+      assert_equal(["**opts"], holder.param_names(meth(:double_splat)))
     end
   end
 

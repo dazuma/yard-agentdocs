@@ -75,10 +75,16 @@ module YARD
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [Array<String>] each parameter as it should appear in the
-      #   signature, e.g. `"to"` or `"to = DEFAULT_ELAPSED"`
+      #   signature, e.g. `"to"`, `"to = DEFAULT_ELAPSED"`, or `"b: 1"` for
+      #   an optional keyword arg (YARD includes the trailing `:` in the
+      #   name itself, so a keyword default reads `name: default`, not
+      #   `name: = default`)
       #
       def param_names(meth)
-        meth.parameters.map { |name, default| default ? "#{name} = #{default}" : name.to_s }
+        meth.parameters.map do |name, default|
+          next name.to_s unless default
+          name.end_with?(":") ? "#{name} #{default}" : "#{name} = #{default}"
+        end
       end
 
       ##

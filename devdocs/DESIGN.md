@@ -213,9 +213,16 @@ fixing ad hoc.
       surfaced the need for compound-type inner-identifier linking (a
       `Array<Point>`-shaped `@param`), see "Compound-type cross-referencing"
       under "Decisions"
-- [ ] (mech) Required keyword args
-- [ ] (mech) Optional keyword args with defaults
-- [ ] (mech) Double-splat (`**opts`)
+- [x] Required keyword args — `Geometry::Point.from_polar(radius:, angle:)`
+- [x] Optional keyword args with defaults — `Geometry::Point#round(precision: 0)`;
+      surfaced and fixed a `param_names` bug that rendered the default as
+      `` precision: = 0 `` instead of natural Ruby's `` precision: 0 `` (YARD
+      includes the trailing `:` in the parameter name itself, so a keyword
+      default needs no `=`)
+- [x] Double-splat (`**opts`) — `Geometry::Point#translate(**deltas)`; also
+      supplied the `example/` appearance for the `Hash{}` half of
+      "Compound-type variants beyond `Array<Point>`" below, via its
+      `Hash{Symbol => Numeric}`-typed `@param`
 - [ ] (design) Block param (`&block`) captured explicitly — forces a
       decision on how a block renders in the natural-call-syntax signature
       line; shares that decision with the implicit-block item below and the
@@ -369,11 +376,20 @@ fixing ad hoc.
       references, and code-span/fenced-block exclusion. See "Inline
       cross-references in prose" under "Decisions" for the full scope and
       rendering rules.
-- [ ] (mech) Compound-type variants beyond `Array<Point>` —
-      `Hash{Symbol => Point}`, parenthesized `Array(Float, Float)`, nested
-      generics: the `=>` and `(`/`)` tokens aren't proven by the existing
-      case. Unit-test coverage in `test/test_cross_referencing.rb` plus at
-      least one `example/` appearance.
+- [x] `Hash{K => V}` compound type — the `=>`/`{`/`}` tokens needed no scanner
+      changes (`type_ref` was already written to buffer any punctuation
+      generically, not just `Array`'s `<`/`>`; see "Compound-type
+      cross-referencing" under "Decisions"), just proof: unit tests in
+      `test/test_cross_referencing.rb` for both the resolving
+      (`Hash{Baz => Baz}`) and nothing-resolves (`Hash{Symbol => Numeric}`)
+      cases, plus `Geometry::Point#translate`'s `Hash{Symbol => Numeric}`-typed
+      `@param` as the `example/` appearance.
+- [ ] (mech) Remaining compound-type variants — parenthesized
+      `Array(Float, Float)`, nested generics (e.g. `Array<Hash{Symbol =>
+      Point}>`): the `(`/`)` tokens and multi-level nesting still aren't
+      proven by any existing case. Unit-test coverage in
+      `test/test_cross_referencing.rb` plus at least one `example/`
+      appearance.
 - [ ] (mech) `@see` pointing at another method in the same class
 - [x] `@see` pointing at a method in a different class/namespace —
       `Geometry.distance`'s `@see Point#distance_to`

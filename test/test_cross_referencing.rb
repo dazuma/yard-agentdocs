@@ -64,6 +64,11 @@ describe ::YARD::AgentDocs::CrossReferencing do
       assert_equal("`Array<Bogus>`", holder.type_ref("Array<Bogus>"))
     end
 
+    it "collapses a Hash compound type to a single backtick span when nothing resolves" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal("`Hash{Symbol => Numeric}`", holder.type_ref("Hash{Symbol => Numeric}"))
+    end
+
     it "links multiple resolvable names within one compound type" do
       holder = holder_for(<<~RUBY, "Foo::Bar")
         module Foo

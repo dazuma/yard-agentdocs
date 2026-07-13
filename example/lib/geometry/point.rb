@@ -59,6 +59,17 @@ module Geometry
     end
 
     ##
+    # Creates a point from polar coordinates.
+    #
+    # @param radius [Numeric] the distance from the origin
+    # @param angle [Numeric] the angle from the positive x-axis, in radians
+    # @return [Point] the point in Cartesian coordinates
+    #
+    def self.from_polar(radius:, angle:)
+      new(radius * Math.cos(angle), radius * Math.sin(angle))
+    end
+
+    ##
     # Adds this point to another, component-wise.
     #
     # @param other [Point] the point to add
@@ -76,6 +87,27 @@ module Geometry
     #
     def distance_to(other)
       Math.hypot(x - other.x, y - other.y)
+    end
+
+    ##
+    # Rounds this point's coordinates to the given decimal precision.
+    #
+    # @param precision [Integer] the number of decimal places to round to
+    # @return [Point] a new point with rounded coordinates
+    #
+    def round(precision: 0)
+      Point.new(x.round(precision), y.round(precision))
+    end
+
+    ##
+    # Shifts this point by the given coordinate deltas. Any coordinate not
+    # given defaults to no change.
+    #
+    # @param deltas [Hash{Symbol => Numeric}] `:x` and/or `:y` offsets to add
+    # @return [Point] a new point shifted by the given deltas
+    #
+    def translate(**deltas)
+      Point.new(x + deltas.fetch(:x, 0), y + deltas.fetch(:y, 0))
     end
   end
 end
