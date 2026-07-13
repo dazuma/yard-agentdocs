@@ -524,6 +524,10 @@ Settled shape for a class/module's Markdown file, worked out against
    the single table of contents for everything in the file:
    - Subgroups in order: `**Nested Classes & Modules**`, `**Constants**`,
      `**Attributes**`, `**Class Methods**`, `**Instance Methods**`.
+   - Within a subgroup, members are sorted alphabetically by their display
+     name (`member_name` — the sigil-less name, `new` for the constructor),
+     not by source-file definition order. Applies to both the summary
+     bullets here and the per-kind sections in step 5 below.
    - Each bullet: sigil+name (see step 5) + one-line summary.
    - **Nested Classes & Modules** is the one subgroup with links (each
      nested type has its own file and no further expansion in this one, so
