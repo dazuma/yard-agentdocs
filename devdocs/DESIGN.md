@@ -223,12 +223,15 @@ fixing ad hoc.
       supplied the `example/` appearance for the `Hash{}` half of
       "Compound-type variants beyond `Array<Point>`" below, via its
       `Hash{Symbol => Numeric}`-typed `@param`
-- [ ] (design) Block param (`&block`) captured explicitly — forces a
-      decision on how a block renders in the natural-call-syntax signature
-      line; shares that decision with the implicit-block item below and the
-      `@yield` family under "YARD tags"
-- [ ] (design) Implicit block usage (`yield` / `block_given?`) with no
-      captured `&block` param (same block-presentation decision as above)
+- [x] Block param (`&block`) captured explicitly — `Stopwatch#measure(&block)`;
+      settled how a block renders in the natural-call-syntax signature line,
+      shared with the implicit-block item below and the `@yield` family
+      under "YARD tags" — see "Block presentation" under "Decisions"
+- [x] Implicit block usage (`yield`) with no captured `&block` param —
+      `Geometry::Polygon#each_side`/`Geometry::Computations.each_point`
+      (same block-presentation decision as above); `block_given?` itself
+      not separately exercised (no new rendering question — the format
+      doesn't track block optionality)
 - [ ] (mech) A method combining several of the above (positional + optional +
       splat + kwargs + block) — the "kitchen sink" signature; pure
       signature-assembly test, tackle after its component pieces
@@ -299,9 +302,9 @@ fixing ad hoc.
 - [x] `@return` (including `void` and multi-type unions) — `void`/unions not
       exercised, but the tag is otherwise thorough
 - [ ] (design) `@option` (documenting keys of an options hash/kwargs)
-- [ ] (design) `@yield`, `@yieldparam`, `@yieldreturn` — shares the
-      block-presentation decision with the `&block`/implicit-block items
-      under "Methods"
+- [x] `@yield`, `@yieldparam`, `@yieldreturn` — shared the block-presentation
+      decision with the `&block`/implicit-block items under "Methods"; see
+      "Block presentation" under "Decisions"
 - [ ] (design) `@raise` (including a method that documents more than one
       exception type) — a new format element (e.g. a `**Raises:**` line)
 - [ ] (mech) `@see` — linking to another method, another class, and an
@@ -1044,6 +1047,71 @@ example fixtures, per this project's existing precedent of keeping
 narrative fixture prose natural rather than forcing in every edge case
 (see the heading-collision note this same precedent left under "Markdown
 formatting in prose").
+
+### Block presentation: `&block` in the parens, implicit `yield` as a trailing block literal
+
+Settles the "block-presentation decision" shared by the `&block`-captured,
+implicit-block-usage, and `@yield`/`@yieldparam`/`@yieldreturn` checklist
+items — all three landed together, since a block-taking method isn't fully
+documented without also rendering what it yields. Exercised via
+`Stopwatch#measure(&block)` (explicit capture, no yielded args), `` Geometry
+::Polygon#each_side`` (implicit `yield`, one yielded arg named only via
+`@yield`'s bracket), and `Geometry::Computations.each_point` (implicit
+`yield`, one yielded arg named via `@yieldparam`).
+
+**Signature line — matches how the method is actually called, not how it's
+declared:**
+
+- A method that captures the block as a named `&block` parameter shows it
+  inline with the other params, same as any other param — `param_names`
+  already handles this for free (YARD reports `&block` as a plain parameter
+  name), no template code needed: `` stopwatch.measure(&block) → Object ``.
+- A method that takes a block only implicitly (bare `yield`, no captured
+  param — detected by `implicit_block?` in `method_signature.rb`: any of
+  `@yield`/`@yieldparam`/`@yieldreturn` present, and no parameter name
+  starts with `&`) instead gets a trailing block-literal fragment from
+  `block_literal`, e.g. `` polygon.each_side { |side_number| ... } → Integer ``
+  or `` Computations.each_point(*points) { |point| ... } → Integer `` — this
+  is how you'd actually have to call it (Ruby's `{ ... }`/`do...end` block
+  syntax), so it follows the same "natural call syntax over an invented
+  schema" precedent as everything else in the signature line. The block's
+  parameter names come from `block_param_names`: `@yieldparam` names in
+  declaration order if present, else `@yield`'s own bracketed name list
+  (`@yield [a, b] ...`), else empty (`{ ... }` with no `| |`). An empty
+  ordinary-param list is dropped entirely when a block literal follows
+  (`each_side` has no real params, so it renders as `polygon.each_side { ...
+  }`, never `polygon.each_side() { ... }`) — parens still appear as normal
+  when real params exist alongside the block (`each_point`'s `(*points)`).
+
+**`@yield`/`@yieldparam`/`@yieldreturn` rendering**, inserted between
+`**Params:**` and `**Returns:**` in `method_entry.erb`:
+
+- `**Yields:**` — one line, from `@yield`. Critically, `@yield`'s bracketed
+  part (`@yield [a, b] description`) holds *parameter names*, not types —
+  confirmed against YARD's own tag library docs and dogfooded usage
+  (`yard/tags/library.rb`, `@yield [a, b, c] Gives 3 random numbers to the
+  block`) — so those names are rendered as plain backticked literal text
+  (`` `side_number` — one call per side ``), **never** passed through
+  `type_ref`, which is reserved for real type strings (`@return`,
+  `@yieldreturn`, `@param`/`@yieldparam`'s type brackets). A bracket-less
+  `@yield` (no yielded args, e.g. `Stopwatch#measure`) renders as just the
+  description, no leading backtick/dash — matches common bracket-less
+  `@yield` idiom seen throughout YARD's own source (e.g. `` @yield a block
+  of arbitrary code to benchmark ``).
+- `**Yield Params:**` — a bullet list from `@yieldparam`, structurally
+  identical to `**Params:**` (`` `name` (`Type`) — description ``, `Type`
+  through `type_ref` as usual — `@yieldparam` types are real types, unlike
+  `@yield`'s bracket).
+- `**Yield Returns:**` — one line from `@yieldreturn`, structurally
+  identical to `**Returns:**`.
+
+All three are independently optional (a method may have any subset), and a
+method can legitimately use `@yield`'s bracket form *instead of*
+`@yieldparam` for a simple single-purpose block (`each_side`) or
+`@yieldparam` *instead of* a bracketed `@yield` for a more structured
+breakdown (`each_point`) — both styles occur in real-world YARD usage, and
+the fixtures deliberately exercise one of each rather than combining both
+on the same method.
 
 ## Implementation
 

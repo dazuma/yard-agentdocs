@@ -26,5 +26,17 @@ module Geometry
     def self.centroid(*points)
       Point.new(points.sum(&:x) / points.size.to_f, points.sum(&:y) / points.size.to_f)
     end
+
+    ##
+    # Yields each of the given points in turn.
+    #
+    # @param points [Array<Point>] the points to iterate over
+    # @yieldparam point [Point] each point, in the order given
+    # @return [Integer] the number of points yielded
+    #
+    def self.each_point(*points)
+      points.each { |p| yield p }
+      points.size
+    end
   end
 end

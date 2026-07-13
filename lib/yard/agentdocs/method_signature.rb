@@ -101,17 +101,73 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [::YARD::Tags::Tag, nil] the method's `@yield` tag, if any
+      #
+      def yield_tag(meth)
+        meth.tag(:yield)
+      end
+
+      ##
+      # Whether a method takes a block only implicitly (bare `yield`, no
+      # `&block`-named parameter): true when it's documented with any of the
+      # `@yield`/`@yieldparam`/`@yieldreturn` family but doesn't capture the
+      # block as a named parameter. A captured `&block` param is already
+      # visible in {#param_names}, so only the uncaptured case needs a
+      # synthetic marker in the signature line (see {#block_literal}).
+      #
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [Boolean]
+      #
+      def implicit_block?(meth)
+        return false if meth.parameters.any? { |name, _| name.to_s.start_with?("&") }
+        !(yield_tag(meth).nil? && meth.tags(:yieldparam).empty? && meth.tag(:yieldreturn).nil?)
+      end
+
+      ##
+      # The block's parameter names for {#block_literal}, preferring the
+      # structured `@yieldparam` tags (in declaration order) and falling
+      # back to `@yield`'s own bracketed name list (`@yield [a, b] ...`)
+      # when there's no `@yieldparam`.
+      #
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [Array<String>]
+      #
+      def block_param_names(meth)
+        yieldparams = meth.tags(:yieldparam)
+        return yieldparams.map(&:name) unless yieldparams.empty?
+        yield_tag(meth)&.types || []
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [String, nil] a block-literal signature fragment, e.g.
+      #   `{ |item| ... }` or `{ ... }`, for a method that takes a block only
+      #   implicitly (see {#implicit_block?}); `nil` for a method with no
+      #   block at all, or one that captures it as a named `&block` param
+      #   (already covered by {#param_names} instead)
+      #
+      def block_literal(meth)
+        return nil unless implicit_block?(meth)
+        names = block_param_names(meth)
+        names.empty? ? "{ ... }" : "{ |#{names.join(', ')}| ... }"
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [String] the natural-call-syntax signature line, e.g.
       #   `Point.parse(str) → Point` or `point + other → Point`
       #
       def signature_text(meth)
         name = member_name(meth)
         params = param_names(meth)
+        block = block_literal(meth)
         call =
           if !meth.constructor? && operator?(meth) && meth.scope == :instance && params.size == 1
             "#{receiver_name(meth)} #{name} #{params.first}"
           else
-            "#{receiver_name(meth)}.#{name}(#{params.join(', ')})"
+            base = "#{receiver_name(meth)}.#{name}"
+            base += "(#{params.join(', ')})" unless params.empty? && block
+            block ? "#{base} #{block}" : base
           end
         return_type = signature_return_type(meth)
         return_type ? "#{call} → #{return_type}" : call

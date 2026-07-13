@@ -40,5 +40,16 @@ module Geometry
     def describe
       "polygon"
     end
+
+    ##
+    # Calls the block once for each side of the polygon, in order.
+    #
+    # @yield [side_number] one call per side
+    # @return [Integer] the number of sides yielded
+    #
+    def each_side
+      1.upto(sides) { |n| yield n }
+      sides
+    end
   end
 end

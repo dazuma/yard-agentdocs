@@ -17,6 +17,25 @@
 - `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
 <%- end -%>
 <%- end -%>
+<%- yt = yield_tag(@method) -%>
+<%- if yt -%>
+<%- yt_names = yt.types || [] -%>
+
+**Yields:** <%- unless yt_names.empty? -%><%= yt_names.map { |n| "`#{n}`" }.join(', ') %> — <%- end -%><%= markdownify(yt.text) %>
+<%- end -%>
+<%- unless @method.tags(:yieldparam).empty? -%>
+
+**Yield Params:**
+
+<%- @method.tags(:yieldparam).each do |p| -%>
+- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
+<%- end -%>
+<%- end -%>
+<%- yieldreturn_tag = @method.tag(:yieldreturn) -%>
+<%- if yieldreturn_tag -%>
+
+**Yield Returns:** <%= type_ref(yieldreturn_tag.types && yieldreturn_tag.types.first) %> — <%= markdownify(yieldreturn_tag.text) %>
+<%- end -%>
 <%- return_tag = method_return_tag(@method) -%>
 <%- if return_tag -%>
 

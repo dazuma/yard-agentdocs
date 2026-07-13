@@ -43,4 +43,19 @@ class Stopwatch
   def reset(to = DEFAULT_ELAPSED)
     @elapsed = to
   end
+
+  ##
+  # Runs the given block and adds how long it took to this stopwatch's
+  # elapsed time.
+  #
+  # @yield the work to time
+  # @yieldreturn [Object] the block's own return value, passed through unchanged
+  # @return [Object] the block's return value
+  #
+  def measure(&block)
+    before = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC)
+    result = block.call
+    @elapsed += ::Process.clock_gettime(::Process::CLOCK_MONOTONIC) - before
+    result
+  end
 end

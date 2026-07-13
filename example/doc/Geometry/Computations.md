@@ -10,6 +10,7 @@ Utility computations on `Point` values.
 
 - `.centroid` — Computes the centroid (average position) of one or more points.
 - `.distance` — Computes the distance between two points.
+- `.each_point` — Yields each of the given points in turn.
 
 ## Class Methods
 
@@ -47,3 +48,23 @@ Computes the distance between two points.
 **See also:** [`Point#distance_to`](Point.md)
 
 **Defined in:** `example/lib/geometry/computations.rb:16`
+
+### .each_point
+
+```ruby
+Computations.each_point(*points) { |point| ... } → Integer
+```
+
+Yields each of the given points in turn.
+
+**Params:**
+
+- `points` (`Array<`[`Point`](Point.md)`>`) — the points to iterate over
+
+**Yield Params:**
+
+- `point` ([`Point`](Point.md)) — each point, in the order given
+
+**Returns:** `Integer` — the number of points yielded
+
+**Defined in:** `example/lib/geometry/computations.rb:37`

@@ -23,6 +23,7 @@ Call the reset method to start over.
 **Instance Methods**
 
 - `#add` — Adds to the elapsed time.
+- `#measure` — Runs the given block and adds how long it took to this stopwatch's elapsed time.
 - `#reset` — Resets the elapsed time.
 
 ## Constants
@@ -68,6 +69,23 @@ Adds to the elapsed time.
 **Returns:** `Float` — the new total elapsed time
 
 **Defined in:** `example/lib/stopwatch.rb:33`
+
+### #measure
+
+```ruby
+stopwatch.measure(&block) → Object
+```
+
+Runs the given block and adds how long it took to this stopwatch's
+elapsed time.
+
+**Yields:** the work to time
+
+**Yield Returns:** `Object` — the block's own return value, passed through unchanged
+
+**Returns:** `Object` — the block's return value
+
+**Defined in:** `example/lib/stopwatch.rb:55`
 
 ### #reset
 
