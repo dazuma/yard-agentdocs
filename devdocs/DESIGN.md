@@ -67,7 +67,9 @@ the example files encode real design decisions (see "Decisions"/"Open
 questions"), so the human reviews and iterates on them before any
 implementation code gets touched:
 
-1. **Human** proposes which unchecked checklist item(s) to tackle next.
+1. **Human** proposes which unchecked checklist item(s) to tackle next
+   (see "Prioritization and roadmap" below for suggested ordering and for
+   how much design latitude each item carries).
 2. **Claude** proposes the corresponding additions/edits to `example/lib`
    (Ruby source exercising the item) and `example/doc` (the hand-authored
    target output for it), asking clarifying questions along the way where the
@@ -111,15 +113,58 @@ parenthetical *example* of a tag that's otherwise thoroughly exercised (e.g.
 `@param`'s duck-type aside) doesn't block the check. Partial coverage stays
 unchecked rather than being marked as done.
 
+Each unchecked item carries a **(design)**/**(mech)**/**(stretch)** marker —
+see "Prioritization and roadmap" just below for what they mean and how to
+pick the next item.
+
+### Prioritization and roadmap
+
+Each unchecked checklist item is marked so that a fresh session can tell how
+much design latitude it involves:
+
+- **(design)** — forces a format decision not yet settled under "Decisions".
+  Expect real back-and-forth in steps 2–3 of the TDD loop; the `example/`
+  proposal is the medium for *making* the decision, not a formality. Where
+  several items share one decision, the item says so — settle it once on the
+  first item tackled, and the rest effectively become (mech).
+- **(mech)** — the expected output should follow mechanically from existing
+  "Decisions"; the `example/` proposal should be predictable and review is a
+  sanity check. Good candidates for quick sessions. Caveat: if a (mech) item
+  surfaces a surprise (YARD reports something unexpected, or no existing
+  decision actually covers the rendering), treat it as (design) on the spot —
+  stop and review with the human rather than improvising a format.
+- **(stretch)** — don't tackle unless evidence from real usage demands it.
+
+Suggested ordering: prefer (design) items early — each one settled reduces
+the risk of late format churn invalidating already-approved fixtures — and
+use (mech) items as filler between them. Every item, regardless of marker,
+still goes through the human-gated workflow above; the marker only
+calibrates how much iteration to expect.
+
+**Dogfood milestone:** once the checklist is substantially covered, run the
+template against a real, mid-size gem (YARD itself is a fitting candidate)
+and diff-read the output. The hand-written example drives format decisions
+well, but it will systematically miss what real docstrings do — markup
+dialects, inline references, odd whitespace, very large classes that would
+trigger the deferred "escape valve" under "File granularity". Harvest
+anything the run surfaces back into this checklist as new items rather than
+fixing ad hoc.
+
 ### Module/class structure
 
 - [x] Top-level class — `Stopwatch`
 - [x] Top-level module (namespace only, no behavior) — `Geometry` itself,
       once its one method moved to `Geometry::Computations`
-- [ ] Nested namespacing (`Foo::Bar::Baz`), including a module that exists only
-      to hold nested classes/modules
-- [ ] A class reopened across two files/locations (docs should merge)
-- [ ] Plain-old class with no superclass mentioned vs. explicit `< Object`
+- [ ] (mech) Nested namespacing (`Foo::Bar::Baz`), including a module that
+      exists only to hold nested classes/modules — path derivation is
+      settled; the namespace-only module's rendering depends on the
+      undocumented-class/module policy item under "Documentation content /
+      prose patterns"
+- [ ] (design) A class reopened across two files/locations (docs should
+      merge — how do multiple `**Defined in:**` locations render?)
+- [ ] (mech) A custom exception class (`class ParseError < StandardError`) —
+      very common in real gems, pairs with `@raise` lookups, and exercises
+      an *unresolved* superclass that isn't `Object`/`Struct`/`Data`
 - [x] Subclassing a class defined elsewhere in the example (inheritance chain
       of at least 3 levels, to test how ancestry is presented) — `Geometry::Shape`
       → `Polygon` → `Triangle`; also settled that `**Superclass:**` links to a
@@ -143,12 +188,17 @@ unchecked rather than being marked as done.
       settled the `prepend` content-strategy open question (fold into
       `**Includes:**`, indistinguishable from `include` at the metadata
       level — see "`prepend` content strategy" under "Decisions")
-- [ ] A module meant purely to be mixed in (documented as such, e.g. via
-      `@abstract` or prose) rather than instantiated
-- [ ] `extend self` pattern (module usable both as namespace and as mixin)
-- [ ] `module_function`
-- [ ] Mixing in a stdlib module (e.g. `Comparable` or `Enumerable`) to see how
-      we handle methods whose docs live outside the example source entirely
+- [ ] (mech) A module meant purely to be mixed in (documented as such, e.g.
+      via `@abstract` or prose) rather than instantiated — `@abstract`'s own
+      rendering is its own item under "YARD tags"
+- [ ] (design) `extend self` pattern (module usable both as namespace and as
+      mixin) — shares one decision with `module_function` below: how methods
+      that are simultaneously class- and instance-level should present
+- [ ] (design) `module_function` (same decision as `extend self` above)
+- [ ] (mech) Mixing in a stdlib module (e.g. `Comparable` or `Enumerable`) to
+      see how we handle methods whose docs live outside the example source
+      entirely — link-out is already decided; an unresolved module should
+      render as a plain backtick, same as an unresolved superclass
 
 ### Methods — shapes & signatures
 
@@ -163,52 +213,77 @@ unchecked rather than being marked as done.
       surfaced the need for compound-type inner-identifier linking (a
       `Array<Point>`-shaped `@param`), see "Compound-type cross-referencing"
       under "Decisions"
-- [ ] Required keyword args
-- [ ] Optional keyword args with defaults
-- [ ] Double-splat (`**opts`)
-- [ ] Block param (`&block`) captured explicitly
-- [ ] Implicit block usage (`yield` / `block_given?`) with no captured `&block`
-      param
-- [ ] A method combining several of the above (positional + optional + splat +
-      kwargs + block) — the "kitchen sink" signature
-- [ ] Multiple overloads via `@overload` (e.g. a method whose behavior/args
-      differ enough that one Ruby signature doesn't tell the full story)
-- [ ] A method that returns early with multiple distinct return shapes
-      (documented return type is a union, e.g. `String, nil`)
-- [ ] A method returning an `Enumerator` when called without a block, and
-      yielding when called with one (tests combined `@yield`/`@return` docs)
-- [x] Operator method overload (e.g. `#+`, `#==`, `#<=>`, `#[]`, `#[]=`) —
-      `Point#+`, rendered infix (`point + other → Point`)
-- [ ] `#to_s` / `#inspect` overrides
-- [ ] Aliased method (`alias`/`alias_method`) — does the alias get its own
-      entry or point back at the original?
+- [ ] (mech) Required keyword args
+- [ ] (mech) Optional keyword args with defaults
+- [ ] (mech) Double-splat (`**opts`)
+- [ ] (design) Block param (`&block`) captured explicitly — forces a
+      decision on how a block renders in the natural-call-syntax signature
+      line; shares that decision with the implicit-block item below and the
+      `@yield` family under "YARD tags"
+- [ ] (design) Implicit block usage (`yield` / `block_given?`) with no
+      captured `&block` param (same block-presentation decision as above)
+- [ ] (mech) A method combining several of the above (positional + optional +
+      splat + kwargs + block) — the "kitchen sink" signature; pure
+      signature-assembly test, tackle after its component pieces
+- [ ] (design) Multiple overloads via `@overload` (e.g. a method whose
+      behavior/args differ enough that one Ruby signature doesn't tell the
+      full story)
+- [ ] (mech) A method that returns early with multiple distinct return shapes
+      (documented return type is a union, e.g. `String, nil`); also cover
+      `@return [self]` (chainable methods — a type token that's neither
+      resolvable nor an ordinary class name) and `@return [void]` here
+- [ ] (design) A method returning an `Enumerator` when called without a
+      block, and yielding when called with one (tests combined
+      `@yield`/`@return` docs)
+- [x] Infix binary operator method — `Point#+`, rendered infix
+      (`point + other → Point`)
+- [ ] (design) Remaining operator forms — `#[]` / `#[]=` (`point[i]`,
+      `point[i] = v`), `#<=>` / `#==`, unary `-@` / `+@` (`-point`) — each
+      has a distinct natural-call-syntax rendering that the infix-binary
+      case doesn't settle
+- [ ] (design) Aliased method (`alias`/`alias_method`) — does the alias get
+      its own entry or point back at the original?
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
-- [ ] Class methods defined via `class << self`
-- [ ] A private class method
-- [ ] Method-level `@private` tag on a method (vs. actual Ruby `private`)
+- [ ] (mech) Class methods defined via `class << self` — should render
+      identically to `def self.foo`
+- [ ] (mech) A private class method — depends on the visibility policy
+      decided under "Visibility"
 
 ### Visibility
 
 - [x] Public method (default/no comment needed)
-- [ ] `private` method with doc comment (should it even appear in output?)
-- [ ] `protected` method with doc comment (e.g. part of a `#<=>`/comparison
-      implementation)
+- [ ] (design) `private` method with doc comment (should it even appear in
+      output?) — the policy decided here also drives `protected`, the
+      tag-based-privacy item below, private class methods, and
+      `private_constant`
+- [ ] (mech) `protected` method with doc comment (e.g. part of a
+      `#<=>`/comparison implementation) — same policy as `private` above
+- [ ] (design) Tag-based privacy — `@private` tag or `@api private` on a
+      technically public method; both pose the same question (does it appear
+      in output, and flagged how?), a facet of the visibility policy above
 
 ### Attributes & constants
 
-- [ ] `attr_reader`, `attr_writer`, `attr_accessor` with doc comments (only
-      `attr_reader` exercised so far, via `Point#x`/`#y`)
-- [ ] Manually-defined reader/writer pair documented via `@attr`/`@attr_reader`/
-      `@attr_writer` tags instead of relying on `attr_*`
+- [ ] (mech) `attr_reader`, `attr_writer`, `attr_accessor` with doc comments
+      (only `attr_reader` exercised so far, via `Point#x`/`#y`) — also the
+      trigger for revisiting the undocumented-attribute boilerplate policy
+      noted under the `Struct`/`Data` decision
+- [ ] (mech) Manually-defined reader/writer pair documented via
+      `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
+      `attr_*` — escalate to (design) if YARD doesn't merge the pair into
+      one attribute cleanly
 - [x] Simple constant (numeric/string literal) with a doc comment —
       `Point::DIMENSIONS`
-- [ ] Structured constant (`Hash`, `Array`, `Regexp` literal)
-- [ ] Constant that references another documented class (e.g.
+- [ ] (design) Structured constant (`Hash`, `Array`, `Regexp` literal) — a
+      multiline literal forces a decision on how `**Value:**` renders when
+      the raw source text doesn't fit one line
+- [ ] (mech) Constant that references another documented class (e.g.
       `DEFAULT_HANDLER = SomeClass.new`) — `Point::ORIGIN = new(0, 0)` is close
       but is a *self*-reference (an instance of the class it's defined on, not
       another one), so it exercises the value/type machinery but not this case
-- [ ] Private constant (`private_constant`)
+- [ ] (mech) Private constant (`private_constant`) — depends on the
+      visibility policy decided under "Visibility"
 
 ### YARD tags
 
@@ -216,45 +291,64 @@ unchecked rather than being marked as done.
       typing itself not exercised, but the tag is otherwise thorough
 - [x] `@return` (including `void` and multi-type unions) — `void`/unions not
       exercised, but the tag is otherwise thorough
-- [ ] `@option` (documenting keys of an options hash/kwargs)
-- [ ] `@yield`, `@yieldparam`, `@yieldreturn`
-- [ ] `@raise` (including a method that documents more than one exception
-      type)
-- [ ] `@see` — linking to another method, another class, and an external URL
-      (only the "another method" case is exercised so far; see also the
-      cross-referencing scenario below)
-- [ ] `@example` — both a bare example and a titled example
+- [ ] (design) `@option` (documenting keys of an options hash/kwargs)
+- [ ] (design) `@yield`, `@yieldparam`, `@yieldreturn` — shares the
+      block-presentation decision with the `&block`/implicit-block items
+      under "Methods"
+- [ ] (design) `@raise` (including a method that documents more than one
+      exception type) — a new format element (e.g. a `**Raises:**` line)
+- [ ] (mech) `@see` — linking to another method, another class, and an
+      external URL, plus the trailing-description form
+      (`@see Foo#bar Some label`); only the "another method" case is
+      exercised so far (see also the cross-referencing scenarios below)
+- [ ] (design) `@example` — both a bare example and a titled example
       (`@example Some title`), and a method with more than one `@example`
-- [ ] `@deprecated` (with and without a replacement pointer)
-- [ ] `@since`
-- [ ] `@abstract` (on a class/module, and on a method meant to be overridden)
-- [ ] `@note`
-- [ ] `@todo`
-- [ ] `@api` (e.g. `@api private` on something technically public)
-- [ ] `@author`
-- [ ] `@version`
-- [ ] `@overload` (see also "Methods" above)
+- [ ] (design, one decision) Auxiliary one-line tags — `@deprecated` (with
+      and without a replacement pointer), `@since`, `@note`: settle
+      placement, ordering, and format of auxiliary annotations *once*, then
+      cover each representative (the rest become mechanical). Include at
+      least one such tag on a non-method object (`@deprecated` on a class,
+      `@since` on a constant) — the format shouldn't be method-only.
+- [ ] (design) `@abstract` (on a class/module, and on a method meant to be
+      overridden) — likely follows the auxiliary-tags decision above, but
+      may warrant more prominence than a one-line annotation
+- [ ] (design, one decision) Remaining free-form/low-value tags — `@todo`,
+      `@author`, `@version`, and anything similar: a single policy (render
+      generically or deliberately drop). These are rarely what an agent
+      needs; per-tag treatment isn't worth it.
 
 ### YARD directives (for dynamically-defined methods/attrs)
 
-- [ ] `@!attribute` (documenting an attribute defined through metaprogramming
-      rather than `attr_*`)
-- [ ] `@!method` (documenting a method defined via `define_method` in a loop,
-      or via a class-level DSL macro — common in real-world gems)
-- [ ] `@!group` / `@!endgroup` (method grouping) — stretch; only include if we
-      decide the output format should reflect YARD groups
+- [ ] (mech) `@!attribute` (documenting an attribute defined through
+      metaprogramming rather than `attr_*`)
+- [ ] (mech) `@!method` (documenting a method defined via `define_method` in
+      a loop, or via a class-level DSL macro — common in real-world gems)
+- [ ] (stretch) `@!group` / `@!endgroup` (method grouping) — only include if
+      we decide the output format should reflect YARD groups
 
 ### Documentation content / prose patterns
 
 - [x] Single-line summary only — e.g. `Point#x`'s "The x-coordinate."
 - [x] Multi-paragraph description (summary + extended discussion) — the
       `Geometry` module doc
-- [ ] Markdown formatting in prose: code spans, a fenced code block, a list,
-      a link (only code spans are exercised so far, e.g. `` `"x,y"` ``)
+- [ ] (mech) Markdown formatting in prose: code spans, a fenced code block, a
+      list, a link (only code spans are exercised so far, e.g. `` `"x,y"` ``)
+      — safe now that the markup-dialect decision keeps Markdown sources
+      passthrough (see "Docstring markup dialect" under "Decisions")
+- [ ] (mech) Docstring markup dialect — **decided** (see "Docstring markup
+      dialect" under "Decisions"): dispatch on `options.markup`, `:markdown`
+      passes through, `:rdoc` converts via `RDoc::Markup::ToMarkdown`.
+      Remaining work is the `markdownify` dispatch itself plus rdoc-path
+      coverage per the testing guidance in that decision.
+- [ ] (design) Prose/summary containing Markdown metacharacters (backticks,
+      `*`, `_`, `[`) — the Member Summary embeds one-line summaries in
+      bullet lists and headings embed member names, so this forces an
+      escaping policy
 - [x] A class-level doc comment (not just method-level) — both `Geometry` and
       `Geometry::Point`
-- [ ] An intentionally undocumented public method (to decide how/whether the
-      output format flags this)
+- [ ] (design) Intentionally undocumented objects — a public method with no
+      doc comment, and an entirely undocumented class/module (one policy
+      decision: flag it, render a stub, or omit entirely)
 
 ### Cross-referencing scenarios
 
@@ -262,13 +356,43 @@ unchecked rather than being marked as done.
       example (same file and a different file) — `Point#+` referencing
       `Point` itself (same file) and `Geometry.distance` referencing `Point`
       (different file) both render correctly (unlinked vs. linked)
-- [ ] `@see` pointing at another method in the same class
+- [ ] (design) Inline `{Foo#bar}` references in prose — YARD's idiomatic
+      in-prose link syntax (more common in real gems than `@see`), including
+      the labeled form (`{Foo#bar label text}`). Forces a decision: rewrite
+      to a Markdown link (reusing the existing `Registry.resolve` machinery)
+      vs. pass through raw (which leaves literal `{...}` noise in the
+      output). The markup-dialect decision settles the ordering: resolve
+      references *after* dialect conversion (mirroring YARD's
+      `resolve_links`, which runs on converted output) — and requires
+      probing that `ToMarkdown` leaves a bare `{Foo#bar}` untouched (see
+      "Docstring markup dialect" under "Decisions").
+- [ ] (mech) Compound-type variants beyond `Array<Point>` —
+      `Hash{Symbol => Point}`, parenthesized `Array(Float, Float)`, nested
+      generics: the `=>` and `(`/`)` tokens aren't proven by the existing
+      case. Unit-test coverage in `test/test_cross_referencing.rb` plus at
+      least one `example/` appearance.
+- [ ] (mech) `@see` pointing at another method in the same class
 - [x] `@see` pointing at a method in a different class/namespace —
       `Geometry.distance`'s `@see Point#distance_to`
-- [ ] A subclass method that overrides a documented parent method without
-      redocumenting it (does output inherit/copy/link the parent doc?)
-- [ ] A mixin method's docs as seen from an including class (does the output
-      show it as if native, or point back at the module?)
+- [ ] (design) A subclass method that overrides a documented parent method
+      without redocumenting it (does output inherit/copy/link the parent
+      doc?) — pairs with the inherited-method open question below
+- [ ] (mech) A mixin method's docs as seen from an including class — largely
+      settled by the mixin content-strategy decisions (link out, never
+      duplicate); this item just verifies nothing about the module-page side
+      remains undecided
+
+### Indexing & discovery
+
+- [ ] (design) Flat full-FQN index — `index.md` currently lists only
+      top-level namespaces, so an agent that knows a name but not its
+      namespace (`Polygon`?) must walk the tree, against the "minimize
+      round trips" goal. A single flat, greppable index — one line per
+      class/module (`Geometry::Polygon — summary`), possibly one per member
+      — would answer that in one cheap read, reusing the same
+      grep-as-precision-mechanism philosophy as member lookup. Decide
+      granularity (namespaces only vs. every member) and whether it
+      replaces or supplements the current `index.md`.
 
 ## Open questions
 
@@ -284,6 +408,20 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   duplicate" (or, for `prepend`, indistinguishable from `include`). Still
   open for plain superclass inheritance itself. Not yet exercised in
   `example/lib`.
+- **Flat full-FQN index** — tracked as a (design) checklist item under
+  "Indexing & discovery" rather than re-described here. (Docstring markup
+  dialect, formerly also listed here, is now decided — see "Docstring markup
+  dialect" under "Decisions".)
+- **The "no custom handler classes" integration principle** — a standing
+  watch, not a specific item. The `prepend` limitation (see "`prepend`
+  content strategy" under "Decisions") was this principle's first real
+  cost: YARD's stock handlers discard the include-vs-prepend distinction,
+  and we accepted a permanent gap rather than write a handler. That was the
+  right call in isolation, but if the dogfood milestone (see
+  "Prioritization and roadmap") surfaces more cases where stock handlers
+  discard data the output format wants, revisit the principle once,
+  deliberately — rather than accumulating "permanent gap" decisions one at
+  a time.
 
 ## Decisions
 
@@ -671,6 +809,99 @@ without relying on that argument.
   it can go straight to the derived path.
 - Resolving a *member* name to its location once a class/module's file is
   open is covered under "Output format" (headings + grep), not here.
+
+### Checklist pruning and prioritization (July 2026)
+
+A consultant-style review pass tightened the coverage checklist. Recording
+the removals/merges here so they don't get re-proposed later as gaps:
+
+- **"Plain class with no superclass vs. explicit `< Object`"** — removed.
+  `Stopwatch`/`Point` already cover the implicit case, and YARD records the
+  `Object` superclass as an unresolved proxy either way, so the explicit
+  variant would render byte-identically. Nothing left to decide or exercise.
+- **`#to_s`/`#inspect` overrides** — removed. They're ordinary instance
+  methods: no signature shape, tag, or rendering decision distinguishes
+  them, and no special-casing is planned.
+- **`@todo`/`@author`/`@version` as separate items** — collapsed into one
+  free-form-tag policy item under "YARD tags"; the real decision is one
+  policy, not three tags.
+- **Duplicate `@overload` entry** — the YARD-tags copy removed; the item
+  under "Methods — shapes & signatures" is the one canonical entry.
+- **`@private` tag + `@api private`** — merged into one tag-based-privacy
+  item under "Visibility"; both pose the same question (appear in output or
+  not, flagged how).
+- **Operator-method bullet split** — the previously checked bullet bundled
+  `#[]`/`#[]=`/`#==`/`#<=>`/unary operators with infix `#+`, but only the
+  infix-binary rendering is actually designed and exercised — by the
+  checklist's own checking rules it was overchecked. Now split: `#+` stays
+  checked as "infix binary operator"; the remaining operator forms are a
+  new unchecked (design) item, since each has a distinct natural-call-syntax
+  rendering.
+
+The same pass added the missing-coverage items (inline `{...}` references,
+markup dialect, exception class, compound-type variants, metacharacter
+escaping, undocumented class/module, flat index), introduced the
+(design)/(mech)/(stretch) priority markers, and added the dogfood milestone
+— see "Prioritization and roadmap" under "Example coverage checklist".
+
+### Docstring markup dialect: Markdown passes through, RDoc converts via `RDoc::Markup::ToMarkdown`
+
+Settles the markup-dialect checklist item's *decision* ahead of its
+implementation — unusually for this project, it was decided by inspecting
+YARD's own source (yard 0.9.44, rdoc 8.0.0) rather than by iterating on
+example fixtures, because the question is about matching ecosystem behavior,
+not inventing format. The checklist item stays unchecked (now (mech)) until
+exercised end-to-end.
+
+**What YARD's default template does:** `HtmlHelper#htmlify` dispatches on
+`options.markup` (the `--markup` flag) to a per-dialect
+`html_markup_<type>` method (rdoc — YARD's default — markdown, textile,
+org, asciidoc, plus literal types), each converting the docstring to
+*HTML*, the template's own output format, via a pluggable provider
+(`MarkupHelper::MARKUP_PROVIDERS`). The dialect question disappears at
+conversion time; the template proper only ever sees its output format.
+Notably, `{Foo#bar}` resolution (`resolve_links`) runs *after* markup
+conversion, on the converted text — it's dialect-independent.
+
+**The decision:** mirror that shape with a `markdownify` dispatch on
+`options.markup`, converting prose to *our* output format (Markdown):
+
+- **`:markdown` — passthrough.** What the template already does today, now
+  correct by declaration rather than by accident.
+- **`:rdoc` — convert with `RDoc::Markup::ToMarkdown`** (ships in the rdoc
+  gem, `rdoc/markup/to_markdown`). YARD's own `RDocMarkup` provider wraps
+  the same `RDoc::Markup` parser with the `ToHtml` formatter; this is the
+  identical pattern pointed at a different formatter. Probe-verified
+  against rdoc 8.0.0: `+other+` → `` `other` ``, `*this*` → `**this**`,
+  `{label}[url]` → `[label](url)`, `=` headings → ATX `#` headings.
+- **Any other markup type — out of scope.** Leaning: fail loudly (log an
+  error) rather than silently emit textile/org source into `.md` files;
+  finalize the exact unsupported-dialect behavior at implementation time.
+
+**Implementation/testing guidance** for the session that builds it:
+
+- Put the conversion in a `lib/yard/agentdocs/` mixin with focused unit
+  tests, per "Extracting generic logic into `lib/` mixins".
+- `ToMarkdown`'s exact output (4-space-indented code blocks rather than
+  fenced, list/wrap details) is owned by the rdoc gem, so any rdoc-dialect
+  fixture couples byte-for-byte to the installed rdoc version. Contain
+  that: keep the main `example/` fixture set declared `--markup markdown`,
+  and cover the rdoc path with unit tests plus at most one small dedicated
+  rdoc-dialect fixture, so rdoc version drift breaks one localized,
+  legible spot.
+- Probe, don't assume, that a bare YARD-style `{Foo#bar}` inline reference
+  (braces *not* followed by `[url]`, so not RDoc link syntax) passes
+  through `ToMarkdown` unmangled — the inline-references checklist item
+  resolves those *after* conversion, same as YARD's `resolve_links`.
+
+**Rejected: a hybrid accept-both parser.** As of 0.9.44, YARD's default
+provider for *both* `:rdoc` and `:markdown` is its built-in
+`HybridMarkdown` — one tolerant parser accepting both dialects at once. It
+isn't reusable here (it targets HTML), and the accept-both trick only
+works when converting to a third format: for Markdown *output*,
+passthrough-plus-conversion is the coherent split, since round-tripping
+Markdown through a hybrid parser would reformat prose the author already
+wrote in the output dialect.
 
 ## Implementation
 
