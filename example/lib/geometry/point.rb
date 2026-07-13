@@ -52,9 +52,16 @@ module Geometry
     #
     # @param str [String] a string such as `"3,4"`
     # @return [Point] the parsed point
+    # @raise [ArgumentError] if `str` isn't formatted as `"x,y"`
+    # @raise [TypeError] if `str` is not a `String`
     #
     def self.parse(str)
-      x, y = str.split(",").map(&:to_i)
+      raise TypeError, "str must be a String" unless str.is_a?(::String)
+
+      parts = str.split(",")
+      raise ArgumentError, "invalid point format: #{str.inspect}" unless parts.size == 2
+
+      x, y = parts.map(&:to_i)
       new(x, y)
     end
 

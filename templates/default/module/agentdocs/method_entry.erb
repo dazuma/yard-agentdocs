@@ -45,6 +45,14 @@
 
 **Returns:** <%= type_ref(return_tag.types && return_tag.types.first) %> — <%= markdownify(return_tag.text) %>
 <%- end -%>
+<%- unless @method.tags(:raise).empty? -%>
+
+**Raises:**
+
+<%- @method.tags(:raise).each do |r| -%>
+- <%= type_ref(r.types && r.types.first) %> — <%= markdownify(r.text) %>
+<%- end -%>
+<%- end -%>
 <%- unless @method.tags(:see).empty? -%>
 
 **See also:** <%= @method.tags(:see).map { |t| see_ref(t) }.join(', ') %>

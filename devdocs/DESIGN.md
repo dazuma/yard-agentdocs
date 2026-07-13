@@ -341,8 +341,12 @@ fixing ad hoc.
 - [x] `@yield`, `@yieldparam`, `@yieldreturn` — shared the block-presentation
       decision with the `&block`/implicit-block items under "Methods"; see
       "Block presentation" under "Decisions"
-- [ ] (design) `@raise` (including a method that documents more than one
-      exception type) — a new format element (e.g. a `**Raises:**` line)
+- [x] `@raise` (including a method that documents more than one exception
+      type) — `Geometry::Computations.centroid` (single `@raise`, unresolved
+      `ArgumentError`) and `Geometry::Point.parse` (two `@raise` tags,
+      `ArgumentError`/`TypeError`); settled the always-bulleted `**Raises:**`
+      list format — see "`@raise`: always-bulleted `**Raises:**` list" under
+      "Decisions"
 - [ ] (mech) `@see` — linking to another method, another class, and an
       external URL, plus the trailing-description form
       (`@see Foo#bar Some label`); only the "another method" case is
@@ -1190,6 +1194,40 @@ resolutions rather than one:
   terseness half of the design heuristic above, and establishes the
   precedent the not-yet-tackled auxiliary-one-line-tags item
   (`@deprecated`/`@since`/`@note`) will likely want to follow.
+
+### `@raise`: always-bulleted `**Raises:**` list
+
+Settles the format for `@raise`, exercised via `Geometry::Computations.centroid`
+(a single `@raise`, an unresolved `ArgumentError` when called with no points)
+and `Geometry::Point.parse` (two `@raise` tags, `ArgumentError` for a malformed
+string and `TypeError` for a non-`String` argument — mirroring how Ruby's own
+`Integer()`/`Array()` conversions document more than one failure mode for one
+method):
+
+- Renders as a `**Raises:**` heading followed by a bulleted list — one
+  `` - `ExceptionType` — description `` line per `@raise` tag — even when
+  there's only one tag, rather than `**Returns:**`'s single-line form. A
+  method can carry zero, one, or many `@raise` tags, the same shape as
+  `@param`, so it follows `**Params:**`'s always-bulleted convention rather
+  than `**Returns:**`'s (which YARD only ever surfaces one of via
+  `method_return_tag`). This also matches YARD's own default HTML template,
+  which wraps `@raise` in a `<ul>` regardless of tag count
+  (`Tags::Library.define_tag "Raises", :raise, :with_types`, rendered via
+  `templates/default/tags/html/tag.erb`).
+- Positioned after `**Returns:**` and before `**See also:**`, matching YARD's
+  own tag ordering (`Tags::Library.visible_tags`: `..., :return, :raise,
+  :see, ...`).
+- The exception type goes through the same `type_ref` cross-referencing as
+  any other type token: both examples use unresolved stdlib exceptions, which
+  render as a plain backtick, same policy as an unresolved `Array`/`Hash`
+  element type. An in-example custom exception class isn't exercised here —
+  deliberately deferred to the still-open "custom exception class" checklist
+  item under "Module/class structure", which pairs with this one.
+- A single `@raise` tag carrying more than one type (e.g. `@raise
+  [ArgumentError, TypeError]`) isn't exercised; `Point.parse` uses two
+  separate single-type tags instead, judged the more common real-world
+  pattern. Revisit if the dogfood milestone turns up the multi-type-per-tag
+  form in the wild.
 
 ## Implementation
 

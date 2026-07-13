@@ -22,8 +22,11 @@ module Geometry
     #
     # @param points [Array<Point>] the points to average
     # @return [Point] the centroid of the given points
+    # @raise [ArgumentError] if `points` is empty
     #
     def self.centroid(*points)
+      raise ArgumentError, "centroid requires at least one point" if points.empty?
+
       Point.new(average(points.map(&:x)), average(points.map(&:y)))
     end
 

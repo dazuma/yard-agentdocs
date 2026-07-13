@@ -90,7 +90,7 @@ Creates a point from polar coordinates.
 
 **Returns:** `Point` — the point in Cartesian coordinates
 
-**Defined in:** `example/lib/geometry/point.rb:68`
+**Defined in:** `example/lib/geometry/point.rb:75`
 
 ### .new
 
@@ -123,7 +123,12 @@ Parses a point from a string formatted as `"x,y"`.
 
 **Returns:** `Point` — the parsed point
 
-**Defined in:** `example/lib/geometry/point.rb:56`
+**Raises:**
+
+- `ArgumentError` — if `str` isn't formatted as `"x,y"`
+- `TypeError` — if `str` is not a `String`
+
+**Defined in:** `example/lib/geometry/point.rb:58`
 
 ## Instance Methods
 
@@ -141,7 +146,7 @@ Adds this point to another, component-wise.
 
 **Returns:** `Point` — a new point whose coordinates are the sum of the two
 
-**Defined in:** `example/lib/geometry/point.rb:78`
+**Defined in:** `example/lib/geometry/point.rb:85`
 
 ### #distance_to
 
@@ -157,7 +162,7 @@ Computes the Euclidean distance to another point.
 
 **Returns:** `Float` — the distance between the two points
 
-**Defined in:** `example/lib/geometry/point.rb:88`
+**Defined in:** `example/lib/geometry/point.rb:95`
 
 ### #round
 
@@ -173,7 +178,7 @@ Rounds this point's coordinates to the given decimal precision.
 
 **Returns:** `Point` — a new point with rounded coordinates
 
-**Defined in:** `example/lib/geometry/point.rb:98`
+**Defined in:** `example/lib/geometry/point.rb:105`
 
 ### #translate
 
@@ -190,4 +195,4 @@ given defaults to no change.
 
 **Returns:** `Point` — a new point shifted by the given deltas
 
-**Defined in:** `example/lib/geometry/point.rb:109`
+**Defined in:** `example/lib/geometry/point.rb:116`

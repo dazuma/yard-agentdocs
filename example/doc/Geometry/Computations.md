@@ -28,7 +28,11 @@ Computes the centroid (average position) of one or more points.
 
 **Returns:** [`Point`](Point.md) — the centroid of the given points
 
-**Defined in:** `example/lib/geometry/computations.rb:26`
+**Raises:**
+
+- `ArgumentError` — if `points` is empty
+
+**Defined in:** `example/lib/geometry/computations.rb:27`
 
 ### .distance
 
@@ -67,4 +71,4 @@ Yields each of the given points in turn.
 
 **Returns:** `Integer` — the number of points yielded
 
-**Defined in:** `example/lib/geometry/computations.rb:37`
+**Defined in:** `example/lib/geometry/computations.rb:40`
