@@ -5,6 +5,9 @@
 
 A point in two-dimensional space.
 
+Doesn't mix in {Comparable}, so points aren't directly sortable or
+comparable with `<=>`.
+
 ## Member Summary
 
 **Constants**
@@ -36,7 +39,7 @@ A point in two-dimensional space.
 
 The number of coordinates a point has.
 
-**Defined in:** `example/lib/geometry/point.rb:13`
+**Defined in:** `example/lib/geometry/point.rb:16`
 
 ### ORIGIN
 
@@ -45,7 +48,7 @@ The number of coordinates a point has.
 
 The point at the origin, `(0, 0)`.
 
-**Defined in:** `example/lib/geometry/point.rb:45`
+**Defined in:** `example/lib/geometry/point.rb:48`
 
 ## Attributes
 
@@ -56,7 +59,7 @@ The point at the origin, `(0, 0)`.
 
 The x-coordinate.
 
-**Defined in:** `example/lib/geometry/point.rb:20`
+**Defined in:** `example/lib/geometry/point.rb:23`
 
 ### #y
 
@@ -65,7 +68,7 @@ The x-coordinate.
 
 The y-coordinate.
 
-**Defined in:** `example/lib/geometry/point.rb:27`
+**Defined in:** `example/lib/geometry/point.rb:30`
 
 ## Class Methods
 
@@ -84,7 +87,7 @@ Creates a point from its coordinates.
 - `x` (`Numeric`) — the x-coordinate
 - `y` (`Numeric`) — the y-coordinate
 
-**Defined in:** `example/lib/geometry/point.rb:35`
+**Defined in:** `example/lib/geometry/point.rb:38`
 
 ### .parse
 
@@ -100,7 +103,7 @@ Parses a point from a string formatted as `"x,y"`.
 
 **Returns:** `Point` — the parsed point
 
-**Defined in:** `example/lib/geometry/point.rb:53`
+**Defined in:** `example/lib/geometry/point.rb:56`
 
 ## Instance Methods
 
@@ -118,7 +121,7 @@ Adds this point to another, component-wise.
 
 **Returns:** `Point` — a new point whose coordinates are the sum of the two
 
-**Defined in:** `example/lib/geometry/point.rb:64`
+**Defined in:** `example/lib/geometry/point.rb:67`
 
 ### #distance_to
 
@@ -134,4 +137,4 @@ Computes the Euclidean distance to another point.
 
 **Returns:** `Float` — the distance between the two points
 
-**Defined in:** `example/lib/geometry/point.rb:74`
+**Defined in:** `example/lib/geometry/point.rb:77`

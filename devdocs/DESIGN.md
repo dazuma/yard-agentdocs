@@ -363,16 +363,12 @@ fixing ad hoc.
       example (same file and a different file) — `Point#+` referencing
       `Point` itself (same file) and `Geometry.distance` referencing `Point`
       (different file) both render correctly (unlinked vs. linked)
-- [ ] (design) Inline `{Foo#bar}` references in prose — YARD's idiomatic
-      in-prose link syntax (more common in real gems than `@see`), including
-      the labeled form (`{Foo#bar label text}`). Forces a decision: rewrite
-      to a Markdown link (reusing the existing `Registry.resolve` machinery)
-      vs. pass through raw (which leaves literal `{...}` noise in the
-      output). The markup-dialect decision settles the ordering: resolve
-      references *after* dialect conversion (mirroring YARD's
-      `resolve_links`, which runs on converted output) — and requires
-      probing that `ToMarkdown` leaves a bare `{Foo#bar}` untouched (see
-      "Docstring markup dialect" under "Decisions").
+- [x] Inline `{Foo#bar}` references in prose — YARD's idiomatic in-prose
+      link syntax, including the labeled form (`{Foo#bar label text}`),
+      escaping (`\{...}`/`!{...}`), same-file self-references, unresolved
+      references, and code-span/fenced-block exclusion. See "Inline
+      cross-references in prose" under "Decisions" for the full scope and
+      rendering rules.
 - [ ] (mech) Compound-type variants beyond `Array<Point>` —
       `Hash{Symbol => Point}`, parenthesized `Array(Float, Float)`, nested
       generics: the `=>` and `(`/`)` tokens aren't proven by the existing
@@ -936,6 +932,80 @@ works when converting to a third format: for Markdown *output*,
 passthrough-plus-conversion is the coherent split, since round-tripping
 Markdown through a hybrid parser would reformat prose the author already
 wrote in the output dialect.
+
+### Inline cross-references in prose: rewrite to a Markdown link, reusing `Registry.resolve`
+
+Settles the inline-`{Foo#bar}`-references checklist item. Implemented as
+`CrossReferencing#resolve_references` (`lib/yard/agentdocs/cross_referencing.rb`),
+called by `Markdownify#markdownify` as its final step — so every prose call
+site gets this automatically, with no template changes needed beyond what
+"Docstring markup dialect" already wired up. Confirmed via
+`Registry.resolve(object, name, true, false)` (the same call `type_ref`/
+`see_ref` already use) that relative forms like `#other_method` resolve
+correctly regardless of whether `object` is the enclosing class/module or a
+specific method within it — no new resolution logic was needed, only the
+prose-scanning/rendering layer around it.
+
+**Syntax supported**, deliberately narrower than YARD's own `resolve_links`/
+`linkify`: a bare reference `{Name}`, a labeled reference
+`{Name label text}`, and an escaped `\{...}` or `!{...}` (backslash or bang
+— both are real YARD escape prefixes — stripped, left completely literal,
+never resolved). `Name` is resolved with the same relative-path semantics
+`@param`/`@return`/`@see` already use, so `{#sibling_method}`,
+`{Other::Class#method}`, `{CONST}`, etc. all work. Explicitly **not**
+supported: YARD's other `linkify` special forms (`include:`, `render:`,
+`file:`, bare URLs, `<a href>` unwrapping) — those are separate YARD
+features unrelated to object cross-referencing, out of scope for this item.
+
+**Rendering, all decided as deliberate departures from mirroring YARD's
+HTML behavior exactly, for consistency with this format's own established
+conventions:**
+
+- **Resolved, not self-referencing:** `{Name}` → `` [`Name`](path) ``
+  (name as written, backticked, same convention as `type_ref`/`see_ref`);
+  `{Name label text}` → `[label text](path)` (label shown as plain prose,
+  no backticks — it's freeform text the author chose, not necessarily a
+  code-like name).
+- **Resolved, but a same-file self-reference** (per the existing
+  "Cross-referencing" decision: a link to the file you're already in is
+  useless) — `{Name}` → `` `Name` `` (backtick, no link, matching
+  `see_ref`'s self-reference convention — `see_ref` was refactored to
+  share the same `self_reference?` owner-comparison helper); `{Name label
+  text}` → `label text` (plain prose, *no* backticks — the author wrote
+  that label to read naturally in the sentence; showing it plain preserves
+  that, at the cost of consistency with the no-label case, which was
+  judged the better tradeoff).
+- **Unresolved** (either form) — the entire original text, braces
+  included, passes through completely untouched. A deliberate departure
+  from real YARD, which strips the braces and shows the bare name/label as
+  plain unlinked text even when unresolved (a known YARD footgun: an
+  unescaped stray `{...}` in prose that was never meant as a reference
+  silently loses characters). Matches this project's existing precedent
+  instead — `type_ref`'s unresolved names and compound-type punctuation are
+  always preserved verbatim, never partially rewritten.
+- **Inside a backtick code span** (any length, so this also covers a
+  fenced ` ``` ` block) — left completely alone, matching Markdown's own
+  rule that nothing inside a code span is markup. Implemented as an outer
+  `StringScanner` loop over backtick-delimited runs (opening run length
+  *N*, closing at the next run of exactly length *N* — same rule
+  CommonMark uses), so reference-resolution only ever runs on the
+  non-code segments in between.
+
+**Exercised** in both fixture sets: the main `example/` (Markdown dialect)
+set gained a resolved unlabeled cross-file reference and a resolved
+labeled cross-file reference (`Triangle`'s doc, referencing `Polygon` and
+`Named`), an unresolved reference left untouched (`Point`'s doc,
+referencing the not-yet-mixed-in `Comparable`), and a labeled self-reference
+(`Stopwatch`'s doc, referencing its own `#reset`). The `example/rdoc`
+fixture's pre-existing bare self-reference (`Greeter`'s doc, referencing
+its own `#greet`) now actually resolves — previously it was deliberately
+left unresolved pending this item, and its expected output/commentary was
+updated accordingly. Escaping and the code-span/fenced-block exclusion are
+covered by unit tests only (`test/test_cross_referencing.rb`), not the
+example fixtures, per this project's existing precedent of keeping
+narrative fixture prose natural rather than forcing in every edge case
+(see the heading-collision note this same precedent left under "Markdown
+formatting in prose").
 
 ## Implementation
 

@@ -15,14 +15,17 @@ module YARD
     #
     # Requires the including template to provide an `options` method (the
     # current `YARD::Templates::TemplateOptions`), as
-    # `YARD::Templates::Template` already does.
+    # `YARD::Templates::Template` already does, and — since the final step
+    # is resolving inline cross-references — must also have
+    # {CrossReferencing} mixed in (true of every current caller;
+    # `module/agentdocs/setup.rb` includes both).
     #
     module Markdownify
       ##
       # @param text [String, ::YARD::Docstring, nil] prose in the dialect
       #   declared by `options.markup`
       # @return [String] equivalent Markdown, stripped of surrounding
-      #   whitespace
+      #   whitespace, with inline `{Name}` cross-references resolved
       #
       def markdownify(text)
         text = text.to_s
@@ -37,7 +40,7 @@ module YARD
                        "(only :markdown and :rdoc are supported) — passing prose through unconverted"
             text
           end
-        converted.strip
+        resolve_references(converted.strip)
       end
     end
   end

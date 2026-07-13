@@ -5,8 +5,9 @@
 # Markdown, to exercise the +rdoc+ dialect of the "Docstring markup
 # dialect" decision. See the {RDoc markup
 # reference}[https://ruby.github.io/rdoc/RDoc/Markup.html] for the full
-# grammar, and note this paragraph's bare {Greeter#greet} reference is
-# left unresolved for now (a separate, not-yet-built checklist item).
+# grammar. Also proves inline cross-reference resolution runs after RDoc
+# conversion: this paragraph's bare {Greeter#greet} reference resolves,
+# but renders as a plain, unlinked name — a same-file self-reference.
 #
 class Greeter
   ##

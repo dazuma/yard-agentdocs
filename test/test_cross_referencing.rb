@@ -132,6 +132,124 @@ describe ::YARD::AgentDocs::CrossReferencing do
     end
   end
 
+  describe "#resolve_references" do
+    it "returns text with no braces unchanged" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal("Plain prose, no references.", holder.resolve_references("Plain prose, no references."))
+    end
+
+    it "renders a resolved bare reference in another file as a markdown link" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal("See [`Baz`](Baz.md) for details.", holder.resolve_references("See {Baz} for details."))
+    end
+
+    it "renders a resolved same-file self-reference as a plain backtick, not a link" do
+      holder = holder_for(<<~RUBY, "Foo")
+        class Foo
+          def bar; end
+        end
+      RUBY
+      assert_equal("See `#bar` for details.", holder.resolve_references("See {#bar} for details."))
+    end
+
+    it "renders a resolved labeled reference in another file as a markdown link with the label as text" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal(
+        "See [the Baz class](Baz.md) for details.",
+        holder.resolve_references("See {Baz the Baz class} for details.")
+      )
+    end
+
+    it "renders a labeled same-file self-reference as the plain label text, with no backticks or link" do
+      holder = holder_for(<<~RUBY, "Foo")
+        class Foo
+          def bar; end
+        end
+      RUBY
+      assert_equal(
+        "Call the bar method for details.",
+        holder.resolve_references("Call {#bar the bar method} for details.")
+      )
+    end
+
+    it "leaves an unresolved bare reference completely untouched" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal("See {Bogus} for details.", holder.resolve_references("See {Bogus} for details."))
+    end
+
+    it "leaves an unresolved labeled reference completely untouched" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal(
+        "See {Bogus a label} for details.",
+        holder.resolve_references("See {Bogus a label} for details.")
+      )
+    end
+
+    it "strips a backslash escape without attempting resolution, even for an otherwise-resolvable name" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal("Not a link: {Baz}.", holder.resolve_references("Not a link: \\{Baz}."))
+    end
+
+    it "strips a bang escape without attempting resolution" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal("Not a link: {Baz}.", holder.resolve_references("Not a link: !{Baz}."))
+    end
+
+    it "leaves a reference inside a single-backtick code span untouched" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal("Literal: `{Baz}`.", holder.resolve_references("Literal: `{Baz}`."))
+    end
+
+    it "leaves a reference inside a fenced code block untouched" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      text = "before\n```\n{Baz}\n```\nafter"
+      assert_equal(text, holder.resolve_references(text))
+    end
+
+    it "resolves multiple references in the same text" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal(
+        "[`Baz`](Baz.md) and [`Baz`](Baz.md) again.",
+        holder.resolve_references("{Baz} and {Baz} again.")
+      )
+    end
+  end
+
   describe "#link_path" do
     it "returns a path relative to the currently-rendered object's own file" do
       holder = holder_for(<<~RUBY, "Foo::Bar")

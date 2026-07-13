@@ -8,6 +8,10 @@ module Geometry
   # `include`) is presented: an `**Extends:**` line here, full docs in
   # `Named`'s own file.
   #
+  # See {Geometry::Polygon the base Polygon class} for the shared
+  # sides/description behavior, and {Named} for how the naming itself is
+  # derived.
+  #
   class Triangle < Polygon
     extend Named
 

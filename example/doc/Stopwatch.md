@@ -8,6 +8,8 @@ A simple stopwatch that accumulates elapsed time, in seconds.
 Defined at the top level (not nested inside any module), to exercise how
 `yard-agentdocs` renders a class that isn't namespaced.
 
+Call the reset method to start over.
+
 ## Member Summary
 
 **Constants**
@@ -33,7 +35,7 @@ Defined at the top level (not nested inside any module), to exercise how
 The elapsed time a newly created stopwatch starts at, and the default
 value `#reset` resets to.
 
-**Defined in:** `example/lib/stopwatch.rb:16`
+**Defined in:** `example/lib/stopwatch.rb:18`
 
 ## Class Methods
 
@@ -47,7 +49,7 @@ Stopwatch.new() → Stopwatch
 
 Creates a stopwatch with no elapsed time yet recorded.
 
-**Defined in:** `example/lib/stopwatch.rb:21`
+**Defined in:** `example/lib/stopwatch.rb:23`
 
 ## Instance Methods
 
@@ -65,7 +67,7 @@ Adds to the elapsed time.
 
 **Returns:** `Float` — the new total elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:31`
+**Defined in:** `example/lib/stopwatch.rb:33`
 
 ### #reset
 
@@ -81,4 +83,4 @@ Resets the elapsed time.
 
 **Returns:** `Float` — the new elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:41`
+**Defined in:** `example/lib/stopwatch.rb:43`

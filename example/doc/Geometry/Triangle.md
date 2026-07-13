@@ -10,6 +10,10 @@ Also extends `Named`, to exercise how `extend` of a module (as opposed to
 `include`) is presented: an `**Extends:**` line here, full docs in
 `Named`'s own file.
 
+See [the base Polygon class](Polygon.md) for the shared
+sides/description behavior, and [`Named`](Named.md) for how the naming itself is
+derived.
+
 ## Member Summary
 
 **Class Methods**
@@ -28,4 +32,4 @@ Triangle.new() → Triangle
 
 Creates a triangle, with sides fixed to 3.
 
-**Defined in:** `example/lib/geometry/triangle.rb:17`
+**Defined in:** `example/lib/geometry/triangle.rb:21`

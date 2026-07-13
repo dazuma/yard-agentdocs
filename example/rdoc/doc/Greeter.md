@@ -6,8 +6,9 @@
 Builds a greeting string. Written in **RDoc** markup instead of Markdown, to
 exercise the `rdoc` dialect of the "Docstring markup dialect" decision. See
 the [RDoc markup reference](https://ruby.github.io/rdoc/RDoc/Markup.html) for
-the full grammar, and note this paragraph's bare {Greeter#greet} reference is
-left unresolved for now (a separate, not-yet-built checklist item).
+the full grammar. Also proves inline cross-reference resolution runs after
+RDoc conversion: this paragraph's bare `Greeter#greet` reference resolves, but
+renders as a plain, unlinked name — a same-file self-reference.
 
 ## Member Summary
 
@@ -31,4 +32,4 @@ Greets `name`, wrapping it in *emphasis*.
 
 **Returns:** `String` — the greeting, with `name` emphasized
 
-**Defined in:** `example/rdoc/lib/greeter.rb:18`
+**Defined in:** `example/rdoc/lib/greeter.rb:19`

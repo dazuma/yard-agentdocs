@@ -4,6 +4,9 @@ module Geometry
   ##
   # A point in two-dimensional space.
   #
+  # Doesn't mix in {Comparable}, so points aren't directly sortable or
+  # comparable with `<=>`.
+  #
   class Point
     ##
     # The number of coordinates a point has.

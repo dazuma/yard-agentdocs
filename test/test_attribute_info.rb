@@ -6,9 +6,10 @@ describe ::YARD::AgentDocs::AttributeInfo do
   let(:holder_class) do
     Class.new do
       include ::YARD::AgentDocs::AttributeInfo
+      include ::YARD::AgentDocs::CrossReferencing
       include ::YARD::AgentDocs::Markdownify
 
-      attr_accessor :options
+      attr_accessor :options, :object
     end
   end
 

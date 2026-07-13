@@ -6,6 +6,8 @@
 # Defined at the top level (not nested inside any module), to exercise how
 # `yard-agentdocs` renders a class that isn't namespaced.
 #
+# Call {#reset the reset method} to start over.
+#
 class Stopwatch
   ##
   # The elapsed time a newly created stopwatch starts at, and the default

@@ -5,14 +5,31 @@ require "helper"
 describe ::YARD::AgentDocs::Markdownify do
   let(:holder_class) do
     Class.new do
+      include ::YARD::AgentDocs::CrossReferencing
       include ::YARD::AgentDocs::Markdownify
 
-      attr_accessor :options
+      attr_accessor :options, :object
     end
   end
 
+  # No source parsed, no object set: fine for any test whose input has no
+  # (unescaped) `{...}` for #resolve_references — markdownify's final step
+  # — to stumble over.
   def holder_for(markup)
+    ::YARD::Registry.clear
     holder_class.new.tap { |h| h.options = ::Struct.new(:markup).new(markup) }
+  end
+
+  # Parses +source+ into a fresh registry and returns a holder whose
+  # +object+ is +current_path+, for tests that exercise inline
+  # cross-reference resolution end to end.
+  def holder_with_object(markup, source, current_path)
+    ::YARD::Registry.clear
+    ::YARD.parse_string(source)
+    holder_class.new.tap do |h|
+      h.options = ::Struct.new(:markup).new(markup)
+      h.object = ::YARD::Registry.at(current_path)
+    end
   end
 
   describe ":markdown dialect" do
@@ -53,8 +70,19 @@ describe ::YARD::AgentDocs::Markdownify do
       assert_equal("# Heading", holder.markdownify("= Heading"))
     end
 
-    it "leaves a bare {Foo#bar} inline reference untouched, for later resolution" do
+    it "leaves an unresolvable bare {Foo#bar} inline reference untouched" do
       assert_equal("See {Foo#bar} for details.", holder.markdownify("See {Foo#bar} for details."))
+    end
+
+    it "resolves a bare inline reference once RDoc conversion has run" do
+      holder = holder_with_object(:rdoc, <<~RUBY, "Widget")
+        class Widget; end
+
+        class Other
+          def m; end
+        end
+      RUBY
+      assert_equal("See [`Other#m`](Other.md) for details.", holder.markdownify("See {Other#m} for details."))
     end
   end
 
