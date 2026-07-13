@@ -3,6 +3,7 @@
 include ::YARD::AgentDocs::AttributeInfo
 include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
+include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::MethodSignature
 
 def init
@@ -90,18 +91,18 @@ end
 # @group Member Summary bullet lines
 
 def nested_summary_line(nested)
-  "- [`#{nested.name}`](#{link_path(nested)}) — #{nested.docstring.summary}"
+  "- [`#{nested.name}`](#{link_path(nested)}) — #{markdownify(nested.docstring.summary)}"
 end
 
 def constant_summary_line(const)
-  "- `#{const.name}` — #{const.docstring.summary}"
+  "- `#{const.name}` — #{markdownify(const.docstring.summary)}"
 end
 
 def attribute_summary_line(attr)
   suffix = attribute_annotation_short(attr)
-  "- `##{attr[:name]}`#{" (#{suffix})" if suffix} — #{attribute_docstring_summary(attr)}"
+  "- `##{attr[:name]}`#{" (#{suffix})" if suffix} — #{markdownify(attribute_docstring_summary(attr))}"
 end
 
 def method_summary_line(meth)
-  "- `#{member_heading(meth)}` — #{meth.docstring.summary}"
+  "- `#{member_heading(meth)}` — #{markdownify(meth.docstring.summary)}"
 end

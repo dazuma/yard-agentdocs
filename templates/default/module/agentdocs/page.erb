@@ -2,7 +2,7 @@
 
 <%= erb(:metadata).strip %>
 
-<%= object.docstring.strip %>
+<%= markdownify(object.docstring) %>
 
 <%= erb(:member_summary).strip %>
 <%- if any_member_sections? -%>

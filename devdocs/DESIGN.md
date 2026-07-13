@@ -334,12 +334,19 @@ fixing ad hoc.
 - [ ] (mech) Markdown formatting in prose: code spans, a fenced code block, a
       list, a link (only code spans are exercised so far, e.g. `` `"x,y"` ``)
       — safe now that the markup-dialect decision keeps Markdown sources
-      passthrough (see "Docstring markup dialect" under "Decisions")
-- [ ] (mech) Docstring markup dialect — **decided** (see "Docstring markup
-      dialect" under "Decisions"): dispatch on `options.markup`, `:markdown`
-      passes through, `:rdoc` converts via `RDoc::Markup::ToMarkdown`.
-      Remaining work is the `markdownify` dispatch itself plus rdoc-path
-      coverage per the testing guidance in that decision.
+      passthrough (see "Docstring markup dialect" under "Decisions"). Also
+      the place to eventually resolve a wrinkle surfaced while building the
+      `:rdoc` dialect path: a prose-embedded heading (RDoc `=`, or a literal
+      Markdown `# `) converts/passes through into an ATX heading that
+      collides with the file's own `# class Foo`/`## Member
+      Summary`/`### #method` heading hierarchy `grep '^## '` relies on — not
+      exercised in either dialect's fixture yet, deliberately deferred.
+- [x] Docstring markup dialect — dispatch on `options.markup`, `:markdown`
+      passes through, `:rdoc` converts via `RDoc::Markup::ToMarkdown`
+      (`YARD::AgentDocs::Markdownify#markdownify`). Covers docstring bodies,
+      `@param`/`@return` tag text, and Member Summary one-line summaries —
+      see "Docstring markup dialect" under "Decisions" for the full scope
+      and unsupported-dialect behavior settled while implementing this.
 - [ ] (design) Prose/summary containing Markdown metacharacters (backticks,
       `*`, `_`, `[`) — the Member Summary embeds one-line summaries in
       bullet lists and headings embed member names, so this forces an
@@ -850,8 +857,35 @@ Settles the markup-dialect checklist item's *decision* ahead of its
 implementation — unusually for this project, it was decided by inspecting
 YARD's own source (yard 0.9.44, rdoc 8.0.0) rather than by iterating on
 example fixtures, because the question is about matching ecosystem behavior,
-not inventing format. The checklist item stays unchecked (now (mech)) until
-exercised end-to-end.
+not inventing format.
+
+**Implemented** as `YARD::AgentDocs::Markdownify#markdownify`
+(`lib/yard/agentdocs/markdownify.rb`), `include`d into
+`module/agentdocs/setup.rb` alongside the other `lib/` mixins. Two points
+left open above were settled during implementation:
+
+- **Scope: full, not body-only.** `markdownify` wraps every prose string the
+  templates render, not just the class/method/constant/attribute body
+  docstring: `@param`/`@return` tag text (`method_entry.erb`) and every
+  Member Summary one-line summary (`*_summary_line` in
+  `module/agentdocs/setup.rb`, `attribute_docstring` in
+  `lib/yard/agentdocs/attribute_info.rb`) also go through it. Matches real
+  YARD, whose default HTML template likewise runs tag text through
+  `htmlify_line` — an RDoc-authored `@param` description left unconverted
+  would leak raw `+teletype+`/`*bold*` markers into a Params bullet under
+  `--markup rdoc`.
+- **Unsupported markup type: log and pass through, don't raise.**
+  `log.error`s (YARD's own logging convention, matching
+  `MarkupHelper#load_markup_provider`'s pattern) and returns the raw text
+  unconverted, rather than raising and aborting generation. Softer than the
+  original "fail loudly" leaning, chosen so one object with an exotic
+  `--markup` setting doesn't take down an entire otherwise-fine generation
+  run; the logged error still makes the gap visible.
+- One thing probed but deliberately *not* exercised in the rdoc-dialect
+  example fixture: an RDoc `=` heading. It converts correctly in isolation
+  (verified by unit test), but embedding one in a class docstring collides
+  with this format's own heading hierarchy — see the note added to
+  "Markdown formatting in prose" under "Example coverage checklist".
 
 **What YARD's default template does:** `HtmlHelper#htmlify` dispatches on
 `options.markup` (the `--markup` flag) to a per-dialect
@@ -923,8 +957,8 @@ in "Example coverage checklist" above, not the full checklist.
   files belonging to different template modules (`module/agentdocs` and
   `fulldoc/agentdocs` don't inherit from each other, so a method defined in
   one's `setup.rb` isn't visible in the other's): `ErbWithTrimMode`,
-  `CrossReferencing`, `MethodSignature`, and `AttributeInfo`, each `include`d
-  where needed.
+  `CrossReferencing`, `MethodSignature`, `AttributeInfo`, and `Markdownify`,
+  each `include`d where needed.
 - Templates live under `templates/default/{fulldoc,module,class}/agentdocs/`,
   mirroring YARD's own directory convention (`<template>/<type>/<format>/`):
   - `fulldoc/agentdocs` is the driver: walks the object list YARD hands it,

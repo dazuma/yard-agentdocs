@@ -5,6 +5,7 @@ require "yard"
 require "yard/agentdocs/attribute_info"
 require "yard/agentdocs/cross_referencing"
 require "yard/agentdocs/erb_with_trim_mode"
+require "yard/agentdocs/markdownify"
 require "yard/agentdocs/method_signature"
 require "yard/agentdocs/version"
 

@@ -8,19 +8,19 @@
 <%= signature_text(@method) %>
 ```
 
-<%= @method.docstring.strip %>
+<%= markdownify(@method.docstring) %>
 <%- unless @method.tags(:param).empty? -%>
 
 **Params:**
 
 <%- @method.tags(:param).each do |p| -%>
-- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= p.text %>
+- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
 <%- end -%>
 <%- end -%>
 <%- return_tag = method_return_tag(@method) -%>
 <%- if return_tag -%>
 
-**Returns:** <%= type_ref(return_tag.types && return_tag.types.first) %> — <%= return_tag.text %>
+**Returns:** <%= type_ref(return_tag.types && return_tag.types.first) %> — <%= markdownify(return_tag.text) %>
 <%- end -%>
 <%- unless @method.tags(:see).empty? -%>
 

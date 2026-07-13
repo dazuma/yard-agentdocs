@@ -57,10 +57,10 @@ module YARD
 
       ##
       # @param attr [Hash] `{ name:, read:, write: }`
-      # @return [::YARD::Docstring]
+      # @return [String] Markdown
       #
       def attribute_docstring(attr)
-        attribute_source_method(attr).docstring.strip
+        markdownify(attribute_source_method(attr).docstring)
       end
 
       ##

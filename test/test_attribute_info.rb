@@ -6,10 +6,15 @@ describe ::YARD::AgentDocs::AttributeInfo do
   let(:holder_class) do
     Class.new do
       include ::YARD::AgentDocs::AttributeInfo
+      include ::YARD::AgentDocs::Markdownify
+
+      attr_accessor :options
     end
   end
 
-  let(:holder) { holder_class.new }
+  let(:holder) do
+    holder_class.new.tap { |h| h.options = ::Struct.new(:markup).new(:markdown) }
+  end
 
   # Parses +source+ and returns the `{ name:, read:, write: }` hash for
   # +name+ on +namespace_path+, the same shape

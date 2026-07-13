@@ -3,6 +3,6 @@
 **Type:** <%= type_ref(@constant.tag(:return) && @constant.tag(:return).types && @constant.tag(:return).types.first) %>
 **Value:** `<%= @constant.value %>`
 
-<%= @constant.docstring.strip %>
+<%= markdownify(@constant.docstring) %>
 
 **Defined in:** `<%= @constant.file %>:<%= @constant.line %>`
