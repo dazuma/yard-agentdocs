@@ -488,6 +488,21 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   discard data the output format wants, revisit the principle once,
   deliberately — rather than accumulating "permanent gap" decisions one at
   a time.
+- **Prose-vs-signature ordering isn't settled as a single rule.** The
+  2+-overload shape (see "`@overload`" under "Decisions") puts the shared
+  docstring *before* the repeated signature/params/returns groups,
+  diverging from every other entry (single/no-overload methods,
+  constants, attributes), which all lead with the signature/type block and
+  put prose second. Revisited once already (see "Overload order" in that
+  same decision's write-up) and kept as drafted, but not settled comfortably:
+  leading with prose everywhere would cost the common single-signature
+  case the one highest-value line for a quick lookup (the goal DESIGN.md
+  opens with); leading with signature(s) even in the 2+-overload case
+  (stacking each overload's own block first, prose after) is the
+  alternative that would restore one uniform rule without that cost, but
+  wasn't chosen. Come back to this once more entries exist to judge the
+  inconsistency against, rather than re-deciding from just the one
+  example.
 
 ## Decisions
 
