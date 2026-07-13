@@ -186,9 +186,17 @@ fixing ad hoc.
       prose patterns"
 - [ ] (design) A class reopened across two files/locations (docs should
       merge — how do multiple `**Defined in:**` locations render?)
-- [ ] (mech) A custom exception class (`class ParseError < StandardError`) —
-      very common in real gems, pairs with `@raise` lookups, and exercises
-      an *unresolved* superclass that isn't `Object`/`Struct`/`Data`
+- [x] A custom exception class (`class ParseError < StandardError`) —
+      `Geometry::ParseError`, raised by `Point.parse` (replacing that
+      method's plain `ArgumentError`) alongside its existing `TypeError`, so
+      `Point.md`'s `**Raises:**` list shows one linked, in-example entry
+      next to one plain unresolved one; also exercises an *unresolved*
+      superclass that isn't `Object`/`Struct`/`Data` (`**Superclass:**
+      `StandardError``). Escalated from (mech) to (design) on the spot, per
+      "Prioritization and roadmap": `ParseError` is idiomatically empty (no
+      methods/constants/attributes), which no existing example class was —
+      see "Empty `## Member Summary` section: omitted entirely" under
+      "Decisions"
 - [x] Subclassing a class defined elsewhere in the example (inheritance chain
       of at least 3 levels, to test how ancestry is presented) — `Geometry::Shape`
       → `Polygon` → `Triangle`; also settled that `**Superclass:**` links to a
@@ -1199,10 +1207,10 @@ resolutions rather than one:
 
 Settles the format for `@raise`, exercised via `Geometry::Computations.centroid`
 (a single `@raise`, an unresolved `ArgumentError` when called with no points)
-and `Geometry::Point.parse` (two `@raise` tags, `ArgumentError` for a malformed
-string and `TypeError` for a non-`String` argument — mirroring how Ruby's own
-`Integer()`/`Array()` conversions document more than one failure mode for one
-method):
+and `Geometry::Point.parse` (two `@raise` tags, `Geometry::ParseError` for a
+malformed string and `TypeError` for a non-`String` argument — mirroring how
+Ruby's own `Integer()`/`Array()` conversions document more than one failure
+mode for one method):
 
 - Renders as a `**Raises:**` heading followed by a bulleted list — one
   `` - `ExceptionType` — description `` line per `@raise` tag — even when
@@ -1218,16 +1226,49 @@ method):
   own tag ordering (`Tags::Library.visible_tags`: `..., :return, :raise,
   :see, ...`).
 - The exception type goes through the same `type_ref` cross-referencing as
-  any other type token: both examples use unresolved stdlib exceptions, which
-  render as a plain backtick, same policy as an unresolved `Array`/`Hash`
-  element type. An in-example custom exception class isn't exercised here —
-  deliberately deferred to the still-open "custom exception class" checklist
-  item under "Module/class structure", which pairs with this one.
+  any other type token: `centroid`'s `ArgumentError` and `Point.parse`'s
+  `TypeError` are unresolved stdlib exceptions, rendering as a plain
+  backtick (same policy as an unresolved `Array`/`Hash` element type), while
+  `Point.parse`'s other tag, `Geometry::ParseError`, is defined in-example
+  and renders as a link — see "Custom exception class" below.
 - A single `@raise` tag carrying more than one type (e.g. `@raise
   [ArgumentError, TypeError]`) isn't exercised; `Point.parse` uses two
   separate single-type tags instead, judged the more common real-world
   pattern. Revisit if the dogfood milestone turns up the multi-type-per-tag
   form in the wild.
+
+### Custom exception class: no special handling; surfaced the empty-`## Member Summary` gap
+
+`Geometry::ParseError < StandardError` needed no dedicated template code of
+its own — it's rendered by the same class-page/superclass/`@raise`
+cross-referencing machinery as everything else, exercising an *unresolved*
+superclass (`**Superclass:** \`StandardError\``, not `Object`/`Struct`/`Data`)
+and, via `Point.parse`'s `@raise [ParseError]`, a *resolved* one linking back
+to `ParseError.md`.
+
+What it did surface: `ParseError` is idiomatically empty (`class ParseError <
+StandardError; end`) — no methods, constants, attributes, or nested classes —
+a shape no existing example class had. `member_summary.erb` previously
+unconditionally emitted a `## Member Summary` heading with nothing under it
+for such a class. Escalated to a design decision on the spot (per
+"Prioritization and roadmap"'s guidance for a (mech) item that surprises):
+
+- The whole `## Member Summary` block (heading and all) is now omitted when
+  an object has zero members in every category — no nested classes/modules,
+  constants, attributes, class methods, or instance methods
+  (`any_members?` in `templates/default/module/agentdocs/setup.rb`, gating
+  the `erb(:member_summary)` call in `page.erb`). Chosen over keeping the
+  heading with an empty-state placeholder (e.g. `*(No members.)*`), per the
+  terseness half of "Design heuristic: agent reference needs mirror human
+  reference needs" — dead-weight scaffolding costs an agent tokens for
+  nothing, even though YARD's own HTML template does render an empty
+  members box.
+- This only changes output for a class/module with zero members overall;
+  every previously-covered case (including `Geometry.md`, which has nested
+  classes but no constants/methods of its own) still renders identically —
+  `any_members?` is `nested_objects.any? || any_member_sections?`, a
+  superset of the pre-existing `any_member_sections?` gate on the `##
+  Constants`/`## Class Methods`/etc. sections below it.
 
 ## Implementation
 

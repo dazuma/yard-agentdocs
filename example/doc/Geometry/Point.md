@@ -125,7 +125,7 @@ Parses a point from a string formatted as `"x,y"`.
 
 **Raises:**
 
-- `ArgumentError` — if `str` isn't formatted as `"x,y"`
+- [`ParseError`](ParseError.md) — if `str` isn't formatted as `"x,y"`
 - `TypeError` — if `str` is not a `String`
 
 **Defined in:** `example/lib/geometry/point.rb:58`

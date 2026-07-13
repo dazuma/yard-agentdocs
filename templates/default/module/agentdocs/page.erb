@@ -3,8 +3,10 @@
 <%= erb(:metadata).strip %>
 
 <%= markdownify(object.docstring) %>
+<%- if any_members? -%>
 
 <%= erb(:member_summary).strip %>
+<%- end -%>
 <%- if any_member_sections? -%>
 
 <%= erb(:member_sections).strip %>

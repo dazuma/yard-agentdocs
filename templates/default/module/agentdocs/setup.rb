@@ -58,6 +58,10 @@ def any_member_sections?
   constant_objects.any? || attribute_objects.any? || class_method_objects.any? || instance_method_objects.any?
 end
 
+def any_members?
+  nested_objects.any? || any_member_sections?
+end
+
 # @group Ancestry (overridden for classes; modules show none of these lines)
 
 def superclass_line

@@ -16,6 +16,7 @@ behavior of its own. Not part of the shipped gem.
 - [`Computations`](Geometry/Computations.md) — Utility computations on `Point` values.
 - [`Loud`](Geometry/Loud.md) — Prepended onto a class to upper-case whatever its own `#describe` method returns, without needing to know that method's implementation.
 - [`Named`](Geometry/Named.md) — Mixed into shape classes via `extend` (not `include`) to add a `.kind` class method, derived from the extending class's own name.
+- [`ParseError`](Geometry/ParseError.md) — Raised when a string can't be parsed as a point.
 - [`Point`](Geometry/Point.md) — A point in two-dimensional space.
 - [`Polygon`](Geometry/Polygon.md) — A polygon: a shape with a fixed number of straight sides.
 - [`Shape`](Geometry/Shape.md) — A generic two-dimensional shape.

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "geometry/parse_error"
 require_relative "geometry/point"
 require_relative "geometry/computations"
 require_relative "geometry/taggable"

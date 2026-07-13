@@ -21,6 +21,7 @@ describe "agentdocs template" do
         "--markup", "markdown",
         "--title", "yard-agentdocs example — API Reference",
         "example/lib/geometry.rb",
+        "example/lib/geometry/parse_error.rb",
         "example/lib/geometry/point.rb",
         "example/lib/geometry/computations.rb",
         "example/lib/geometry/taggable.rb",
