@@ -74,14 +74,17 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param overload [::YARD::Tags::OverloadTag, nil] when given, render
+      #   this overload's own parameter list instead of +meth+'s real one
+      #   (see {#signature_text})
       # @return [Array<String>] each parameter as it should appear in the
       #   signature, e.g. `"to"`, `"to = DEFAULT_ELAPSED"`, or `"b: 1"` for
       #   an optional keyword arg (YARD includes the trailing `:` in the
       #   name itself, so a keyword default reads `name: default`, not
       #   `name: = default`)
       #
-      def param_names(meth)
-        meth.parameters.map do |name, default|
+      def param_names(meth, overload: nil)
+        (overload || meth).parameters.map do |name, default|
           next name.to_s unless default
           name.end_with?(":") ? "#{name} #{default}" : "#{name} = #{default}"
         end
@@ -154,22 +157,49 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param params [Array<String>] as returned by {#param_names}
+      # @return [Boolean] whether +meth+ should render in infix operator form
+      #   (`point + other`) rather than dotted call form (`point.+(other)`)
+      #
+      def infix_call?(meth, params)
+        !meth.constructor? && operator?(meth) && meth.scope == :instance && params.size == 1
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param overload [::YARD::Tags::OverloadTag, nil] when given, this
+      #   overload's own `@return` instead of +meth+'s real one (see
+      #   {#signature_text})
+      # @return [String, nil]
+      #
+      def signature_return_type_for(meth, overload)
+        return overload.tag(:return)&.types&.first if overload
+        signature_return_type(meth)
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param overload [::YARD::Tags::OverloadTag, nil] when given, render
+      #   this `@overload` tag's own params/return instead of +meth+'s real
+      #   ones — used for a method documented via one or more `@overload`
+      #   tags, whose actual Ruby signature (e.g. `def of(*args)`) doesn't
+      #   reflect how it's meant to be called
       # @return [String] the natural-call-syntax signature line, e.g.
       #   `Point.parse(str) → Point` or `point + other → Point`
       #
-      def signature_text(meth)
+      def signature_text(meth, overload: nil)
         name = member_name(meth)
-        params = param_names(meth)
+        params = param_names(meth, overload: overload)
         block = block_literal(meth)
         call =
-          if !meth.constructor? && operator?(meth) && meth.scope == :instance && params.size == 1
+          if infix_call?(meth, params)
             "#{receiver_name(meth)} #{name} #{params.first}"
           else
             base = "#{receiver_name(meth)}.#{name}"
             base += "(#{params.join(', ')})" unless params.empty? && block
             block ? "#{base} #{block}" : base
           end
-        return_type = signature_return_type(meth)
+        return_type = signature_return_type_for(meth, overload)
         return_type ? "#{call} → #{return_type}" : call
       end
 

@@ -269,9 +269,12 @@ fixing ad hoc.
       signature; confirmed purely mechanical, no template changes needed —
       `param_names`/`signature_text` already assembled every shape together
       correctly
-- [ ] (design) Multiple overloads via `@overload` (e.g. a method whose
-      behavior/args differ enough that one Ruby signature doesn't tell the
-      full story)
+- [x] Multiple overloads via `@overload` — `Geometry::Point.of` (two
+      overloads dispatching on argument type, with different return types
+      each) and `Geometry::Point#label` (one overload, the "friendlier
+      signature over an awkward real one" idiom); settled both the
+      single-overload and two-or-more-overload rendering shapes — see
+      "`@overload`" under "Decisions"
 - [ ] (mech) A method that returns early with multiple distinct return shapes
       (documented return type is a union, e.g. `String, nil`); also cover
       `@return [self]` (chainable methods — a type token that's neither
@@ -1269,6 +1272,57 @@ for such a class. Escalated to a design decision on the spot (per
   `any_members?` is `nested_objects.any? || any_member_sections?`, a
   superset of the pre-existing `any_member_sections?` gate on the `##
   Constants`/`## Class Methods`/etc. sections below it.
+
+### `@overload`: two idioms, both rendered from the tag data instead of the real signature
+
+Settles the "Multiple overloads via `@overload`" checklist item, covering
+both real-world idioms stock YARD itself distinguishes (single overload
+tag vs. two or more), not just the literal "multiple" wording. Exercised
+via `Geometry::Point.of` (two overloads, dispatching on argument type, with
+genuinely different return types) and `Geometry::Point#label` (one
+overload, giving a friendly keyword-style signature over an options-hash
+implementation).
+
+- **Single `@overload` tag** — the common idiom for a method whose real
+  Ruby signature is awkward (`def label(opts = {})`) but is meant to be
+  called one specific, friendlier way. Renders as an *ordinary-looking*
+  entry: the fenced signature block, `**Params:**`, and `**Returns:**` all
+  come from the overload tag's own data instead of the real method's —
+  indistinguishable from a hand-written natural signature, which is the
+  point of the idiom. The main docstring (prose) is always the real
+  method's own, unconditionally — not switched to the overload's own
+  (usually blank) docstring the way stock YARD's `docstring_text` does,
+  since every case worth exercising here writes real prose on the method
+  itself; revisit only if a case with a blank main docstring surfaces.
+- **Two or more `@overload` tags** — the "one Ruby signature doesn't tell
+  the full story" idiom. Renders as: the shared method docstring (prose)
+  first — there's no single natural signature line to lead with, so this
+  is a deliberate divergence from every other entry's code-block-first
+  order — then one repeated group per overload, each its own fenced
+  signature block, `**Params:**`, and `**Returns:**` back to back, sourced
+  entirely from that overload's own tag data. `**Yields:**`/`**Yield
+  Params:**`/`**Yield Returns:**`/`**Raises:**`/`**See also:**` stay
+  method-level and shared (rendered once, not per overload) — not
+  exercised varying per overload by either fixture.
+- **Implementation:** `MethodSignature#param_names`/`#signature_text`
+  (`lib/yard/agentdocs/method_signature.rb`) both grew an `overload:`
+  keyword (default `nil`, preserving every prior call site/test
+  byte-for-byte): when given a `::YARD::Tags::OverloadTag`, params come
+  from `overload.parameters` and the return type from
+  `overload.tag(:return)` instead of `meth.parameters`/`meth.tag(:return)`.
+  No new handler or parsing code was needed — `OverloadTag` already
+  exposes `#parameters` (the same `[name, default]` shape as
+  `MethodObject#parameters`) and forwards `#tag`/`#tags` to its own nested
+  docstring, so every existing cross-referencing/`type_ref` helper works
+  unchanged on overload-sourced tags. `templates/default/module/agentdocs/method_entry.erb`
+  branches on `@method.tags(:overload).size` (0/1 share one code path —
+  passing `overload: nil` — vs. 2+ its own repeated-group loop).
+- **Not exercised, left for a real case to justify:** a method carrying
+  both `@overload` tags *and* its own top-level `@param`/`@return` (assumed
+  redundant/unusual — when overloads are present they're treated as the
+  complete params/return story); per-overload `@yield`/`@raise`/`@see`; and
+  an aliased/inherited method's overloads as seen from another class's
+  page (not raised by either fixture).
 
 ## Implementation
 

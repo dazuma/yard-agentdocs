@@ -4,8 +4,36 @@
 *(Ruby's default constructor; documents `#initialize`.)*
 
 <%- end -%>
+<%- overloads = @method.tags(:overload) -%>
+<%- if overloads.size >= 2 -%>
+<%- if private_api_annotation(@method) -%>
+**<%= private_api_annotation(@method) %>**
+
+<%- end -%>
+<%= markdownify(@method.docstring) %>
+<%- overloads.each do |ov| -%>
+
 ```ruby
-<%= signature_text(@method) %>
+<%= signature_text(@method, overload: ov) %>
+```
+<%- unless ov.tags(:param).empty? -%>
+
+**Params:**
+
+<%- ov.tags(:param).each do |p| -%>
+- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
+<%- end -%>
+<%- end -%>
+<%- ov_return = ov.tag(:return) -%>
+<%- if ov_return -%>
+
+**Returns:** <%= type_ref(ov_return.types && ov_return.types.first) %> — <%= markdownify(ov_return.text) %>
+<%- end -%>
+<%- end -%>
+<%- else -%>
+<%- primary = overloads.first -%>
+```ruby
+<%= signature_text(@method, overload: primary) %>
 ```
 
 <%- if private_api_annotation(@method) -%>
@@ -13,12 +41,14 @@
 
 <%- end -%>
 <%= markdownify(@method.docstring) %>
-<%- unless @method.tags(:param).empty? -%>
+<%- param_tags = primary ? primary.tags(:param) : @method.tags(:param) -%>
+<%- unless param_tags.empty? -%>
 
 **Params:**
 
-<%- @method.tags(:param).each do |p| -%>
+<%- param_tags.each do |p| -%>
 - `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
+<%- end -%>
 <%- end -%>
 <%- end -%>
 <%- yt = yield_tag(@method) -%>
@@ -40,10 +70,12 @@
 
 **Yield Returns:** <%= type_ref(yieldreturn_tag.types && yieldreturn_tag.types.first) %> — <%= markdownify(yieldreturn_tag.text) %>
 <%- end -%>
-<%- return_tag = method_return_tag(@method) -%>
+<%- if overloads.size < 2 -%>
+<%- return_tag = primary ? primary.tag(:return) : method_return_tag(@method) -%>
 <%- if return_tag -%>
 
 **Returns:** <%= type_ref(return_tag.types && return_tag.types.first) %> — <%= markdownify(return_tag.text) %>
+<%- end -%>
 <%- end -%>
 <%- unless @method.tags(:raise).empty? -%>
 

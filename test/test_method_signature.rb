@@ -61,12 +61,26 @@ describe ::YARD::AgentDocs::MethodSignature do
 
         def no_return_value
         end
+
+        # @overload of(x, y)
+        #   @param x [Integer]
+        #   @param y [Integer]
+        #   @return [Point]
+        # @overload of(count)
+        #   @param count [Integer]
+        #   @return [Array<Point>]
+        def self.of(*args)
+        end
       end
     RUBY
   end
 
   def meth(name)
     holder.object.meths(inherited: false).find { |m| m.name.to_s == name.to_s }
+  end
+
+  def overload(name, index)
+    meth(name).tags(:overload)[index]
   end
 
   describe "#operator?" do
@@ -151,6 +165,11 @@ describe ::YARD::AgentDocs::MethodSignature do
     it "renders a double-splat param with its sigil intact" do
       assert_equal(["**opts"], holder.param_names(meth(:double_splat)))
     end
+
+    it "renders an overload's own params when given, ignoring the real method's" do
+      assert_equal(["x", "y"], holder.param_names(meth(:of), overload: overload(:of, 0)))
+      assert_equal(["count"], holder.param_names(meth(:of), overload: overload(:of, 1)))
+    end
   end
 
   describe "#signature_return_type" do
@@ -186,6 +205,11 @@ describe ::YARD::AgentDocs::MethodSignature do
 
     it "omits the arrow when there is no return type" do
       assert_equal("point.no_return_value()", holder.signature_text(meth(:no_return_value)))
+    end
+
+    it "renders using the given overload's params and return type instead of the real method's" do
+      assert_equal("Point.of(x, y) → Point", holder.signature_text(meth(:of), overload: overload(:of, 0)))
+      assert_equal("Point.of(count) → Array<Point>", holder.signature_text(meth(:of), overload: overload(:of, 1)))
     end
   end
 

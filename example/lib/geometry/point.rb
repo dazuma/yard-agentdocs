@@ -77,6 +77,26 @@ module Geometry
     end
 
     ##
+    # Builds a point from `x, y` coordinates, or several independent copies
+    # of an existing point at once.
+    #
+    # @overload of(x, y)
+    #   @param x [Numeric] the x-coordinate
+    #   @param y [Numeric] the y-coordinate
+    #   @return [Point] a single point built from the coordinates
+    # @overload of(point, count)
+    #   @param point [Point] the point to copy
+    #   @param count [Integer] how many independent copies to build
+    #   @return [Array<Point>] `count` copies of `point`
+    #
+    def self.of(*args)
+      first, second = args
+      return ::Array.new(second) { new(first.x, first.y) } if first.is_a?(Point)
+
+      new(first, second)
+    end
+
+    ##
     # Adds this point to another, component-wise.
     #
     # @param other [Point] the point to add
@@ -94,6 +114,20 @@ module Geometry
     #
     def distance_to(other)
       Math.hypot(x - other.x, y - other.y)
+    end
+
+    ##
+    # Returns a short label for this point, formatted `"x,y"` by default
+    # (the same format {.parse} understands).
+    #
+    # @overload label(separator: ",")
+    #   @param separator [String] the string to place between the x and y
+    #     coordinates
+    #   @return [String] the formatted label
+    #
+    def label(opts = {})
+      sep = opts.fetch(:separator, ",")
+      "#{x}#{sep}#{y}"
     end
 
     ##

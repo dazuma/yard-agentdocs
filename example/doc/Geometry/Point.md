@@ -24,12 +24,14 @@ comparable with `<=>`.
 
 - `.from_polar` — Creates a point from polar coordinates.
 - `.new` — Creates a point from its coordinates.
+- `.of` — Builds a point from `x, y` coordinates, or several independent copies of an existing point at once.
 - `.parse` — Parses a point from a string formatted as `"x,y"`.
 
 **Instance Methods**
 
 - `#+` — Adds this point to another, component-wise.
 - `#distance_to` — Computes the Euclidean distance to another point.
+- `#label` — Returns a short label for this point, formatted `"x,y"` by default (the same format `.parse` understands).
 - `#round` — Rounds this point's coordinates to the given decimal precision.
 - `#translate` — Shifts this point by the given coordinate deltas.
 
@@ -109,6 +111,35 @@ Creates a point from its coordinates.
 
 **Defined in:** `example/lib/geometry/point.rb:38`
 
+### .of
+
+Builds a point from `x, y` coordinates, or several independent copies
+of an existing point at once.
+
+```ruby
+Point.of(x, y) → Point
+```
+
+**Params:**
+
+- `x` (`Numeric`) — the x-coordinate
+- `y` (`Numeric`) — the y-coordinate
+
+**Returns:** `Point` — a single point built from the coordinates
+
+```ruby
+Point.of(point, count) → Array<Point>
+```
+
+**Params:**
+
+- `point` (`Point`) — the point to copy
+- `count` (`Integer`) — how many independent copies to build
+
+**Returns:** `Array<Point>` — `count` copies of `point`
+
+**Defined in:** `example/lib/geometry/point.rb:92`
+
 ### .parse
 
 ```ruby
@@ -146,7 +177,7 @@ Adds this point to another, component-wise.
 
 **Returns:** `Point` — a new point whose coordinates are the sum of the two
 
-**Defined in:** `example/lib/geometry/point.rb:85`
+**Defined in:** `example/lib/geometry/point.rb:105`
 
 ### #distance_to
 
@@ -162,7 +193,25 @@ Computes the Euclidean distance to another point.
 
 **Returns:** `Float` — the distance between the two points
 
-**Defined in:** `example/lib/geometry/point.rb:95`
+**Defined in:** `example/lib/geometry/point.rb:115`
+
+### #label
+
+```ruby
+point.label(separator: ",") → String
+```
+
+Returns a short label for this point, formatted `"x,y"` by default
+(the same format `.parse` understands).
+
+**Params:**
+
+- `separator` (`String`) — the string to place between the x and y
+coordinates
+
+**Returns:** `String` — the formatted label
+
+**Defined in:** `example/lib/geometry/point.rb:128`
 
 ### #round
 
@@ -178,7 +227,7 @@ Rounds this point's coordinates to the given decimal precision.
 
 **Returns:** `Point` — a new point with rounded coordinates
 
-**Defined in:** `example/lib/geometry/point.rb:105`
+**Defined in:** `example/lib/geometry/point.rb:139`
 
 ### #translate
 
@@ -195,4 +244,4 @@ given defaults to no change.
 
 **Returns:** `Point` — a new point shifted by the given deltas
 
-**Defined in:** `example/lib/geometry/point.rb:116`
+**Defined in:** `example/lib/geometry/point.rb:150`
