@@ -1,5 +1,5 @@
 # yard-agentdocs rdoc-dialect fixture — API Reference
 
-## Top-level namespaces
+## Classes & modules
 
 - [`Greeter`](Greeter.md) — Builds a greeting string.

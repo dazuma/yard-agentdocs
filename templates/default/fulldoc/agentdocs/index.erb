@@ -1,7 +1,7 @@
 # <%= options.title %>
 
-## Top-level namespaces
+## Classes & modules
 
-<%- @top_level_objects.each do |object| -%>
-- [`<%= object.name %>`](<%= top_level_object_path(object) %>) — <%= object.docstring.summary %>
+<%- @indexed_objects.each do |object| -%>
+- [`<%= object.path %>`](<%= indexed_object_path(object) %>) — <%= object.docstring.summary %>
 <%- end -%>

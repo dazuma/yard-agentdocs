@@ -387,15 +387,8 @@ fixing ad hoc.
 
 ### Indexing & discovery
 
-- [ ] (design) Flat full-FQN index — `index.md` currently lists only
-      top-level namespaces, so an agent that knows a name but not its
-      namespace (`Polygon`?) must walk the tree, against the "minimize
-      round trips" goal. A single flat, greppable index — one line per
-      class/module (`Geometry::Polygon — summary`), possibly one per member
-      — would answer that in one cheap read, reusing the same
-      grep-as-precision-mechanism philosophy as member lookup. Decide
-      granularity (namespaces only vs. every member) and whether it
-      replaces or supplements the current `index.md`.
+- [x] (design) Flat full-FQN index — see "Flat full-FQN index: classes/modules
+      only, replacing the top-level list" under "Decisions".
 
 ## Open questions
 
@@ -812,6 +805,31 @@ without relying on that argument.
   it can go straight to the derived path.
 - Resolving a *member* name to its location once a class/module's file is
   open is covered under "Output format" (headings + grep), not here.
+
+#### Flat full-FQN index: classes/modules only, replacing the top-level list
+
+`index.md`'s single `## Classes & modules` section now lists every documented
+class/module (not just root-namespace ones) as one bullet each, sorted
+alphabetically by full FQN with the same `[FQN](path) — summary` link format
+as before. This replaces the prior `## Top-level namespaces` section rather
+than supplementing it — the flat list is a strict superset (top-level
+namespaces are still in it), so keeping both would just duplicate content in
+the same file. An agent that knows a class/module's name but not its
+namespace can now find it in one file read via `grep`, without walking the
+tree from a root namespace.
+
+Granularity stops at classes/modules — members are deliberately excluded.
+Once an agent has the FQN's file open, member lookup is already solved via
+headings + `grep -n '^### '` (see above), so indexing every method too would
+duplicate that mechanism while bloating the index, working against the
+"minimize tokens" goal for a lookup problem that doesn't exist once the file
+is open.
+
+Implementation-wise, this only touched `serialize_index`/`index.erb`
+(`@top_level_objects` → `@indexed_objects`, filtered to `object.type` of
+`:class`/`:module` and sorted by `object.path` instead of `object.namespace.root?`
+and `object.name`) — no new `example/lib` fixtures were needed, since the
+existing `Geometry::*` nesting already exercised a non-trivial FQN depth.
 
 ### Checklist pruning and prioritization (July 2026)
 

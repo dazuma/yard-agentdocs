@@ -10,11 +10,11 @@ def init
 end
 
 def serialize_index(objects)
-  @top_level_objects = objects.select { |o| o.namespace.root? }.sort_by { |o| o.name.to_s }
+  @indexed_objects = objects.select { |o| [:class, :module].include?(o.type) }.sort_by(&:path)
   Templates::Engine.with_serializer("index.md", options.serializer) { erb(:index) }
 end
 
-def top_level_object_path(object)
+def indexed_object_path(object)
   "#{object.path.split('::').join('/')}.md"
 end
 
