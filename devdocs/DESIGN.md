@@ -103,10 +103,11 @@ implementation code gets touched:
    `example/` (templates, `test/test_agentdocs_template.rb`) is touched during
    this step.
 4. Once the human explicitly says the example changes are good, **Claude**
-   implements: add any new source files to `test/test_agentdocs_template.rb`'s
-   `generate` call's file list (output files are discovered automatically —
-   no list to maintain there), confirm `toys test` fails against the new
-   fixture, then update the template implementation until it passes
+   implements: confirm `toys test` fails against the new fixture (both
+   `example/lib` source files and `example/doc` output files are
+   discovered automatically — no list to maintain in
+   `test/test_agentdocs_template.rb`), then update the template
+   implementation until it passes
    byte-for-byte — no normalization/fuzzy comparison; fix the generator, don't
    loosen the
    assertion (see "ERB has no trim mode" for why this matters).
@@ -1754,7 +1755,10 @@ A few things that weren't obvious going in, worth not re-discovering:
 `test/test_agentdocs_template.rb` runs `YARD::CLI::Yardoc.new.run(...)`
 in-process (not shelling out), from inside `Dir.chdir(project_root)` so
 recorded source paths come out relative (`example/lib/geometry.rb`, matching
-the fixtures) rather than absolute. It asserts each generated file is exactly
+the fixtures) rather than absolute. Source files are discovered via
+`Dir.glob("example/lib/**/*.rb")` (sorted for free on our Ruby >= 3.4
+floor), so a new `example/lib` file needs no test-file edit to be
+picked up. It asserts each generated file is exactly
 equal to its `example/doc` counterpart — no normalization. A manual
 end-to-end sanity check (`yard doc -f agentdocs -e ./lib/yard-agentdocs.rb
 ...` from the command line) is worth re-running after any template change,
