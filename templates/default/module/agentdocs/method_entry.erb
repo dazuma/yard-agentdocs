@@ -10,7 +10,9 @@
 **<%= private_api_annotation(@method) %>**
 
 <%- end -%>
+<%- unless @method.docstring.empty? -%>
 <%= markdownify(@method.docstring) %>
+<%- end -%>
 <%- overloads.each do |ov| -%>
 
 ```ruby
@@ -21,13 +23,13 @@
 **Params:**
 
 <%- ov.tags(:param).each do |p| -%>
-- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
+- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
 <%- ov_return = ov.tag(:return) -%>
 <%- if ov_return -%>
 
-**Returns:** <%= type_ref(ov_return.types && ov_return.types.first) %> — <%= markdownify(ov_return.text) %>
+**Returns:** <%= dash_join(type_ref(ov_return.types && ov_return.types.first), ov_return.text) %>
 <%- end -%>
 <%- end -%>
 <%- else -%>
@@ -35,19 +37,21 @@
 ```ruby
 <%= signature_text(@method, overload: primary) %>
 ```
-
 <%- if private_api_annotation(@method) -%>
-**<%= private_api_annotation(@method) %>**
 
+**<%= private_api_annotation(@method) %>**
 <%- end -%>
+<%- unless @method.docstring.empty? -%>
+
 <%= markdownify(@method.docstring) %>
+<%- end -%>
 <%- param_tags = primary ? primary.tags(:param) : @method.tags(:param) -%>
 <%- unless param_tags.empty? -%>
 
 **Params:**
 
 <%- param_tags.each do |p| -%>
-- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
+- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
 <%- end -%>
@@ -55,26 +59,26 @@
 <%- if yt -%>
 <%- yt_names = yt.types || [] -%>
 
-**Yields:** <%- unless yt_names.empty? -%><%= yt_names.map { |n| "`#{n}`" }.join(', ') %> — <%- end -%><%= markdownify(yt.text) %>
+**Yields:** <%= dash_join(yt_names.empty? ? "" : yt_names.map { |n| "`#{n}`" }.join(', '), yt.text) %>
 <%- end -%>
 <%- unless @method.tags(:yieldparam).empty? -%>
 
 **Yield Params:**
 
 <%- @method.tags(:yieldparam).each do |p| -%>
-- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>) — <%= markdownify(p.text) %>
+- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
 <%- yieldreturn_tag = @method.tag(:yieldreturn) -%>
 <%- if yieldreturn_tag -%>
 
-**Yield Returns:** <%= type_ref(yieldreturn_tag.types && yieldreturn_tag.types.first) %> — <%= markdownify(yieldreturn_tag.text) %>
+**Yield Returns:** <%= dash_join(type_ref(yieldreturn_tag.types && yieldreturn_tag.types.first), yieldreturn_tag.text) %>
 <%- end -%>
 <%- if overloads.size < 2 -%>
 <%- return_tag = primary ? primary.tag(:return) : method_return_tag(@method) -%>
 <%- if return_tag -%>
 
-**Returns:** <%= type_ref(return_tag.types && return_tag.types.first) %> — <%= markdownify(return_tag.text) %>
+**Returns:** <%= dash_join(type_ref(return_tag.types && return_tag.types.first), return_tag.text) %>
 <%- end -%>
 <%- end -%>
 <%- unless @method.tags(:raise).empty? -%>
@@ -82,7 +86,7 @@
 **Raises:**
 
 <%- @method.tags(:raise).each do |r| -%>
-- <%= type_ref(r.types && r.types.first) %> — <%= markdownify(r.text) %>
+- <%= dash_join(type_ref(r.types && r.types.first), r.text) %>
 <%- end -%>
 <%- end -%>
 <%- unless @method.tags(:see).empty? -%>

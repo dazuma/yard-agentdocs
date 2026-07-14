@@ -19,6 +19,7 @@ behavior of its own. Not part of the shipped gem.
 - [`ParseError`](Geometry/ParseError.md) — Raised when a string can't be parsed as a point.
 - [`Point`](Geometry/Point.md) — A point in two-dimensional space.
 - [`Polygon`](Geometry/Polygon.md) — A polygon: a shape with a fixed number of straight sides.
+- [`Segment`](Geometry/Segment.md)
 - [`Shape`](Geometry/Shape.md) — A generic two-dimensional shape.
 - [`Taggable`](Geometry/Taggable.md) — Mixed into shape classes to add a short bracketed tag string, derived from whatever `#label` the including class defines.
 - [`Triangle`](Geometry/Triangle.md) — A triangle: a polygon with exactly three sides.

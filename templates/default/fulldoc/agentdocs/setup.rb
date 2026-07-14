@@ -18,6 +18,15 @@ def indexed_object_path(object)
   "#{object.path.split('::').join('/')}.md"
 end
 
+# No " — summary" suffix at all when the object has no doc comment — same
+# "absence means empty" convention `module/agentdocs`'s summary lines use
+# (see devdocs/DESIGN.md's "Intentionally undocumented objects" decision),
+# rather than a dangling trailing dash.
+def summary_suffix(object)
+  summary = object.docstring.summary
+  summary.empty? ? "" : " — #{summary}"
+end
+
 def serialize(object)
   options.object = object
   Templates::Engine.with_serializer(object, options.serializer) { T(object.type).run(options) }

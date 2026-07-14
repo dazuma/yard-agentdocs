@@ -34,6 +34,7 @@ comparable with `<=>`.
 - `#label` — Returns a short label for this point, formatted `"x,y"` by default (the same format `.parse` understands).
 - `#round` — Rounds this point's coordinates to the given decimal precision.
 - `#translate` — Shifts this point by the given coordinate deltas.
+- `#zero?`
 
 ## Constants
 
@@ -245,3 +246,13 @@ given defaults to no change.
 **Returns:** `Point` — a new point shifted by the given deltas
 
 **Defined in:** `example/lib/geometry/point.rb:150`
+
+### #zero?
+
+```ruby
+point.zero?() → Boolean
+```
+
+**Returns:** `Boolean`
+
+**Defined in:** `example/lib/geometry/point.rb:154`

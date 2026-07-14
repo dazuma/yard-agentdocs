@@ -1,8 +1,10 @@
 # <%= object.type %> <%= object.path %>
 
 <%= erb(:metadata).strip %>
+<%- unless object.docstring.empty? -%>
 
 <%= markdownify(object.docstring) %>
+<%- end -%>
 <%- if any_members? -%>
 
 <%= erb(:member_summary).strip %>

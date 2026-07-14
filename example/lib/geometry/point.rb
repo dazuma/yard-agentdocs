@@ -150,5 +150,9 @@ module Geometry
     def translate(**deltas)
       Point.new(x + deltas.fetch(:x, 0), y + deltas.fetch(:y, 0))
     end
+
+    def zero?
+      x.zero? && y.zero?
+    end
   end
 end

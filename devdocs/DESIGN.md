@@ -181,9 +181,9 @@ fixing ad hoc.
       once its one method moved to `Geometry::Computations`
 - [ ] (mech) Nested namespacing (`Foo::Bar::Baz`), including a module that
       exists only to hold nested classes/modules — path derivation is
-      settled; the namespace-only module's rendering depends on the
-      undocumented-class/module policy item under "Documentation content /
-      prose patterns"
+      settled; an undocumented namespace-only module now also has a settled
+      rendering (see "Intentionally undocumented objects" under
+      "Decisions"), so this is unblocked
 - [ ] (design) A class reopened across two files/locations (docs should
       merge — how do multiple `**Defined in:**` locations render?)
 - [x] A custom exception class (`class ParseError < StandardError`) —
@@ -414,9 +414,11 @@ fixing ad hoc.
       escaping policy
 - [x] A class-level doc comment (not just method-level) — both `Geometry` and
       `Geometry::Point`
-- [ ] (design) Intentionally undocumented objects — a public method with no
-      doc comment, and an entirely undocumented class/module (one policy
-      decision: flag it, render a stub, or omit entirely)
+- [x] Intentionally undocumented objects — a public method with no doc
+      comment (`Geometry::Point#zero?`) and an entirely undocumented
+      class/module (`Geometry::Segment`, including an undocumented
+      `#initialize`); settled the no-flag, blank-render policy — see
+      "Intentionally undocumented objects" under "Decisions"
 
 ### Cross-referencing scenarios
 
@@ -791,6 +793,100 @@ cleanly onto decisions already made for other cases:
   this as a general policy — not a `Struct`/`Data`-specific one — if/when
   the still-unchecked undocumented-`attr_reader`/`writer`/`accessor`
   checklist item is tackled.
+
+### Intentionally undocumented objects: render normally, no flag or stub
+
+Settles the "Intentionally undocumented objects" checklist item. Exercised
+via `Geometry::Point#zero?` (a public method with no doc comment, on an
+otherwise well-documented class) and `Geometry::Segment` (a new class with
+no doc comment anywhere — including its `#initialize` — added purely to
+exercise this scenario).
+
+**The decision:** an undocumented object renders exactly like a documented
+one, just with blank prose where the docstring/tag description would go —
+no `**Undocumented.**`-style flag, no stub placeholder text. This mirrors
+YARD's own default HTML template (confirmed by inspecting yard 0.9.44's
+`docstring/html/index.erb` and `module/html/item_summary.erb`: both emit
+blank content for a missing docstring, no special-cased marker), per this
+project's "agent reference needs mirror human reference needs" heuristic —
+there's no goal-driven reason here to invent a bespoke agent-specific
+policy. Combined with the project's existing "absence means empty"
+convention (previously used only for empty Member Summary subgroups), the
+concrete rule is: a missing docstring/tag-text contributes *no* blank
+line, dash, or placeholder of its own — as if that line had simply been
+deleted, not left blank.
+
+**The bug this caught.** Probing the *unmodified* template against a
+scratch undocumented class/method first (before touching anything) showed
+this wasn't actually implemented anywhere: `markdownify(docstring)` was
+interpolated unconditionally in both `page.erb` (class/module prose) and
+`method_entry.erb` (method prose), unlike every other optional section
+(Params/Returns/Raises/etc.), which already supply their *own* leading
+blank line only when they render. An empty docstring therefore produced
+extra blank lines (a class with no docstring got three consecutive blank
+lines before `## Member Summary`) and a Member Summary bullet for an
+undocumented member rendered as a dangling `` — `` with nothing after it.
+
+**The fix, module/agentdocs:**
+
+- `page.erb` / `method_entry.erb`: the docstring interpolation is now
+  wrapped in `unless object.docstring.empty?` / `unless
+  @method.docstring.empty?`, each owning its own leading blank line (same
+  self-contained pattern the Params/Returns/etc. sections already used) —
+  rather than relying on a blank line that rendered unconditionally
+  regardless of what followed it. This required also moving the
+  single-overload branch's private-API-annotation blank from *trailing*
+  (separating it from whatever came after) to *leading* (owned by
+  whichever section renders), since the fence-to-content gap it used to
+  share with the docstring line was otherwise still unconditional. Verified
+  against the one existing fixture combining a fence with both an
+  annotation and a docstring (`Stopwatch#raw_elapsed_s`, `@api private`) to
+  confirm the restructure doesn't change already-approved output.
+- `setup.rb`'s four `*_summary_line` methods: a new `summary_suffix(text)`
+  helper renders `" — #{markdownify(text)}"` only when non-blank, `""`
+  otherwise, replacing an unconditional `" — #{...}"` in each. Reused
+  as-is in `fulldoc/agentdocs` (a separate template module, per
+  "Architecture" — doesn't inherit from `module/agentdocs`) for the flat
+  FQN index's own summary bullets, which had the identical unconditional-
+  dash bug.
+- Left deliberately unfixed, as a narrow accepted gap rather than
+  speculative robustness: the 2+-`@overload` branch's docstring-to-first-
+  overload-fence gap can still double a blank line if such a method were
+  *also* fully undocumented (no prose, no `@overload` description) — every
+  currently-exercised 2+-overload method has prose, so this combination
+  isn't proven. Revisit only if real usage (the dogfood milestone) hits it.
+
+**A related surprise, generalized on the spot per "if a (mech) item
+surfaces a surprise... treat it as (design)":** YARD auto-synthesizes a
+`@return [Boolean]` tag for any `?`-suffixed predicate method that doesn't
+declare its own `@return` — confirmed via `Point#zero?`, which has *zero*
+doc comment yet still renders `point.zero?() → Boolean` and `` **Returns:**
+`Boolean` `` (a present tag with real type info, but blank `.text`). This
+exposed the same unconditional-dash bug one level down: `` — `` was
+hard-coded between a tag's type and its text everywhere a tag is rendered
+(`@param`, `@return`, `@raise`, `@yield`, `@yieldparam`, `@yieldreturn`),
+not just in docstrings/summaries. Fixed generally, not just for `@return`:
+
+- `summary_suffix(text)` (renamed conceptually to cover this reuse, not
+  just Member Summary bullets) also covers `@param`/`@yieldparam` bullets,
+  where the type sits in its own always-rendered parentheses (`` `Type` ``)
+  and only the trailing `" — text"` needs the guard.
+- A new `dash_join(prefix, text)` helper covers `@return`/`@yield`/
+  `@yieldreturn`/`@raise`, where the "prefix" (a `type_ref` result, or
+  `@yield`'s bracketed name list) can *itself* be legitimately blank (no
+  bracketed type; no yielded names) — it joins whichever of `prefix`/
+  `markdownify(text)` are non-blank with `" — "`, so it's correct whether
+  neither, either, or both are present. This also incidentally fixes a
+  latent, previously-unexercised gap where a tag with no bracketed type at
+  all (e.g. `@return the result`, no `[Type]`) would have rendered a
+  doubled-up `` —  — text `` once the type-side blank was involved; no
+  fixture exercises that combination, but the general helper handles it
+  correctly by construction rather than by luck.
+- `@yield`'s existing bracketed-names-conditional dash was replaced by
+  `dash_join` too, verified against both already-approved shapes:
+  `Stopwatch#measure` (no bracketed names, has text — `` **Yields:** the
+  work to time ``, no dash) and `Polygon#each_side` (bracketed name and
+  text — `` **Yields:** `side_number` — one call per side ``).
 
 ### Cross-referencing
 

@@ -3,5 +3,5 @@
 ## Classes & modules
 
 <%- @indexed_objects.each do |object| -%>
-- [`<%= object.path %>`](<%= indexed_object_path(object) %>) — <%= object.docstring.summary %>
+- [`<%= object.path %>`](<%= indexed_object_path(object) %>)<%= summary_suffix(object) %>
 <%- end -%>

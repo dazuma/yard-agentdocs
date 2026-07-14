@@ -23,6 +23,7 @@ describe "agentdocs template" do
         "example/lib/geometry.rb",
         "example/lib/geometry/parse_error.rb",
         "example/lib/geometry/point.rb",
+        "example/lib/geometry/segment.rb",
         "example/lib/geometry/computations.rb",
         "example/lib/geometry/taggable.rb",
         "example/lib/geometry/named.rb",

@@ -93,22 +93,44 @@ def render_method(meth)
   erb(:method_entry).strip
 end
 
-# @group Member Summary bullet lines
+# @group Tag-text joining
+
+# No " — text" suffix at all when +text+ is blank (e.g. no doc comment, or
+# a tag with no trailing description) — same "absence means empty"
+# convention as an empty Member Summary subgroup, rather than a dangling
+# trailing dash. For a fixed, unconditionally-rendered prefix (Member
+# Summary bullets; a Params/Yield Params bullet's already-parenthesized
+# type).
+def summary_suffix(text)
+  markdown = markdownify(text)
+  markdown.empty? ? "" : " — #{markdown}"
+end
+
+# Like {#summary_suffix}, but for a prefix that can itself be legitimately
+# blank (a tag with no bracketed type, or no yielded names) — joins
+# whichever of +prefix+/+text+ are non-blank with " — ", instead of always
+# rendering +prefix+ first. Used for Returns/Yield Returns/Raises/Yields,
+# where the type isn't wrapped in its own always-present punctuation the
+# way a Params bullet's parens are.
+def dash_join(prefix, text)
+  markdown = markdownify(text)
+  [prefix, markdown].reject { |s| s.to_s.empty? }.join(" — ")
+end
 
 def nested_summary_line(nested)
-  "- [`#{nested.name}`](#{link_path(nested)}) — #{markdownify(nested.docstring.summary)}"
+  "- [`#{nested.name}`](#{link_path(nested)})#{summary_suffix(nested.docstring.summary)}"
 end
 
 def constant_summary_line(const)
-  "- `#{const.name}` — #{markdownify(const.docstring.summary)}"
+  "- `#{const.name}`#{summary_suffix(const.docstring.summary)}"
 end
 
 def attribute_summary_line(attr)
   suffix = attribute_annotation_short(attr)
-  "- `##{attr[:name]}`#{" (#{suffix})" if suffix} — #{markdownify(attribute_docstring_summary(attr))}"
+  "- `##{attr[:name]}`#{" (#{suffix})" if suffix}#{summary_suffix(attribute_docstring_summary(attr))}"
 end
 
 def method_summary_line(meth)
   suffix = private_api_annotation_short(meth)
-  "- `#{member_heading(meth)}`#{" (#{suffix})" if suffix} — #{markdownify(meth.docstring.summary)}"
+  "- `#{member_heading(meth)}`#{" (#{suffix})" if suffix}#{summary_suffix(meth.docstring.summary)}"
 end
