@@ -41,6 +41,7 @@ reserves, so it renders unchanged.
 - [`Loud`](Geometry/Loud.md) — Prepended onto a class to upper-case whatever its own `#describe` method returns, without needing to know that method's implementation.
 - [`Named`](Geometry/Named.md) — Mixed into shape classes via `extend` (not `include`) to add a `.kind` class method, derived from the extending class's own name.
 - [`ParseError`](Geometry/ParseError.md) — Raised when a string can't be parsed as a point.
+- [`Path`](Geometry/Path.md) — An ordered sequence of points.
 - [`Point`](Geometry/Point.md) — A point in two-dimensional space.
 - [`Polygon`](Geometry/Polygon.md) — A polygon: a shape with a fixed number of straight sides.
 - [`Rounding`](Geometry/Rounding.md) — Rounding helpers.

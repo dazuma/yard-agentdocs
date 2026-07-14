@@ -221,9 +221,14 @@ fixing ad hoc.
       settled the `prepend` content-strategy open question (fold into
       `**Includes:**`, indistinguishable from `include` at the metadata
       level — see "`prepend` content strategy" under "Decisions")
-- [ ] (mech) A module meant purely to be mixed in (documented as such, e.g.
-      via `@abstract` or prose) rather than instantiated — `@abstract`'s own
-      rendering is its own item under "YARD tags"
+- [x] A module meant purely to be mixed in (documented as such, e.g. via
+      `@abstract` or prose) rather than instantiated — `@abstract`'s own
+      rendering is its own item under "YARD tags". Already covered
+      incidentally, not by a dedicated fixture: `Taggable`/`Named` are both
+      already documented in prose as mix-in-only, and a module never gets a
+      synthetic `.new` entry regardless (that's constructor-specific, see
+      the `Struct`/`Data` decision) — there's no distinct rendering left for
+      a new fixture to prove
 - [x] `extend self` pattern (module usable both as namespace and as
       mixin) — `Geometry::Angles`; settled by generalizing `**Extends:**`
       (and `**Includes:**`) from class-only to modules too, applying the
@@ -233,10 +238,16 @@ fixing ad hoc.
       `Geometry::Rounding`; confirmed purely mechanical, zero template
       changes — the private instance-side twin is already dropped by the
       existing visibility policy, leaving an ordinary class-method entry
-- [ ] (mech) Mixing in a stdlib module (e.g. `Comparable` or `Enumerable`) to
-      see how we handle methods whose docs live outside the example source
-      entirely — link-out is already decided; an unresolved module should
-      render as a plain backtick, same as an unresolved superclass
+- [x] Mixing in a stdlib module (e.g. `Comparable` or `Enumerable`) to see
+      how we handle methods whose docs live outside the example source
+      entirely — `Geometry::Path` (`include Enumerable`, defining only
+      `#each`); confirmed purely mechanical, zero template changes:
+      `**Includes:** \`Enumerable\`` renders as a plain, unlinked backtick,
+      the existing unresolved-`CodeObjects::Proxy` branch `mixin_line`
+      already had, same as an unresolved superclass. Added as a new class
+      rather than retrofitted onto `Stopwatch`/`Point`, both of which
+      already have approved docstring text explicitly declining to mix in
+      `Comparable`
 
 ### Methods — shapes & signatures
 
