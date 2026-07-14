@@ -888,6 +888,19 @@ not just in docstrings/summaries. Fixed generally, not just for `@return`:
   work to time ``, no dash) and `Polygon#each_side` (bracketed name and
   text — `` **Yields:** `side_number` — one call per side ``).
 
+**A YARD parsing quirk worth knowing for future undocumented-object
+fixtures:** a comment block attaches to the declaration below it as its
+docstring even across one intervening blank *source* line, but not two —
+confirmed by probing (a comment directly above `class Foo`, one blank
+line above `class Foo`, and two blank lines above `class Foo` all run
+through the template; only the last left `docstring.empty?` true).
+`Geometry::Segment` therefore has no comment anywhere near its
+declarations at all, rather than an explanatory note "safely" separated by
+a blank line — a single blank line isn't actually safe. If a future
+checklist item needs another genuinely undocumented `example/lib` object,
+don't rely on blank-line separation to keep a nearby comment from being
+picked up as its docstring.
+
 ### Cross-referencing
 
 Resolved for the two cases exercised so far: a `@param`/`@return` type
