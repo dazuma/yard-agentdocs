@@ -224,10 +224,15 @@ fixing ad hoc.
 - [ ] (mech) A module meant purely to be mixed in (documented as such, e.g.
       via `@abstract` or prose) rather than instantiated — `@abstract`'s own
       rendering is its own item under "YARD tags"
-- [ ] (design) `extend self` pattern (module usable both as namespace and as
-      mixin) — shares one decision with `module_function` below: how methods
-      that are simultaneously class- and instance-level should present
-- [ ] (design) `module_function` (same decision as `extend self` above)
+- [x] `extend self` pattern (module usable both as namespace and as
+      mixin) — `Geometry::Angles`; settled by generalizing `**Extends:**`
+      (and `**Includes:**`) from class-only to modules too, applying the
+      existing self-reference-is-unlinked convention to the metadata line —
+      see "`extend self` / `module_function`" under "Decisions"
+- [x] `module_function` (same decision as `extend self` above) —
+      `Geometry::Rounding`; confirmed purely mechanical, zero template
+      changes — the private instance-side twin is already dropped by the
+      existing visibility policy, leaving an ordinary class-method entry
 - [ ] (mech) Mixing in a stdlib module (e.g. `Comparable` or `Enumerable`) to
       see how we handle methods whose docs live outside the example source
       entirely — link-out is already decided; an unresolved module should
@@ -736,10 +741,12 @@ source), same as a directly-`include`d module's page does; only the
 *extending* class's page needs to know it was mixed in via `extend` rather
 than `include`.
 
-Scoped to classes only for now, same as `**Includes:**`/`**Superclass:**`
-(`extends_line` returns `nil` unconditionally in `module/agentdocs/setup.rb`)
-— a module extending another module isn't yet exercised, matching
-`**Includes:**`'s existing class-only scope.
+Scoped to classes only at the time this was written (`extends_line`
+returned `nil` unconditionally in `module/agentdocs/setup.rb`) — a module
+extending another module wasn't yet exercised, matching `**Includes:**`'s
+then-class-only scope. Both lines were later generalized to modules too,
+once `extend self` (a module extending *itself*) gave a concrete case to
+build against — see "`extend self` / `module_function`" below.
 
 ### `prepend` content strategy: folded into `**Includes:**`, undistinguished
 
@@ -774,6 +781,67 @@ over `Polygon`'s own `#describe` at call time, the opposite precedence from
 This means an agent reading just the `**Includes:**` line (without reading
 the prose) cannot tell a `prepend`ed module from an `include`d one; that's a
 real, permanent gap in the output format, not a TODO to close later.
+
+### `extend self` / `module_function`
+
+Resolves both checklist items in one decision, since they share the
+"methods simultaneously class- and instance-level" question. Exercised via
+`Geometry::Angles` (`extend self`, one instance method `#normalize`) and
+`Geometry::Rounding` (`module_function`, one method `#to_precision`).
+
+**`module_function` needed zero template changes.** Probing YARD's object
+model (`object.meths(inherited: false, included: false)`) shows
+`module_function` produces two distinct `MethodObject`s: a public
+class-scope one (`Rounding.to_precision`) and a *private* instance-scope
+one (`Rounding#to_precision`). The private twin is already dropped by the
+existing Ruby-scope-privacy policy (see "Visibility policy" above), so the
+class file renders exactly one ordinary Class Methods entry — the same
+shape `def self.foo` already produced. No new case for the template to
+handle at all.
+
+**`extend self` is a real (if narrow) gap, closed by generalizing
+`**Extends:**`/`**Includes:**` from class-only to modules too.** The same
+probe shows `extend self` produces only *one* `MethodObject`
+(`Foo#bar`, `scope: :instance`) under `included: false` — there's no
+separate, well-formed class-scope object to render as a second entry.
+Widening the query to `meths(scope: :class, included: true)` does surface
+something, but it's a corrupted proxy: same `path` (`Foo#bar`, `#`-sep) as
+the instance method, just with `scope: :class` — not something a signature
+renderer should trust. Generating YARD's own default HTML template against
+the same source confirms this isn't a gap unique to this project: YARD's
+own template also renders only an "Instance Method" entry, plus a
+self-referential "Extended by: Foo" metadata line — it doesn't fabricate a
+second class-method listing either. Per the "agent reference needs mirror
+human reference needs" heuristic, this project makes the same call:
+`Angles#normalize` is documented once, as an instance method, and the
+module's own self-extension is surfaced only as metadata.
+
+That metadata line was previously unavailable for modules at all —
+`superclass_line`/`includes_line`/`extends_line` were stubbed to `nil` in
+`module/agentdocs/setup.rb`, real implementations living only in
+`class/agentdocs/setup.rb` (see "Scoped to classes only for now" under the
+`extend` content strategy decision above). `includes_line`/`extends_line`
+have now moved to `module/agentdocs/setup.rb` as the shared implementation
+(behind a new `mixin_line(label, mods)` helper), with `class/agentdocs/setup.rb`
+keeping only `superclass_line` (classes only — modules have no superclass).
+This also incidentally resolves that older "module extending another
+module isn't yet exercised" scope note, not just the self-extension case.
+
+**Self-reference rendering reuses an existing convention, not a new one.**
+A module extending itself means `mixin_line`'s target *is* the object
+currently being rendered — a case `includes_line`/`extends_line` never hit
+before (no existing class subclasses/includes/extends itself). Rather than
+inventing a policy, `mixin_line` reuses `CrossReferencing#self_reference?`,
+the same same-file-reference check `@see`/type-refs/inline `{}` cross-refs
+already use to render a same-file target as a plain, unlinked backtick
+instead of a link to the file the agent is already reading (confirmed this
+generalizes cleanly: `self_reference?` compares a resolved object's owning
+namespace against `object`, with no assumption specific to prose). Result:
+`` **Extends:** `Angles` `` on `Angles.md` — unlinked, since `Angles.md` is
+the file the agent already has open — rather than a self-link
+(`` [`Angles`](Angles.md) ``, which YARD's own HTML template does produce,
+since HTML anchors don't carry the same "why link to the page you're on"
+cost a Markdown file read does).
 
 ### `Struct.new`/`Data.define`-based classes
 

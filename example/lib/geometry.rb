@@ -3,6 +3,8 @@
 require_relative "geometry/parse_error"
 require_relative "geometry/point"
 require_relative "geometry/computations"
+require_relative "geometry/angles"
+require_relative "geometry/rounding"
 require_relative "geometry/taggable"
 require_relative "geometry/named"
 require_relative "geometry/loud"

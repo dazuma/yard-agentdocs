@@ -64,18 +64,52 @@ def any_members?
   nested_objects.any? || any_member_sections?
 end
 
-# @group Ancestry (overridden for classes; modules show none of these lines)
+# @group Ancestry (superclass_line overridden for classes; modules have no
+# superclass of their own)
 
 def superclass_line
   nil
 end
 
+# Modules/classes `include`d directly in the parsed source, not ones mixed
+# in transitively by a superclass (which {superclass_line} deliberately
+# doesn't walk, so we can't know those either).
 def includes_line
-  nil
+  mixin_line("Includes", object.mixins(:instance))
 end
 
+# Modules/classes `extend`ed directly in the parsed source (their instance
+# methods become singleton/class methods). Same link-out convention as
+# {includes_line} — a Class/Instance Methods section never duplicates an
+# extended module's methods; only this line, and the module's own file,
+# document them. Also covers the `extend self` pattern (a module extending
+# itself): {mixin_line} renders that as an unlinked self-reference, the same
+# policy prose cross-references already use (see
+# {CrossReferencing#self_reference?}) — no synthetic class-method entry is
+# fabricated for it. YARD's own default HTML template makes the same call:
+# it surfaces the fact via an "Extended by" line but doesn't duplicate the
+# method into a second listing.
 def extends_line
-  nil
+  mixin_line("Extends", object.mixins(:class))
+end
+
+# Shared by {includes_line}/{extends_line}: a bold `**Label:** ref, ref`
+# metadata line, or +nil+ when +mods+ is empty. Each ref links to the
+# mixin's own file when it resolves to real, parsed source and isn't a
+# self-reference (e.g. `extend self`); otherwise it's a plain, unlinked
+# backtick — same resolved/unresolved/self-reference policy every other
+# cross-reference in this template already follows.
+def mixin_line(label, mods)
+  return nil if mods.empty?
+  refs = mods.map do |mod|
+    name = mod.name.to_s
+    if mod.is_a?(CodeObjects::Proxy) || self_reference?(mod)
+      "`#{name}`"
+    else
+      "[`#{name}`](#{link_path(mod)})"
+    end
+  end
+  "**#{label}:** #{refs.join(', ')}"
 end
 
 # @group Member rendering
