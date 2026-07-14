@@ -13,6 +13,7 @@ describe "agentdocs template" do
   def generate(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
+      files = ::Dir.glob("example/lib/**/*.rb")
       ::YARD::CLI::Yardoc.new.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
@@ -20,20 +21,7 @@ describe "agentdocs template" do
         "-f", "agentdocs",
         "--markup", "markdown",
         "--title", "yard-agentdocs example — API Reference",
-        "example/lib/geometry.rb",
-        "example/lib/geometry/parse_error.rb",
-        "example/lib/geometry/point.rb",
-        "example/lib/geometry/segment.rb",
-        "example/lib/geometry/computations.rb",
-        "example/lib/geometry/taggable.rb",
-        "example/lib/geometry/named.rb",
-        "example/lib/geometry/loud.rb",
-        "example/lib/geometry/shape.rb",
-        "example/lib/geometry/polygon.rb",
-        "example/lib/geometry/triangle.rb",
-        "example/lib/geometry/circle.rb",
-        "example/lib/geometry/vector.rb",
-        "example/lib/stopwatch.rb"
+        *files
       )
     end
   end
