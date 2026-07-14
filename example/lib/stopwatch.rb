@@ -48,7 +48,9 @@ class Stopwatch
   ##
   # Resets the elapsed time.
   #
-  # @param to [Float] the elapsed time to reset to; defaults to `DEFAULT_ELAPSED`
+  # @param to [Float] the elapsed time to reset to; defaults to
+  #   `DEFAULT_ELAPSED`, which returns the stopwatch to its just-created,
+  #   zeroed state
   # @return [Float] the new elapsed time
   #
   def reset(to = DEFAULT_ELAPSED)

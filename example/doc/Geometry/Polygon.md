@@ -69,7 +69,9 @@ polygon.describe() → String
 
 A short human-readable description of the polygon.
 
-**Returns:** `String` — the description, e.g. `"polygon"`
+**Returns:**
+
+- `String` — the description, e.g. `"polygon"`
 
 **Defined in:** `example/lib/geometry/polygon.rb:40`
 
@@ -81,8 +83,12 @@ polygon.each_side { |side_number| ... } → Integer
 
 Calls the block once for each side of the polygon, in order.
 
-**Yields:** `side_number` — one call per side
+**Yields:**
 
-**Returns:** `Integer` — the number of sides yielded
+- `side_number` — one call per side
+
+**Returns:**
+
+- `Integer` — the number of sides yielded
 
 **Defined in:** `example/lib/geometry/polygon.rb:50`

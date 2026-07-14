@@ -35,7 +35,9 @@
 <%- ov_return = ov.tag(:return) -%>
 <%- if ov_return -%>
 
-**Returns:** <%= dash_join(type_ref(ov_return.types && ov_return.types.first), ov_return.text) %>
+**Returns:**
+
+- <%= dash_join(type_ref(ov_return.types && ov_return.types.first), ov_return.text) %>
 <%- end -%>
 <%- end -%>
 <%- else -%>
@@ -71,7 +73,9 @@
 <%- if yt -%>
 <%- yt_names = yt.types || [] -%>
 
-**Yields:** <%= dash_join(yt_names.empty? ? "" : yt_names.map { |n| "`#{n}`" }.join(', '), yt.text) %>
+**Yields:**
+
+- <%= dash_join(yt_names.empty? ? "" : yt_names.map { |n| "`#{n}`" }.join(', '), yt.text) %>
 <%- end -%>
 <%- unless @method.tags(:yieldparam).empty? -%>
 
@@ -84,13 +88,17 @@
 <%- yieldreturn_tag = @method.tag(:yieldreturn) -%>
 <%- if yieldreturn_tag -%>
 
-**Yield Returns:** <%= dash_join(type_ref(yieldreturn_tag.types && yieldreturn_tag.types.first), yieldreturn_tag.text) %>
+**Yield Returns:**
+
+- <%= dash_join(type_ref(yieldreturn_tag.types && yieldreturn_tag.types.first), yieldreturn_tag.text) %>
 <%- end -%>
 <%- if overloads.size < 2 -%>
 <%- return_tag = primary ? primary.tag(:return) : method_return_tag(@method) -%>
 <%- if return_tag -%>
 
-**Returns:** <%= dash_join(type_ref(return_tag.types && return_tag.types.first), return_tag.text) %>
+**Returns:**
+
+- <%= dash_join(type_ref(return_tag.types && return_tag.types.first), return_tag.text) %>
 <%- end -%>
 <%- end -%>
 <%- unless @method.tags(:raise).empty? -%>

@@ -48,6 +48,8 @@ circle.area() → Float
 
 Computes the area of the circle.
 
-**Returns:** `Float` — the area
+**Returns:**
+
+- `Float` — the area
 
 **Defined in:** `example/lib/geometry/circle.rb:20`

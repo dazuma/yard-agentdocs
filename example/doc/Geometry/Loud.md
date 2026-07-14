@@ -27,6 +27,8 @@ loud.describe() → String
 
 Upper-cases the prepending class's own `#describe` result.
 
-**Returns:** `String` — the class's own description, upper-cased
+**Returns:**
+
+- `String` — the class's own description, upper-cased
 
 **Defined in:** `example/lib/geometry/loud.rb:20`

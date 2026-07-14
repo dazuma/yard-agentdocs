@@ -30,6 +30,8 @@ Greets `name`, wrapping it in *emphasis*.
 
 - `name` (`String`) — the `name` to greet
 
-**Returns:** `String` — the greeting, with `name` emphasized
+**Returns:**
+
+- `String` — the greeting, with `name` emphasized
 
 **Defined in:** `example/rdoc/lib/greeter.rb:19`

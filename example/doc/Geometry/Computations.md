@@ -26,7 +26,9 @@ Computes the centroid (average position) of one or more points.
 
 - `points` (`Array<`[`Point`](Point.md)`>`) — the points to average
 
-**Returns:** [`Point`](Point.md) — the centroid of the given points
+**Returns:**
+
+- [`Point`](Point.md) — the centroid of the given points
 
 **Raises:**
 
@@ -49,7 +51,9 @@ Computes the distance between two points.
 - `a` ([`Point`](Point.md)) — the first point
 - `b` ([`Point`](Point.md)) — the second point
 
-**Returns:** `Float` — the distance between the two points
+**Returns:**
+
+- `Float` — the distance between the two points
 
 **See also:** [`Point#distance_to`](Point.md)
 
@@ -71,6 +75,8 @@ Yields each of the given points in turn.
 
 - `point` ([`Point`](Point.md)) — each point, in the order given
 
-**Returns:** `Integer` — the number of points yielded
+**Returns:**
+
+- `Integer` — the number of points yielded
 
 **Defined in:** `example/lib/geometry/computations.rb:41`

@@ -93,9 +93,11 @@ Creates a point from polar coordinates.
 - `radius` (`Numeric`) — the distance from the origin
 - `angle` (`Numeric`) — the angle from the positive x-axis, in radians
 
-**Returns:** `Point` — the point in Cartesian coordinates
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:76`
+- `Point` — the point in Cartesian coordinates
+
+**Defined in:** `example/lib/geometry/point.rb:83`
 
 ### .new
 
@@ -146,7 +148,9 @@ Point.of(x, y) → Point
 - `x` (`Numeric`) — the x-coordinate
 - `y` (`Numeric`) — the y-coordinate
 
-**Returns:** `Point` — a single point built from the coordinates
+**Returns:**
+
+- `Point` — a single point built from the coordinates
 
 ```ruby
 Point.of(point, count) → Array<Point>
@@ -157,9 +161,11 @@ Point.of(point, count) → Array<Point>
 - `point` (`Point`) — the point to copy
 - `count` (`Integer`) — how many independent copies to build
 
-**Returns:** `Array<Point>` — `count` copies of `point`
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:101`
+- `Array<Point>` — `count` copies of `point`
+
+**Defined in:** `example/lib/geometry/point.rb:108`
 
 ### .parse
 
@@ -173,14 +179,23 @@ Parses a point from a string formatted as `"x,y"`.
 
 - `str` (`String`) — a string such as `"3,4"`
 
-**Returns:** `Point` — the parsed point
+**Returns:**
+
+- `Point` — the parsed point
 
 **Raises:**
 
-- [`ParseError`](ParseError.md) — if `str` isn't formatted as `"x,y"`
+- [`ParseError`](ParseError.md) — if `str` isn't formatted as `"x,y"`, or if
+  either half can't be parsed as an integer.
+
+  Currently, this parsing method supports parsing integers only,
+  not floating-point numbers. It supports the following:
+  * Negative numbers, e.g. `-123`
+  * Zero
+  * Arbitrary range (e.g. *no* 32- or 64-bit limit)
 - `TypeError` — if `str` is not a `String`
 
-**Defined in:** `example/lib/geometry/point.rb:59`
+**Defined in:** `example/lib/geometry/point.rb:66`
 
 ## Instance Methods
 
@@ -196,9 +211,11 @@ Adds this point to another, component-wise.
 
 - `other` (`Point`) — the point to add
 
-**Returns:** `Point` — a new point whose coordinates are the sum of the two
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:114`
+- `Point` — a new point whose coordinates are the sum of the two
+
+**Defined in:** `example/lib/geometry/point.rb:121`
 
 ### #distance_to
 
@@ -219,9 +236,11 @@ Point.new(0, 0).distance_to(Point.new(3, 4))
 
 - `other` (`Point`) — the point to measure distance to
 
-**Returns:** `Float` — the distance between the two points
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:127`
+- `Float` — the distance between the two points
+
+**Defined in:** `example/lib/geometry/point.rb:134`
 
 ### #label
 
@@ -235,11 +254,13 @@ Returns a short label for this point, formatted `"x,y"` by default
 **Params:**
 
 - `separator` (`String`) — the string to place between the x and y
-coordinates
+  coordinates
 
-**Returns:** `String` — the formatted label
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:140`
+- `String` — the formatted label
+
+**Defined in:** `example/lib/geometry/point.rb:147`
 
 ### #round
 
@@ -257,9 +278,11 @@ Rounds this point's coordinates to the given decimal precision.
 
 - `precision` (`Integer`) — the number of decimal places to round to
 
-**Returns:** `Point` — a new point with rounded coordinates
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:154`
+- `Point` — a new point with rounded coordinates
+
+**Defined in:** `example/lib/geometry/point.rb:161`
 
 ### #translate
 
@@ -274,9 +297,11 @@ given defaults to no change.
 
 - `deltas` (`Hash{Symbol => Numeric}`) — `:x` and/or `:y` offsets to add
 
-**Returns:** `Point` — a new point shifted by the given deltas
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:165`
+- `Point` — a new point shifted by the given deltas
+
+**Defined in:** `example/lib/geometry/point.rb:172`
 
 ### #zero?
 
@@ -284,6 +309,8 @@ given defaults to no change.
 point.zero?() → Boolean
 ```
 
-**Returns:** `Boolean`
+**Returns:**
 
-**Defined in:** `example/lib/geometry/point.rb:169`
+- `Boolean`
+
+**Defined in:** `example/lib/geometry/point.rb:176`

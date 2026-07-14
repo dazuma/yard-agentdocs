@@ -280,6 +280,17 @@ fixing ad hoc.
       (documented return type is a union, e.g. `String, nil`); also cover
       `@return [self]` (chainable methods — a type token that's neither
       resolvable nor an ordinary class name) and `@return [void]` here
+- [ ] (design) Multiple `@return` tags on a single method, and correspondingly
+      multiple `@yield`/`@yieldreturn` tags — YARD's own default HTML template
+      already renders every tag instance generically as its own list item
+      (`templates/default/tags/html/tag.erb`), confirming this is idiomatically
+      expected, not a fringe case. The Returns/Yields/Yield Returns bullet-list
+      shape (see "Output format") accommodates multiple items mechanically once
+      the template iterates `object.tags(:return)` instead of `.tag(:return)`
+      (ditto `@yield`/`@yieldreturn`) — but the open design question is what
+      the *signature line*'s `→ Type` arrow shows when there's more than one
+      `@return` type (a union of all of them? the first? omitted?), which the
+      single-tag case never had to answer
 - [ ] (design) A method returning an `Enumerator` when called without a
       block, and yielding when called with one (tests combined
       `@yield`/`@return` docs)
@@ -414,10 +425,18 @@ fixing ad hoc.
       `@param`/`@return` tag text, and Member Summary one-line summaries —
       see "Docstring markup dialect" under "Decisions" for the full scope
       and unsupported-dialect behavior settled while implementing this.
-- [ ] (design) Prose/summary containing Markdown metacharacters (backticks,
-      `*`, `_`, `[`) — the Member Summary embeds one-line summaries in
-      bullet lists and headings embed member names, so this forces an
-      escaping policy
+- [x] Prose/summary containing Markdown metacharacters (backticks, `*`, `_`,
+      `[`) — turned out not to need an escaping policy at all (CommonMark
+      keeps a bare metacharacter's effects confined to its own line/bullet);
+      the real risk was unescaped embedded newlines in tag text corrupting
+      the file structure (verified severe with a real CommonMark parser: an
+      unmatched fenced-code delimiter can swallow the rest of the document).
+      Fixed by preserving structure and indenting as list-item continuation
+      instead of flattening, once real-world evidence (google-cloud-ruby)
+      showed genuine multi-paragraph/nested-list tag descriptions occur in
+      practice — see "Prose/summary containing Markdown metacharacters"
+      under "Decisions", including the `@return`/`@yield`/`@yieldreturn`
+      rendering-shape change this required
 - [x] A class-level doc comment (not just method-level) — both `Geometry` and
       `Geometry::Point`
 - [x] Intentionally undocumented objects — a public method with no doc
@@ -1228,6 +1247,113 @@ example fixtures, per this project's existing precedent of keeping
 narrative fixture prose natural rather than forcing in every edge case
 (see the heading-collision note this same precedent left under "Markdown
 formatting in prose").
+
+### Prose/summary containing Markdown metacharacters: indent as list-item continuation, don't escape
+
+Settles the "Prose/summary containing Markdown metacharacters" checklist
+item. The item's original framing (an escaping policy for stray backticks/
+`*`/`_`/`[`) turned out to be the wrong shape for the real risk, discovered
+by probing actual behavior with a real CommonMark parser (GitHub's
+`cmark-gfm`, via the `commonmarker` gem, in a scratch dir — not a project
+dependency) rather than reasoning from the spec alone:
+
+- **Bare metacharacters don't need escaping.** CommonMark parses each
+  block's inline content independently, so even an adversarial unmatched
+  backtick run (including a bare ` ``` `) confined to one line/bullet stays
+  literal and can't affect neighboring bullets — verified directly, not
+  assumed.
+- **The real bug is embedded newlines, and it's severe.** `YARD::Docstring
+  #summary` (Member Summary bullets) already collapses to one line, but
+  `Tags::Tag#text` (`@param`/`@return`/`@raise`/`@yield`/`@yieldparam`/
+  `@yieldreturn`) does not — probed directly against YARD 0.9.44, a
+  multi-line `@param` description retains its raw embedded newlines,
+  including a blank-line paragraph break. Splicing that verbatim onto a
+  single generated line can silently corrupt the whole rest of the file:
+  probed a `@raise` description containing a raw `\n` immediately followed
+  by an unmatched ` ``` `, and confirmed with `cmark-gfm` that it opens an
+  unclosed fenced code block swallowing every subsequent heading and method
+  entry to end of document, with no error.
+- **Real-world evidence changed the fix from "flatten" to "preserve, then
+  reflow."** The obvious fix — collapse all embedded whitespace to prevent
+  any line ever starting mid-splice — closes the corruption risk, but
+  google-cloud-ruby's generated API-client gems (confirmed via `gh api`
+  against `google-cloud-speech-v2`, `lib/google/cloud/speech/v2/speech/
+  client.rb` around line 2598: a `@!attribute` description with a genuine
+  nested bulleted list of supported credential types) show real gems do
+  write multi-paragraph, list-bearing tag descriptions — mostly ones
+  generated from language-agnostic specs (protobufs) rather than
+  hand-written idiomatic Ruby docs, but real nonetheless. Flattening would
+  destroy that structure.
+
+**The decision:** for every tag whose text is spliced onto a `- ` list-item
+bullet (`@param`, `@yieldparam`, `@raise`, and — see the rendering-shape
+change below — `@return`/`@yield`/`@yieldreturn`), preserve the full
+`markdownify`-converted text (paragraphs, nested lists, inline markup and
+all) and indent every line after the first by 2 spaces, matching the width
+of the `- ` marker itself. Verified this only needs to match the *marker*
+width, not the bullet's own longer visible prefix (`` [`ParseError`]
+(ParseError.md) — ``), so a fixed 2-space indent is correct regardless of
+prefix length — `cmark-gfm` correctly scopes the nested paragraphs/list to
+that one list item, with sibling bullets and the trailing `**Defined in:**`
+line unaffected. This also incidentally keeps this format's own
+`grep '^## '`/`grep '^### '` lookup mechanism (see "Output format") safe
+from a prose-embedded heading: an indented `## fake heading` still renders
+as a real (if oddly nested) HTML heading, but it does **not** match a
+column-0-anchored grep against the raw `.md` source, which is what this
+format's indexing actually depends on. This is a different, narrower
+problem than the still-open docstring-*body* heading collision (see
+"Markdown formatting in prose" below), which remains unindented at column 0
+and stays deliberately deferred.
+
+Implemented as `indent_continuation` (`templates/default/module/agentdocs/
+setup.rb`), called from both `summary_suffix` (Member Summary bullets —
+already single-line via `Docstring#summary`, so a no-op there — and Params/
+Yield Params bullets) and `dash_join` (Raises, and now Returns/Yields/Yield
+Returns). No metacharacter escaping was added anywhere.
+
+**Rendering-shape change, decided alongside this:** `@return`/`@yield`/
+`@yieldreturn` moved from a single-line `**Label:** value` bold-key-value
+line to the same `**Label:**` / blank line / `- ` bulleted-list shape
+`@param`/`@raise` already used — required because a plain paragraph line
+(no list marker) has no CommonMark-safe way to host nested block content
+(a paragraph can be *interrupted* by a heading/fence/list-marker line even
+without a blank line first, so the corruption risk applies to a bare
+`**Returns:** value` line too, and there's no container block to indent
+continuation lines under). This was verified against YARD's own default
+HTML template (`templates/default/tags/html/tag.erb`, yard 0.9.44), which
+generically renders *every* tag type — including `@return`/`@yield`/
+`@yieldreturn` — as its own `<li>`, confirming multiple tag instances are
+already an idiomatically-expected shape, not just a workaround invented
+here. This changed nearly every existing `example/doc` fixture
+mechanically (shape only, no content change) — see `git log` for the
+full diff. One pre-existing fixture bug surfaced and got fixed as a
+byproduct: `Geometry::Point#label`'s `@param separator` was already
+wrapped across two comment lines in `example/lib`, and the *old*,
+un-reflowed generator had been silently emitting the continuation at
+column 0 (a real, unnoticed instance of the same corruption-shaped bug);
+it now reflows correctly.
+
+**Deliberately not solved here:** the template still renders only the
+*first* `@return`/`@yield`/`@yieldreturn` tag, even though the rendering
+shape now technically supports more. Genuinely supporting multiple tags of
+these kinds — a real pattern per YARD's own generic template — is tracked
+as a new checklist item under "Methods — shapes & signatures", separate
+from this one, because it raises its own open question (what the signature
+line's `→ Type` arrow shows for more than one `@return` type) that this
+item didn't need to answer.
+
+**Exercised** via two `example/lib` additions, chosen to cover both the
+common case and the evidenced-richer case: `Stopwatch#reset`'s `@param to`
+wraps across two comment lines (plain soft-wrap, no nested list — the
+everyday case); `Geometry::Point.parse`'s `@raise [ParseError]` gained a
+multi-paragraph description with a nested bulleted sub-list (mirroring the
+google-cloud-ruby shape). Both tag families' shared helpers mean this
+covers `@param`/`@raise`/`@yieldparam` and, via the rendering-shape change,
+`@return`/`@yield`/`@yieldreturn` as well — no dedicated multi-line example
+was added for the latter three, consistent with this project's existing
+precedent of proving shared machinery once and leaning on unit tests (not
+a forced fixture) for the remaining edge cases (see the code-span/
+fenced-block precedent under "Inline cross-references in prose").
 
 ### Block presentation: `&block` in the parens, implicit `yield` as a trailing block literal
 

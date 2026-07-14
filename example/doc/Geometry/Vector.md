@@ -47,6 +47,8 @@ vector.magnitude() → Float
 
 Computes the magnitude (length) of the vector.
 
-**Returns:** `Float` — the magnitude
+**Returns:**
+
+- `Float` — the magnitude
 
 **Defined in:** `example/lib/geometry/vector.rb:15`

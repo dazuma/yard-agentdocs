@@ -31,6 +31,8 @@ shape.label() → String
 
 A short label identifying the kind of shape.
 
-**Returns:** `String` — the shape's label
+**Returns:**
+
+- `String` — the shape's label
 
 **Defined in:** `example/lib/geometry/shape.rb:24`

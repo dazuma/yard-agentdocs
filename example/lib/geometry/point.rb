@@ -53,7 +53,14 @@ module Geometry
     #
     # @param str [String] a string such as `"3,4"`
     # @return [Point] the parsed point
-    # @raise [ParseError] if `str` isn't formatted as `"x,y"`
+    # @raise [ParseError] if `str` isn't formatted as `"x,y"`, or if
+    #   either half can't be parsed as an integer.
+    #
+    #   Currently, this parsing method supports parsing integers only,
+    #   not floating-point numbers. It supports the following:
+    #   * Negative numbers, e.g. `-123`
+    #   * Zero
+    #   * Arbitrary range (e.g. *no* 32- or 64-bit limit)
     # @raise [TypeError] if `str` is not a `String`
     #
     def self.parse(str)

@@ -75,9 +75,11 @@ makes the same choice).
 
 - `other` (`Stopwatch`) — the stopwatch to compare to
 
-**Returns:** `Integer` — -1, 0, or 1
+**Returns:**
 
-**Defined in:** `example/lib/stopwatch.rb:118`
+- `Integer` — -1, 0, or 1
+
+**Defined in:** `example/lib/stopwatch.rb:120`
 
 ### #add
 
@@ -91,7 +93,9 @@ Adds to the elapsed time.
 
 - `seconds` (`Float`) — the number of seconds to add
 
-**Returns:** `Float` — the new total elapsed time
+**Returns:**
+
+- `Float` — the new total elapsed time
 
 **Defined in:** `example/lib/stopwatch.rb:44`
 
@@ -118,9 +122,11 @@ formatting API.
 - `metadata` (`Hash{Symbol => Object}`) — arbitrary extra key/value pairs to include
 - `block` (`Proc`) — a block to post-process the label, used instead of it if given
 
-**Returns:** `String` — the assembled label
+**Returns:**
 
-**Defined in:** `example/lib/stopwatch.rb:90`
+- `String` — the assembled label
+
+**Defined in:** `example/lib/stopwatch.rb:92`
 
 ### #measure
 
@@ -131,13 +137,19 @@ stopwatch.measure(&block) → Object
 Runs the given block and adds how long it took to this stopwatch's
 elapsed time.
 
-**Yields:** the work to time
+**Yields:**
 
-**Yield Returns:** `Object` — the block's own return value, passed through unchanged
+- the work to time
 
-**Returns:** `Object` — the block's return value
+**Yield Returns:**
 
-**Defined in:** `example/lib/stopwatch.rb:66`
+- `Object` — the block's own return value, passed through unchanged
+
+**Returns:**
+
+- `Object` — the block's return value
+
+**Defined in:** `example/lib/stopwatch.rb:68`
 
 ### #raw_elapsed_s
 
@@ -151,9 +163,11 @@ Formats the elapsed time for internal diagnostic tooling. Kept public so
 other objects in this library can call it directly, but not meant to be
 part of the stable public API.
 
-**Returns:** `String` — the elapsed time, in seconds, as a plain string
+**Returns:**
 
-**Defined in:** `example/lib/stopwatch.rb:105`
+- `String` — the elapsed time, in seconds, as a plain string
+
+**Defined in:** `example/lib/stopwatch.rb:107`
 
 ### #reset
 
@@ -165,8 +179,12 @@ Resets the elapsed time.
 
 **Params:**
 
-- `to` (`Float`) — the elapsed time to reset to; defaults to `DEFAULT_ELAPSED`
+- `to` (`Float`) — the elapsed time to reset to; defaults to
+  `DEFAULT_ELAPSED`, which returns the stopwatch to its just-created,
+  zeroed state
 
-**Returns:** `Float` — the new elapsed time
+**Returns:**
 
-**Defined in:** `example/lib/stopwatch.rb:54`
+- `Float` — the new elapsed time
+
+**Defined in:** `example/lib/stopwatch.rb:56`
