@@ -19,5 +19,28 @@ require_relative "geometry/vector"
 # Exists purely to group its nested classes and modules; it defines no
 # behavior of its own. Not part of the shipped gem.
 #
+# # Usage
+#
+# Construct two points and measure the distance between them:
+#
+# ```ruby
+# # build two points and measure the distance between them
+# a = Geometry::Point.new(1, 2)
+# b = Geometry::Point.new(4, 6)
+# Geometry::Segment.new(a, b).length
+# ```
+#
+# ### Further reading
+#
+# - The [CommonMark spec](https://spec.commonmark.org/), which this output
+#   format's Markdown is meant to conform to.
+# - The [YARD documentation](https://yardoc.org/) for the docstring markup
+#   this namespace's own comments are written in.
+#
+# ##### Caveat
+#
+# This heading is already below the level this format's own hierarchy
+# reserves, so it renders unchanged.
+#
 module Geometry
 end

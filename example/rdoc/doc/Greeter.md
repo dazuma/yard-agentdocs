@@ -10,6 +10,12 @@ the full grammar. Also proves inline cross-reference resolution runs after
 RDoc conversion: this paragraph's bare `Greeter#greet` reference resolves, but
 renders as a plain, unlinked name — a same-file self-reference.
 
+#### Heading demotion
+
+Also proves a prose-embedded RDoc heading is demoted below the heading levels
+this format's own file structure reserves, so it can never collide with a real
+member heading.
+
 ## Member Summary
 
 **Instance Methods**
@@ -34,4 +40,4 @@ Greets `name`, wrapping it in *emphasis*.
 
 - `String` — the greeting, with `name` emphasized
 
-**Defined in:** `example/rdoc/lib/greeter.rb:19`
+**Defined in:** `example/rdoc/lib/greeter.rb:25`

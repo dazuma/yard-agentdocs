@@ -409,16 +409,11 @@ fixing ad hoc.
 - [x] Single-line summary only — e.g. `Point#x`'s "The x-coordinate."
 - [x] Multi-paragraph description (summary + extended discussion) — the
       `Geometry` module doc
-- [ ] (mech) Markdown formatting in prose: code spans, a fenced code block, a
-      list, a link (only code spans are exercised so far, e.g. `` `"x,y"` ``)
-      — safe now that the markup-dialect decision keeps Markdown sources
-      passthrough (see "Docstring markup dialect" under "Decisions"). Also
-      the place to eventually resolve a wrinkle surfaced while building the
-      `:rdoc` dialect path: a prose-embedded heading (RDoc `=`, or a literal
-      Markdown `# `) converts/passes through into an ATX heading that
-      collides with the file's own `# class Foo`/`## Member
-      Summary`/`### #method` heading hierarchy `grep '^## '` relies on — not
-      exercised in either dialect's fixture yet, deliberately deferred.
+- [x] Markdown formatting in prose: code spans (already covered, e.g.
+      `` `"x,y"` ``), a fenced code block, a list, and a link — `Geometry`'s
+      module doc. Also settles the prose-embedded-heading wrinkle surfaced
+      while building the `:rdoc` dialect path — see "Prose-embedded
+      headings: demote below the structural range" under "Decisions".
 - [x] Docstring markup dialect — dispatch on `options.markup`, `:markdown`
       passes through, `:rdoc` converts via `RDoc::Markup::ToMarkdown`
       (`YARD::AgentDocs::Markdownify#markdownify`). Covers docstring bodies,
@@ -1118,11 +1113,10 @@ left open above were settled during implementation:
   original "fail loudly" leaning, chosen so one object with an exotic
   `--markup` setting doesn't take down an entire otherwise-fine generation
   run; the logged error still makes the gap visible.
-- One thing probed but deliberately *not* exercised in the rdoc-dialect
-  example fixture: an RDoc `=` heading. It converts correctly in isolation
-  (verified by unit test), but embedding one in a class docstring collides
-  with this format's own heading hierarchy — see the note added to
-  "Markdown formatting in prose" under "Example coverage checklist".
+- One thing probed here, but resolved separately: an RDoc `=` heading
+  converts correctly in isolation, but embedding one in a class docstring
+  collides with this format's own heading hierarchy — see "Prose-embedded
+  headings: demote below the structural range" under "Decisions".
 
 **What YARD's default template does:** `HtmlHelper#htmlify` dispatches on
 `options.markup` (the `--markup` flag) to a per-dialect
@@ -1173,6 +1167,68 @@ works when converting to a third format: for Markdown *output*,
 passthrough-plus-conversion is the coherent split, since round-tripping
 Markdown through a hybrid parser would reformat prose the author already
 wrote in the output dialect.
+
+### Prose-embedded headings: demote below the structural range
+
+Settles the "Markdown formatting in prose" checklist item's heading wrinkle,
+surfaced while building the `:rdoc` dialect path (see "Docstring markup
+dialect" above): a docstring can contain its own ATX heading — written
+directly as Markdown `#`/`##`/`###`, or converted from RDoc `=`/`==`/`===`
+via `ToMarkdown` — and, left alone, it renders as a real heading at the same
+level this format's own `## Member Summary`/`### #method` structural
+headings use, which would corrupt the `grep '^## '`/`grep '^### '` lookup
+mechanism "Output format" depends on (a false match, or a false section
+boundary for a "read from this heading to the next" range fetch).
+
+Same "reflow, don't escape" instinct as the list-item-continuation fix (see
+"Prose/summary containing Markdown metacharacters"): a heading is still
+useful to an agent as a heading, so demote its level rather than defuse the
+`#` character.
+
+**The decision:** clamp, not shift. Any heading shallower than level 4
+(`#`, `##`, or `###`) is rewritten to exactly `####`; a heading already at
+level 4 or deeper is left untouched. Applied uniformly inside `markdownify`
+(`YARD::AgentDocs::Markdownify#demote_headings`, run on the already-converted
+text before `resolve_references`), so it's dialect-independent — a
+Markdown-authored heading and an RDoc `=` heading that converted to the same
+level get the same treatment.
+
+- **Why clamp instead of an additive shift** (e.g. always +3, capping at
+  h6) that would preserve relative nesting between multiple prose headings:
+  simpler rule, and level 4 is already the shallowest level this format's
+  hierarchy doesn't reserve, so there's no shallower "safe" level to shift
+  *into* — an additive shift would just be clamp's more complicated cousin
+  for the common case (a single heading, or a docstring not deep enough for
+  the distinction to matter) while still collapsing multiple originally
+  distinct levels together once any of them is deep enough to clamp. Not
+  revisited unless a real docstring turns up with genuinely multi-level
+  prose headings where losing that relative nesting is a real cost.
+- **Why leave level 4+ alone:** it already can't collide with `^## '`/`^### '`
+  by construction, and repeatedly demoting an author's already-deep heading
+  every time would be pure churn.
+- **Fence-aware, reusing the existing scan.** A `#`-starting line inside a
+  fenced ` ```ruby ` code sample (e.g. a Ruby comment) is not a heading and
+  must not be touched. `demote_headings` walks the text with the same
+  backtick-run-skipping `StringScanner` loop `CrossReferencing#resolve_references`
+  already uses to protect `{Name}` references inside code spans — proven
+  against a fixture with a `#`-led comment line inside `Geometry`'s example
+  code block (`example/lib/geometry.rb`), verified independently against
+  `commonmarker` to confirm the intended heading levels and an unmangled
+  code block.
+- **Column-0 only, matching the list-item-continuation fix's reasoning.** A
+  heading indented by leading whitespace (inside a `- ` bullet's continuation,
+  or just authored with leading spaces) is already invisible to the
+  column-0-anchored grep this format's lookup depends on, so it's left alone
+  regardless of level — no need to walk indentation the way the demotion
+  logic walks backtick spans.
+
+Exercised in both dialects: `Geometry`'s module doc (level-1 and level-3
+Markdown headings, both landing at `####`, plus an untouched level-5 heading)
+and the small dedicated `Greeter` rdoc fixture (a level-1 RDoc `=` heading,
+same landing spot after `ToMarkdown` conversion) — see `example/lib/geometry.rb`
+and `example/rdoc/lib/greeter.rb`. Direct unit coverage in `test/test_markdownify.rb`
+covers the level-4+-untouched, fenced-code-block, and indented-heading cases
+that aren't separately exercised end-to-end.
 
 ### Inline cross-references in prose: rewrite to a Markdown link, reusing `Registry.resolve`
 

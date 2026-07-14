@@ -9,6 +9,12 @@
 # conversion: this paragraph's bare {Greeter#greet} reference resolves,
 # but renders as a plain, unlinked name — a same-file self-reference.
 #
+# = Heading demotion
+#
+# Also proves a prose-embedded RDoc heading is demoted below the heading
+# levels this format's own file structure reserves, so it can never
+# collide with a real member heading.
+#
 class Greeter
   ##
   # Greets +name+, wrapping it in _emphasis_.

@@ -46,6 +46,26 @@ describe ::YARD::AgentDocs::Markdownify do
     it "returns an empty string for nil" do
       assert_equal("", holder.markdownify(nil))
     end
+
+    it "demotes a level-1/2/3 heading to #### to avoid colliding with structural headings" do
+      assert_equal("#### One", holder.markdownify("# One"))
+      assert_equal("#### Two", holder.markdownify("## Two"))
+      assert_equal("#### Three", holder.markdownify("### Three"))
+    end
+
+    it "leaves a heading already at level 4+ unchanged" do
+      assert_equal("#### Four", holder.markdownify("#### Four"))
+      assert_equal("##### Five", holder.markdownify("##### Five"))
+    end
+
+    it "leaves a heading-shaped line inside a fenced code block unchanged" do
+      source = "```ruby\n# a comment, not a heading\nputs 1\n```"
+      assert_equal(source, holder.markdownify(source))
+    end
+
+    it "leaves an indented heading-shaped line unchanged (not column-0, so not a grep collision)" do
+      assert_equal("Intro.\n\n  ## Indented", holder.markdownify("Intro.\n\n  ## Indented"))
+    end
   end
 
   describe ":rdoc dialect" do
@@ -66,8 +86,8 @@ describe ::YARD::AgentDocs::Markdownify do
       )
     end
 
-    it "converts a top-level = heading to an ATX heading" do
-      assert_equal("# Heading", holder.markdownify("= Heading"))
+    it "converts a top-level = heading to an ATX heading, demoted to ####" do
+      assert_equal("#### Heading", holder.markdownify("= Heading"))
     end
 
     it "leaves an unresolvable bare {Foo#bar} inline reference untouched" do
