@@ -9,6 +9,15 @@ exercising the `Struct.new` case.
 
 A circle, defined by its radius.
 
+**Examples:**
+
+*Computing a circle's area*
+
+```ruby
+Circle.new(2).area.round(2)
+#=> 12.57
+```
+
 ## Member Summary
 
 **Attributes**
@@ -27,7 +36,7 @@ A circle, defined by its radius.
 
 Returns the value of attribute radius
 
-**Defined in:** `example/lib/geometry/circle.rb:11`
+**Defined in:** `example/lib/geometry/circle.rb:14`
 
 ## Instance Methods
 
@@ -41,4 +50,4 @@ Computes the area of the circle.
 
 **Returns:** `Float` — the area
 
-**Defined in:** `example/lib/geometry/circle.rb:17`
+**Defined in:** `example/lib/geometry/circle.rb:20`

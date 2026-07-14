@@ -89,6 +89,14 @@ module Geometry
     #   @param point [Point] the point to copy
     #   @param count [Integer] how many independent copies to build
     #   @return [Array<Point>] `count` copies of `point`
+    # @example Building from coordinates
+    #   Point.of(3, 4).x
+    #   #=> 3
+    # @example Copying a point multiple times
+    #   original = Point.new(1, 1)
+    #   copies = Point.of(original, 3)
+    #   copies.size
+    #   #=> 3
     #
     def self.of(*args)
       first, second = args
@@ -112,6 +120,9 @@ module Geometry
     #
     # @param other [Point] the point to measure distance to
     # @return [Float] the distance between the two points
+    # @example
+    #   Point.new(0, 0).distance_to(Point.new(3, 4))
+    #   #=> 5.0
     #
     def distance_to(other)
       Math.hypot(x - other.x, y - other.y)

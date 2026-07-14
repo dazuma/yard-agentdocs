@@ -14,6 +14,11 @@
 <%- unless @method.docstring.empty? -%>
 <%= markdownify(@method.docstring) %>
 <%- end -%>
+<%- examples = examples_block(@method) -%>
+<%- if examples -%>
+
+<%= examples %>
+<%- end -%>
 <%- overloads.each do |ov| -%>
 
 ```ruby
@@ -46,6 +51,11 @@
 <%- unless @method.docstring.empty? -%>
 
 <%= markdownify(@method.docstring) %>
+<%- end -%>
+<%- examples = examples_block(@method) -%>
+<%- if examples -%>
+
+<%= examples %>
 <%- end -%>
 <%- param_tags = primary ? primary.tags(:param) : @method.tags(:param) -%>
 <%- unless param_tags.empty? -%>

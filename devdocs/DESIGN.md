@@ -363,8 +363,12 @@ fixing ad hoc.
       external URL, plus the trailing-description form
       (`@see Foo#bar Some label`); only the "another method" case is
       exercised so far (see also the cross-referencing scenarios below)
-- [ ] (design) `@example` — both a bare example and a titled example
-      (`@example Some title`), and a method with more than one `@example`
+- [x] `@example` — both a bare example (`Point#distance_to`) and a titled
+      example (`@example Some title` — `Geometry::Circle`, class-level), and
+      a method with more than one `@example` (`Point.of`, reusing its
+      2-overload pair); settled the `**Examples:**` header, placement right
+      after the docstring, and italic-line title format — see "`@example`"
+      under "Decisions"
 - [x] Auxiliary one-line tags — `@deprecated` (with a replacement pointer,
       `Geometry::Computations.distance`; without one, `Geometry::Circle`),
       `@since` (`Geometry::Point::DIMENSIONS`, `Geometry::Vector`), `@note`
@@ -1536,6 +1540,43 @@ and `Geometry::Vector` (a class-level example) for `@since`.
   longer the ERB template's job once composed alongside the other two flag
   lines) — verified byte-for-byte unchanged against `Stopwatch#raw_elapsed_s`,
   the one pre-existing fixture with a private-API flag.
+
+### `@example`: `**Examples:**` block right after the docstring, titles as italic lines
+
+Settles the "`@example`" checklist item. Exercised on `Geometry::Circle`
+(class-level, one titled example — also confirms ordering against its
+existing `@deprecated`), `Geometry::Point#distance_to` (method, one bare
+example), and `Geometry::Point.of` (method, two titled examples — reusing
+its existing 2-overload `@overload` pair, which also settles where
+`@example` sits relative to the per-overload signature/params/returns
+breakdown).
+
+- **Header is always `**Examples:**`** (plural), regardless of how many
+  `@example` tags are present — mirrors YARD's own default HTML template,
+  whose "Examples:" `h4` doesn't flex for count either, and matches this
+  format's other headers (`**Params:**`, `**Raises:**`) not flexing for
+  singular.
+- **Placement: immediately after the object's docstring prose**, before
+  `**Params:**`/the per-overload breakdown (methods) or `## Member Summary`
+  (classes/modules) — matches `@example`'s position in YARD's own tag
+  rendering order (`docstring/setup.rb` puts `example` right after the
+  docstring text, ahead of `param`/`return`/`raise`/`see`).
+- **A titled example's title renders as an italicized line** (`*Title*`)
+  directly above its code fence, not a Markdown heading — avoids colliding
+  with the `## `/`### ` structural heading hierarchy `grep '^## '` relies
+  on. A bare example (no title) is just the fenced code block.
+- **Code fence is always ` ```ruby `.**
+- **`@example` text is never passed through `markdownify`** — confirmed via
+  `YARD::Tags::Library` that `@example` uses the `:with_title_and_text`
+  factory (raw code + title), unlike `@param`/`@return`/`@note`, which are
+  RDoc/Markdown prose.
+- **Implementation:** a new `YARD::AgentDocs::ExampleTags` mixin
+  (`lib/yard/agentdocs/example_tags.rb`) adds `examples_block(object)`,
+  returning the full block (or `nil` if untagged). Included from
+  `module/agentdocs/setup.rb` alongside the other mixins, so it's shared
+  by `page.erb` (class/module) and `method_entry.erb` (both the
+  single-overload and `overloads.size >= 2` branches) without duplicating
+  the rendering logic per object kind.
 
 ## Implementation
 

@@ -4,6 +4,7 @@ include ::YARD::AgentDocs::AttributeInfo
 include ::YARD::AgentDocs::AuxiliaryTags
 include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
+include ::YARD::AgentDocs::ExampleTags
 include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::MethodSignature
 include ::YARD::AgentDocs::VisibilityInfo

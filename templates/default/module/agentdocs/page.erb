@@ -10,6 +10,11 @@
 
 <%= markdownify(object.docstring) %>
 <%- end -%>
+<%- examples = examples_block(object) -%>
+<%- if examples -%>
+
+<%= examples %>
+<%- end -%>
 <%- if any_members? -%>
 
 <%= erb(:member_summary).strip %>

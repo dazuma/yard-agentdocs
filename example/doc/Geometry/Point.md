@@ -119,6 +119,24 @@ Creates a point from its coordinates.
 Builds a point from `x, y` coordinates, or several independent copies
 of an existing point at once.
 
+**Examples:**
+
+*Building from coordinates*
+
+```ruby
+Point.of(3, 4).x
+#=> 3
+```
+
+*Copying a point multiple times*
+
+```ruby
+original = Point.new(1, 1)
+copies = Point.of(original, 3)
+copies.size
+#=> 3
+```
+
 ```ruby
 Point.of(x, y) → Point
 ```
@@ -141,7 +159,7 @@ Point.of(point, count) → Array<Point>
 
 **Returns:** `Array<Point>` — `count` copies of `point`
 
-**Defined in:** `example/lib/geometry/point.rb:93`
+**Defined in:** `example/lib/geometry/point.rb:101`
 
 ### .parse
 
@@ -180,7 +198,7 @@ Adds this point to another, component-wise.
 
 **Returns:** `Point` — a new point whose coordinates are the sum of the two
 
-**Defined in:** `example/lib/geometry/point.rb:106`
+**Defined in:** `example/lib/geometry/point.rb:114`
 
 ### #distance_to
 
@@ -190,13 +208,20 @@ point.distance_to(other) → Float
 
 Computes the Euclidean distance to another point.
 
+**Examples:**
+
+```ruby
+Point.new(0, 0).distance_to(Point.new(3, 4))
+#=> 5.0
+```
+
 **Params:**
 
 - `other` (`Point`) — the point to measure distance to
 
 **Returns:** `Float` — the distance between the two points
 
-**Defined in:** `example/lib/geometry/point.rb:116`
+**Defined in:** `example/lib/geometry/point.rb:127`
 
 ### #label
 
@@ -214,7 +239,7 @@ coordinates
 
 **Returns:** `String` — the formatted label
 
-**Defined in:** `example/lib/geometry/point.rb:129`
+**Defined in:** `example/lib/geometry/point.rb:140`
 
 ### #round
 
@@ -234,7 +259,7 @@ Rounds this point's coordinates to the given decimal precision.
 
 **Returns:** `Point` — a new point with rounded coordinates
 
-**Defined in:** `example/lib/geometry/point.rb:143`
+**Defined in:** `example/lib/geometry/point.rb:154`
 
 ### #translate
 
@@ -251,7 +276,7 @@ given defaults to no change.
 
 **Returns:** `Point` — a new point shifted by the given deltas
 
-**Defined in:** `example/lib/geometry/point.rb:154`
+**Defined in:** `example/lib/geometry/point.rb:165`
 
 ### #zero?
 
@@ -261,4 +286,4 @@ point.zero?() → Boolean
 
 **Returns:** `Boolean`
 
-**Defined in:** `example/lib/geometry/point.rb:158`
+**Defined in:** `example/lib/geometry/point.rb:169`
