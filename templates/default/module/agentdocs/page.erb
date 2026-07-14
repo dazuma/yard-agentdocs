@@ -1,6 +1,11 @@
 # <%= object.type %> <%= object.path %>
 
 <%= erb(:metadata).strip %>
+<%- lines = annotation_lines(object) -%>
+<%- unless lines.empty? -%>
+
+<%= lines.join("\n") %>
+<%- end -%>
 <%- unless object.docstring.empty? -%>
 
 <%= markdownify(object.docstring) %>

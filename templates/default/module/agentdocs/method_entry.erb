@@ -6,8 +6,9 @@
 <%- end -%>
 <%- overloads = @method.tags(:overload) -%>
 <%- if overloads.size >= 2 -%>
-<%- if private_api_annotation(@method) -%>
-**<%= private_api_annotation(@method) %>**
+<%- lines = annotation_lines(@method) -%>
+<%- unless lines.empty? -%>
+<%= lines.join("\n") %>
 
 <%- end -%>
 <%- unless @method.docstring.empty? -%>
@@ -37,9 +38,10 @@
 ```ruby
 <%= signature_text(@method, overload: primary) %>
 ```
-<%- if private_api_annotation(@method) -%>
+<%- lines = annotation_lines(@method) -%>
+<%- unless lines.empty? -%>
 
-**<%= private_api_annotation(@method) %>**
+<%= lines.join("\n") %>
 <%- end -%>
 <%- unless @method.docstring.empty? -%>
 

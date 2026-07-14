@@ -4,5 +4,9 @@
 **Value:** `<%= @constant.value %>`
 
 <%= markdownify(@constant.docstring) %>
+<%- if since_line(@constant) -%>
+
+<%= since_line(@constant) %>
+<%- end -%>
 
 **Defined in:** `<%= @constant.file %>:<%= @constant.line %>`

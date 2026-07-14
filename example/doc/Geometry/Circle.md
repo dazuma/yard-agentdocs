@@ -3,6 +3,10 @@
 **Superclass:** `Struct`
 **Defined in:** `example/lib/geometry/circle.rb`
 
+**Deprecated.** Struct-based value objects like this one are being phased
+out in favor of Ruby's newer `Data.define`. Kept here only to keep
+exercising the `Struct.new` case.
+
 A circle, defined by its radius.
 
 ## Member Summary
@@ -23,7 +27,7 @@ A circle, defined by its radius.
 
 Returns the value of attribute radius
 
-**Defined in:** `example/lib/geometry/circle.rb:7`
+**Defined in:** `example/lib/geometry/circle.rb:11`
 
 ## Instance Methods
 
@@ -37,4 +41,4 @@ Computes the area of the circle.
 
 **Returns:** `Float` — the area
 
-**Defined in:** `example/lib/geometry/circle.rb:13`
+**Defined in:** `example/lib/geometry/circle.rb:17`

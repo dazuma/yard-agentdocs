@@ -3,6 +3,9 @@
 **Superclass:** `Object`
 **Defined in:** `example/lib/stopwatch.rb`
 
+**Note:** Not thread-safe: concurrent `#add`/`#measure` calls on the same
+stopwatch can lose updates.
+
 A simple stopwatch that accumulates elapsed time, in seconds.
 
 Defined at the top level (not nested inside any module), to exercise how
@@ -39,7 +42,7 @@ Call the reset method to start over.
 The elapsed time a newly created stopwatch starts at, and the default
 value `#reset` resets to.
 
-**Defined in:** `example/lib/stopwatch.rb:18`
+**Defined in:** `example/lib/stopwatch.rb:21`
 
 ## Class Methods
 
@@ -53,7 +56,7 @@ Stopwatch.new() → Stopwatch
 
 Creates a stopwatch with no elapsed time yet recorded.
 
-**Defined in:** `example/lib/stopwatch.rb:31`
+**Defined in:** `example/lib/stopwatch.rb:34`
 
 ## Instance Methods
 
@@ -74,7 +77,7 @@ makes the same choice).
 
 **Returns:** `Integer` — -1, 0, or 1
 
-**Defined in:** `example/lib/stopwatch.rb:115`
+**Defined in:** `example/lib/stopwatch.rb:118`
 
 ### #add
 
@@ -90,7 +93,7 @@ Adds to the elapsed time.
 
 **Returns:** `Float` — the new total elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:41`
+**Defined in:** `example/lib/stopwatch.rb:44`
 
 ### #describe
 
@@ -117,7 +120,7 @@ formatting API.
 
 **Returns:** `String` — the assembled label
 
-**Defined in:** `example/lib/stopwatch.rb:87`
+**Defined in:** `example/lib/stopwatch.rb:90`
 
 ### #measure
 
@@ -134,7 +137,7 @@ elapsed time.
 
 **Returns:** `Object` — the block's return value
 
-**Defined in:** `example/lib/stopwatch.rb:63`
+**Defined in:** `example/lib/stopwatch.rb:66`
 
 ### #raw_elapsed_s
 
@@ -150,7 +153,7 @@ part of the stable public API.
 
 **Returns:** `String` — the elapsed time, in seconds, as a plain string
 
-**Defined in:** `example/lib/stopwatch.rb:102`
+**Defined in:** `example/lib/stopwatch.rb:105`
 
 ### #reset
 
@@ -166,4 +169,4 @@ Resets the elapsed time.
 
 **Returns:** `Float` — the new elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:51`
+**Defined in:** `example/lib/stopwatch.rb:54`

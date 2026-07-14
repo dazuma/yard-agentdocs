@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 include ::YARD::AgentDocs::AttributeInfo
+include ::YARD::AgentDocs::AuxiliaryTags
 include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::Markdownify
@@ -131,6 +132,6 @@ def attribute_summary_line(attr)
 end
 
 def method_summary_line(meth)
-  suffix = private_api_annotation_short(meth)
-  "- `#{member_heading(meth)}`#{" (#{suffix})" if suffix}#{summary_suffix(meth.docstring.summary)}"
+  suffix = annotation_lines_short(meth).join(", ")
+  "- `#{member_heading(meth)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(meth.docstring.summary)}"
 end

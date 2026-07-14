@@ -12,6 +12,7 @@ module Geometry
     # The number of coordinates a point has.
     #
     # @return [Integer]
+    # @since 1.0.0
     #
     DIMENSIONS = 2
 
@@ -135,6 +136,9 @@ module Geometry
     #
     # @param precision [Integer] the number of decimal places to round to
     # @return [Point] a new point with rounded coordinates
+    # @note A negative `precision` rounds to the left of the decimal
+    #   point, matching Ruby's `Float#round` semantics — e.g.
+    #   `precision: -1` rounds to the nearest 10.
     #
     def round(precision: 0)
       Point.new(x.round(precision), y.round(precision))

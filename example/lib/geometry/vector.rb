@@ -4,6 +4,8 @@ module Geometry
   ##
   # An immutable 2D displacement vector.
   #
+  # @since 2.0.0
+  #
   Vector = Data.define(:dx, :dy) do
     ##
     # Computes the magnitude (length) of the vector.

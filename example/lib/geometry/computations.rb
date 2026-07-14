@@ -12,6 +12,7 @@ module Geometry
     # @param b [Point] the second point
     # @return [Float] the distance between the two points
     # @see Point#distance_to
+    # @deprecated Use {Point#distance_to} instead.
     #
     def self.distance(a, b)
       a.distance_to(b)

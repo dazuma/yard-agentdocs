@@ -3,6 +3,7 @@
 require "yard"
 
 require "yard/agentdocs/attribute_info"
+require "yard/agentdocs/auxiliary_tags"
 require "yard/agentdocs/cross_referencing"
 require "yard/agentdocs/erb_with_trim_mode"
 require "yard/agentdocs/markdownify"

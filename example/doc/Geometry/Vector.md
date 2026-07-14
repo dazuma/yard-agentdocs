@@ -1,6 +1,7 @@
 # class Geometry::Vector
 
 **Superclass:** `Data`
+**Since:** 2.0.0
 **Defined in:** `example/lib/geometry/vector.rb`
 
 An immutable 2D displacement vector.
@@ -25,7 +26,7 @@ An immutable 2D displacement vector.
 
 Returns the value of attribute dx
 
-**Defined in:** `example/lib/geometry/vector.rb:7`
+**Defined in:** `example/lib/geometry/vector.rb:9`
 
 ### #dy
 
@@ -34,7 +35,7 @@ Returns the value of attribute dx
 
 Returns the value of attribute dy
 
-**Defined in:** `example/lib/geometry/vector.rb:7`
+**Defined in:** `example/lib/geometry/vector.rb:9`
 
 ## Instance Methods
 
@@ -48,4 +49,4 @@ Computes the magnitude (length) of the vector.
 
 **Returns:** `Float` — the magnitude
 
-**Defined in:** `example/lib/geometry/vector.rb:13`
+**Defined in:** `example/lib/geometry/vector.rb:15`

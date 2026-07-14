@@ -364,12 +364,13 @@ fixing ad hoc.
       exercised so far (see also the cross-referencing scenarios below)
 - [ ] (design) `@example` — both a bare example and a titled example
       (`@example Some title`), and a method with more than one `@example`
-- [ ] (design, one decision) Auxiliary one-line tags — `@deprecated` (with
-      and without a replacement pointer), `@since`, `@note`: settle
-      placement, ordering, and format of auxiliary annotations *once*, then
-      cover each representative (the rest become mechanical). Include at
-      least one such tag on a non-method object (`@deprecated` on a class,
-      `@since` on a constant) — the format shouldn't be method-only.
+- [x] Auxiliary one-line tags — `@deprecated` (with a replacement pointer,
+      `Geometry::Computations.distance`; without one, `Geometry::Circle`),
+      `@since` (`Geometry::Point::DIMENSIONS`, `Geometry::Vector`), `@note`
+      (`Geometry::Point#round`, `Stopwatch`); settled placement, ordering,
+      and format once for all three, each exercised on both a method and a
+      non-method (class/module or constant) object — see "Auxiliary
+      one-line tags" under "Decisions"
 - [ ] (design) `@abstract` (on a class/module, and on a method meant to be
       overridden) — likely follows the auxiliary-tags decision above, but
       may warrant more prominence than a one-line annotation
@@ -1447,6 +1448,93 @@ implementation).
   complete params/return story); per-overload `@yield`/`@raise`/`@see`; and
   an aliased/inherited method's overloads as seen from another class's
   page (not raised by either fixture).
+
+### Auxiliary one-line tags: `@deprecated`/`@note` as flag lines, `@since` as trailing metadata
+
+Settles the "Auxiliary one-line tags" checklist item for all three
+representative tags at once (single decision, per the checklist item's own
+framing), on both a method and a non-method object for each. Exercised via
+`Geometry::Computations.distance` (`@deprecated` with a `{Point#distance_to}`
+replacement pointer, coexisting with its existing `@see`) and `Geometry::Circle`
+(`@deprecated` with no pointer, phased out in favor of `Data.define`-based
+value objects — a class-level example) for `@deprecated`; `Geometry::Point#round`
+(`@note` about negative-precision rounding) and `Stopwatch` (`@note` about
+thread-safety — a class-level example) for `@note`; `Geometry::Point::DIMENSIONS`
+and `Geometry::Vector` (a class-level example) for `@since`.
+
+- **`@deprecated`/`@note` render as bold flag lines** in the same
+  "before prose" slot tag-based-privacy's `**Private API.**` line already
+  occupies (see "Visibility policy" above) — for a method, right after the
+  signature block; for a class/module, right after the metadata block
+  (`metadata.erb`), before the docstring. When more than one flag applies to
+  the same object, they stack with no blank line between them, in a fixed
+  order — `**Private API.**`, then `**Deprecated.**`, then `**Note:**` —
+  mirroring YARD's own default template's `private`/`deprecated`/`note`
+  ordering (see `docstring/setup.rb` in the installed `yard` gem). Not
+  exercised by any current fixture (no example object carries two flags at
+  once), but the ordering is settled regardless, since it costs nothing to
+  fix now and avoids an arbitrary array-order dependency later.
+  - `**Deprecated.** text` (period, matching YARD's own "Deprecated. ...").
+    A replacement pointer is just ordinary tag text — `@deprecated Use
+    {Point#distance_to} instead.` needs no special-casing, since tag text
+    already goes through `markdownify` (which resolves inline `{...}`
+    references) the same as any other tag. No text at all renders as the
+    bare flag, `**Deprecated.**`.
+  - `**Note:** text` (colon, matching YARD's own "Note: ..."). Only a
+    single `@note` tag is read (`object.tag(:note)`, not `.tags(:note)`) —
+    same singular-tag treatment as `@deprecated`/`@private`/`@api`; multiple
+    `@note` tags on one object aren't exercised and aren't handled.
+  - Member Summary gets a `(deprecated)` suffix for a deprecated member,
+    reusing the same bullet-suffix slot `(private API)` already uses
+    (`method_summary_line` now joins `annotation_lines_short`'s entries with
+    `", "` instead of rendering a single fixed annotation) — genuinely
+    useful for "does this class have a working way to do X" scanning, the
+    same reasoning "Visibility policy" gives for flagging private API there.
+    `@note`/`@since` get no Member Summary suffix — informational content,
+    not a state flag worth surfacing in a one-line discovery listing. A
+    class/module's *own* deprecation doesn't propagate to bullets that
+    merely *link* to it (a nested-class bullet in its parent's Member
+    Summary, or the flat FQN index) — left unexercised and unimplemented;
+    revisit if the dogfood milestone shows this matters.
+- **`@since` renders as a trailing `**Since:**` key-value line** instead — a
+  version string isn't a flag to call out up front the way a deprecation or
+  caveat is, so it goes wherever each object kind already puts its own
+  trailing/metadata key-value lines instead of the shared flag block:
+  - Constants: right before `**Defined in:**` (`constant_entry.erb`), after
+    the docstring — the same slot a method's `**Returns:**`/`**See also:**`
+    occupy relative to *its* `**Defined in:**`.
+  - Classes/modules: folded into the metadata block itself (`metadata.erb`),
+    right after `**Superclass:**`/`**Includes:**`/`**Extends:**` and before
+    `**Defined in:**` — classes put `**Defined in:**` at the *top* of the
+    file (see "Output format" above), not trailing like every other entry
+    kind, so there's no separate trailing-tags region to reuse; the metadata
+    block is the closest existing analog (also bold key-value lines, also
+    already ordered with `**Defined in:**` last).
+  - No backticks around the version text (`**Since:** 1.0.0`, not `` **Since:**
+    `1.0.0` ``) — unlike `**Superclass:**`/`**Value:**`, it isn't a type
+    reference or Ruby literal, just a plain version token, matching how
+    YARD's own default template renders it unadorned too.
+  - **Not exercised, left for a real case to justify:** `@since` on a method
+    or an attribute — no current fixture needs the trailing-line placement
+    outside a constant, so `method_entry.erb`/`attribute_entry.erb` don't
+    call `since_line` at all yet (the helper itself,
+    `AuxiliaryTags#since_line`, is object-agnostic and ready to wire in
+    whenever a fixture needs it — see "Extracting generic logic into `lib/`
+    mixins" below for why this split exists).
+- **Implementation:** a new `YARD::AgentDocs::AuxiliaryTags` mixin
+  (`lib/yard/agentdocs/auxiliary_tags.rb`, alongside `VisibilityInfo`) adds
+  `annotation_lines`/`annotation_lines_short` (the flag-line array and its
+  Member Summary-suffix counterpart, composing `VisibilityInfo`'s existing
+  `private_api_annotation`/`private_api_annotation_short` together with the
+  new `@deprecated`/`@note` handling) and `since_line`. Included from
+  `module/agentdocs/setup.rb` alongside the other mixins, so `class/agentdocs`
+  picks it up automatically via its existing `include T("default/module/agentdocs")`.
+  `method_entry.erb`'s and `page.erb`'s previous direct
+  `private_api_annotation` calls were both replaced with `annotation_lines`
+  (now wrapping the private-API text in `**...**` itself, since it's no
+  longer the ERB template's job once composed alongside the other two flag
+  lines) — verified byte-for-byte unchanged against `Stopwatch#raw_elapsed_s`,
+  the one pre-existing fixture with a private-API flag.
 
 ## Implementation
 

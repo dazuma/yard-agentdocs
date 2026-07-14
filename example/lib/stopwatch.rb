@@ -8,6 +8,9 @@
 #
 # Call {#reset the reset method} to start over.
 #
+# @note Not thread-safe: concurrent `#add`/`#measure` calls on the same
+#   stopwatch can lose updates.
+#
 class Stopwatch
   ##
   # The elapsed time a newly created stopwatch starts at, and the default
