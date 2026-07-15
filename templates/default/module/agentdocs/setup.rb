@@ -93,6 +93,45 @@ def extends_line
   mixin_line("Extends", object.mixins(:class))
 end
 
+# A class/module reopened purely to nest another class/module inside it
+# (e.g. `module Geometry; class Foo; ...; end; end`, once per nested type's
+# own file) doesn't gain a new entry here just for that — the nested type
+# already gets its own file and its own **Defined in:** line pointing at
+# that same path, so repeating it on the *namespace's* line would list
+# every file in a multi-file gem (this is `object.files`' raw behavior;
+# every file wrapping a nested class/module in the namespace counts as
+# "reopening" it, which drowns out the signal for the common case of a
+# namespace module that holds no direct members of its own). Only a file
+# that contributes one of the object's own direct members (a constant,
+# attribute, or method — not a nested class/module) counts as a second
+# "reopened" location, alongside a primary file (see below).
+#
+# The primary file is `object.file` when the object has a docstring
+# somewhere (deterministic: YARD always prioritizes whichever file carried
+# the comment, regardless of parse order — verified directly against
+# `CodeObjects::Base#files`). But when the object has *no* docstring
+# anywhere (e.g. a bare `module Foo; end` stub, reopened only to nest
+# something else inside it — settled rendering, see "Intentionally
+# undocumented objects"), `object.file` falls back to whichever file YARD's
+# parser happened to register first, which silently depends on `Dir.glob`'s
+# directory-traversal order rather than anything meaningful (caught via
+# `Geometry::ThreeD`: glob visits the `three_d/` subdirectory, and thus
+# `three_d/point.rb`, before the sibling `three_d.rb`, even though
+# `three_d.rb` sorts first lexicographically). To keep this line
+# deterministic and independent of glob/parse order in that case, fall back
+# to the lexicographically-first path among all the object's files instead.
+#
+# Renders as one comma-separated line rather than switching to a bulleted
+# list like {#summary_suffix}'s callers do, since a bare path (no per-entry
+# description, and no line number at this whole-object granularity) doesn't
+# need one.
+def defined_in_line
+  member_files = object.children.reject { |c| c.is_a?(CodeObjects::NamespaceObject) }.map(&:file)
+  primary = object.docstring.empty? ? object.files.map(&:first).min : object.file
+  paths = ([primary] + member_files).compact.uniq
+  "**Defined in:** #{paths.map { |path| "`#{path}`" }.join(', ')}"
+end
+
 # Shared by {includes_line}/{extends_line}: a bold `**Label:** ref, ref`
 # metadata line, or +nil+ when +mods+ is empty. Each ref links to the
 # mixin's own file when it resolves to real, parsed source and isn't a

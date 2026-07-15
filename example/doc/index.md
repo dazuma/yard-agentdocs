@@ -12,10 +12,13 @@
 - [`Geometry::Path`](Geometry/Path.md) — An ordered sequence of points.
 - [`Geometry::Point`](Geometry/Point.md) — A point in two-dimensional space.
 - [`Geometry::Polygon`](Geometry/Polygon.md) — A polygon: a shape with a fixed number of straight sides.
+- [`Geometry::Rectangle`](Geometry/Rectangle.md) — An axis-aligned rectangle, defined by its width and height.
 - [`Geometry::Rounding`](Geometry/Rounding.md) — Rounding helpers.
 - [`Geometry::Segment`](Geometry/Segment.md)
 - [`Geometry::Shape`](Geometry/Shape.md) — A generic two-dimensional shape.
 - [`Geometry::Taggable`](Geometry/Taggable.md) — Mixed into shape classes to add a short bracketed tag string, derived from whatever `#label` the including class defines.
+- [`Geometry::ThreeD`](Geometry/ThreeD.md)
+- [`Geometry::ThreeD::Point`](Geometry/ThreeD/Point.md) — A point in three-dimensional space.
 - [`Geometry::Triangle`](Geometry/Triangle.md) — A triangle: a polygon with exactly three sides.
 - [`Geometry::Vector`](Geometry/Vector.md) — An immutable 2D displacement vector.
 - [`Stopwatch`](Stopwatch.md) — A simple stopwatch that accumulates elapsed time, in seconds.

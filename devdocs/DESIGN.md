@@ -180,13 +180,20 @@ fixing ad hoc.
 - [x] Top-level class — `Stopwatch`
 - [x] Top-level module (namespace only, no behavior) — `Geometry` itself,
       once its one method moved to `Geometry::Computations`
-- [ ] (mech) Nested namespacing (`Foo::Bar::Baz`), including a module that
+- [x] Nested namespacing (`Foo::Bar::Baz`), including a module that
       exists only to hold nested classes/modules — path derivation is
       settled; an undocumented namespace-only module now also has a settled
       rendering (see "Intentionally undocumented objects" under
-      "Decisions"), so this is unblocked
-- [ ] (design) A class reopened across two files/locations (docs should
-      merge — how do multiple `**Defined in:**` locations render?)
+      "Decisions"), so this is unblocked — `Geometry::ThreeD` (undocumented
+      namespace-only module) → `Geometry::ThreeD::Point`; path derivation
+      needed no template changes, but surfaced a `**Defined in:**`
+      determinism bug for undocumented multi-file objects, see "Class/module
+      reopened across files" under "Decisions"
+- [x] A class reopened across two files/locations (docs should
+      merge — how do multiple `**Defined in:**` locations render?) —
+      `Geometry::Rectangle`, split across `rectangle.rb`/
+      `rectangle_perimeter.rb`; see "Class/module reopened across files"
+      under "Decisions"
 - [x] A custom exception class (`class ParseError < StandardError`) —
       `Geometry::ParseError`, raised by `Point.parse` (replacing that
       method's plain `ArgumentError`) alongside its existing `TypeError`, so
@@ -1838,6 +1845,77 @@ breakdown).
   by `page.erb` (class/module) and `method_entry.erb` (both the
   single-overload and `overloads.size >= 2` branches) without duplicating
   the rendering logic per object kind.
+
+### Class/module reopened across files: comma-separated `**Defined in:**`, own-members-only
+
+`Geometry::Rectangle` is split across `rectangle.rb` (docstring, `#initialize`,
+`#area`) and `rectangle_perimeter.rb` (reopens the class, adds `#perimeter`
+only — no second class-level docstring, keeping the fixture narrowly about
+the `**Defined in:**` question rather than also raising which of two
+docstrings should win).
+
+- **Multiple locations render as one comma-separated line**, not a bulleted
+  list: `` **Defined in:** `path/a.rb`, `path/b.rb` ``. Rejected the
+  bulleted-list form used by `**Params:**`/`**Returns:**`/`**Raises:**`
+  because those lists carry a per-entry description; a bare file path
+  doesn't need one, and every other metadata-block line (`**Superclass:**`,
+  `**Includes:**`) stays a single terse line — a list here would break that
+  block's otherwise-uniform shape. The single-file case is unchanged
+  (still one path, no comma).
+- **Order matches YARD's own file-priority, not parse/glob order**: verified
+  directly against `YARD::CodeObjects::Base#files` (parsing the two fixture
+  files in both orders) that the file carrying the object's docstring always
+  sorts first, regardless of which file YARD parses first. No extra sorting
+  needed in the template — `object.files`' existing order is already right.
+- **Surprised us mid-implementation, escalated per "Prioritization and
+  roadmap"'s guidance for a surprising (mech-shaped) sub-step**: naively
+  rendering every path in `object.files` blew up `Geometry.md`'s
+  `**Defined in:**` line to all 17 `geometry/*.rb` files, because every file
+  that nests a class/module inside `Geometry` (`module Geometry; class Foo;
+  ...; end; end`) counts as "reopening" `Geometry` too, in YARD's own
+  bookkeeping — the namespace-wrapping idiom every multi-file gem uses is
+  indistinguishable, in `object.files`, from a "real" reopening that adds
+  new content directly. Since the nested type already gets its own file and
+  its own `**Defined in:**` line, repeating that path on the *namespace's*
+  line would be pure noise.
+  - Fixed by filtering to **own direct members only**: a file counts as a
+    second "defined in" location only if it contributes one of the object's
+    own constants, attributes, or methods — not a nested class/module.
+    Always includes `object.file` (the docstring-bearing file) first,
+    regardless of whether that file has any direct members beyond the
+    docstring itself (true for `Geometry`, which is a pure namespace).
+  - Implemented as `defined_in_line` in
+    `templates/default/module/agentdocs/setup.rb`: `object.children.reject
+    { |c| c.is_a?(CodeObjects::NamespaceObject) }.map(&:file)`, unioned with
+    `object.file`, deduplicated. Replaces the old inline `` `<%=
+    object.file %>` `` in `metadata.erb`.
+  - Verified against both fixtures: `Geometry.md`'s line is unchanged
+    (`geometry.rb` only — its 17 nested classes don't count), and
+    `Rectangle.md`'s shows both `rectangle.rb` and `rectangle_perimeter.rb`
+    (both contribute real methods).
+- **Follow-up surprise from "Nested namespacing"'s `Geometry::ThreeD`
+  (undocumented namespace-only module, reopened by `three_d/point.rb`
+  nesting `Point` inside it): `object.file` isn't deterministic when the
+  object has no docstring anywhere.** The "order matches YARD's own
+  file-priority" bullet above only holds when *some* file has a docstring —
+  `CodeObjects::Base#files` prioritizes that file via `unshift`, which is
+  parse-order-independent (re-verified). But with no docstring on any
+  reopening, nothing triggers that `unshift`, so `files.first` is just
+  whichever file YARD's parser registered first — which for `ThreeD` meant
+  whichever file `Dir.glob("example/lib/**/*.rb")` happened to visit first,
+  and glob's directory-traversal order put the nested `three_d/point.rb`
+  before the sibling `three_d.rb`, even though `three_d.rb` sorts first
+  lexicographically. A silent dependency on glob traversal order isn't
+  something this template should carry.
+  - Fixed by making `defined_in_line`'s primary-file choice explicit rather
+    than trusting `object.file` unconditionally: use `object.file` when
+    `object.docstring` is non-empty (deterministic, as already verified),
+    otherwise fall back to the lexicographically-smallest path among
+    `object.files` (`object.files.map(&:first).min`) — deterministic
+    regardless of parse/glob order either way.
+  - Verified against all three fixtures: `Rectangle`/`Geometry` (both
+    docstring-bearing) render identically to before, and `ThreeD.md` now
+    shows `example/lib/geometry/three_d.rb`.
 
 ## Implementation
 
