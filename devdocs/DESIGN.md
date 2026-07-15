@@ -434,9 +434,14 @@ fixing ad hoc.
       and format once for all three, each exercised on both a method and a
       non-method (class/module or constant) object — see "Auxiliary
       one-line tags" under "Decisions"
-- [ ] (design) `@abstract` (on a class/module, and on a method meant to be
-      overridden) — likely follows the auxiliary-tags decision above, but
-      may warrant more prominence than a one-line annotation
+- [x] `@abstract` (on a class/module, and on a method meant to be
+      overridden) — `Geometry::Shape` (class-level) and two method-level
+      variants on it: `#label` (abstract but with a working default
+      implementation, overridden by `Polygon`/inherited by `Triangle`) and
+      `#area` (abstract with no working implementation, a bare `raise
+      NotImplementedError` stub); settled that it folds into the existing
+      flag-line mechanism with no extra prominence — see "`@abstract`"
+      under "Decisions"
 - [ ] (design, one decision) Remaining free-form/low-value tags — `@todo`,
       `@author`, `@version`, and anything similar: a single policy (render
       generically or deliberately drop). These are rarely what an agent
@@ -2095,6 +2100,58 @@ and `Geometry::Vector` (a class-level example) for `@since`.
   longer the ERB template's job once composed alongside the other two flag
   lines) — verified byte-for-byte unchanged against `Stopwatch#raw_elapsed_s`,
   the one pre-existing fixture with a private-API flag.
+
+### `@abstract`: folded into the existing flag-line mechanism, no new prominence
+
+Settles the "`@abstract`" checklist item. Exercised on `Geometry::Shape`
+(class-level, "never instantiated directly") and two method-level cases on
+that same class: `#label` (abstract, but with a real, working default
+implementation that `Polygon` overrides and `Triangle` inherits) and `#area`
+(abstract with no working implementation at all — a bare `raise
+NotImplementedError` stub, deliberately left unoverridden by every subclass
+in this example, since nothing else in the example needs an area
+computation).
+
+- **No extra prominence beyond the existing one-line flag mechanism.** The
+  checklist item flagged this as an open question — YARD's own HTML template
+  renders `@abstract` as a highlighted `<div class="note abstract">` box,
+  visually heavier than a plain flag line — but a highlighted box is still,
+  structurally, one info block ahead of the prose, the same slot
+  `**Deprecated.**`/`**Private API.**` already occupy. Giving it a bigger
+  Markdown treatment (its own heading, a blockquote) would cost terseness
+  for no real gain: the bold flag is already unambiguous once read under its
+  own `#`/`##`/`###` heading. `abstract_line` (`lib/yard/agentdocs/auxiliary_tags.rb`)
+  renders `**Abstract.** text`, bare `**Abstract.**` with no text, exactly
+  like `deprecated_line`.
+- **Flag order becomes Private API, Deprecated, Abstract, Note** (`annotation_lines`) —
+  matches YARD's own internal `docstring/setup.rb` section order (`private,
+  deprecated, abstract, todo, note`), skipping `todo` since it isn't a
+  supported tag here yet (see the still-open "remaining free-form tags"
+  checklist item). Not exercised by any current fixture (no object here
+  carries two flags at once), but settled regardless, same "costs nothing to
+  fix now" reasoning as the original auxiliary-tags decision.
+- **Member Summary gets an `(abstract)` suffix**, reusing the same bullet-suffix
+  slot `(deprecated)`/`(private API)`/`(read-only)` already use
+  (`annotation_lines_short`) — useful for the same "does this class have a
+  working way to do X" scanning `(deprecated)` already serves; an agent
+  scanning a class's members can tell at a glance which ones are
+  extension points rather than opening the full entry.
+- **No propagation to a bullet that merely links to an abstract class.**
+  `Geometry.md`'s own `Shape` bullet is unchanged — same precedent already
+  set for `@deprecated` ("a class/module's own deprecation doesn't propagate
+  to bullets that merely link to it"); revisit both together if the dogfood
+  milestone shows this matters.
+- **A stub `raise NotImplementedError` body needs no special-casing** —
+  confirmed by `#area`: the renderer only ever reads `object.tags`/`object.docstring`,
+  never the method body, so an abstract method's implementation (a working
+  default vs. a bare raise) is invisible to the template either way. The
+  `@raise` tag on `#area` renders through the ordinary, already-settled
+  `**Raises:**` list, no new logic.
+- **Implementation:** `AuxiliaryTags#abstract_line` (private) and its wiring
+  into `#annotation_lines`/`#annotation_lines_short`, mirroring
+  `deprecated_line`/`note_line` exactly. No ERB template changes — `page.erb`
+  and `method_entry.erb` already call `annotation_lines`/`annotation_lines_short`
+  generically.
 
 ### `@example`: `**Examples:**` block right after the docstring, titles as italic lines
 

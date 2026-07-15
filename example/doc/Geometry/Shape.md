@@ -4,6 +4,9 @@
 **Includes:** [`Taggable`](Taggable.md)
 **Defined in:** `example/lib/geometry/shape.rb`
 
+**Abstract.** Never instantiated directly; subclass and override `#label`
+(see `Polygon`/`Triangle`).
+
 A generic two-dimensional shape.
 
 The base of a three-level example hierarchy (see `Polygon` and
@@ -19,9 +22,34 @@ own file).
 
 **Instance Methods**
 
-- `#label` — A short label identifying the kind of shape.
+- `#area` (abstract) — The shape's area.
+- `#label` (abstract) — A short label identifying the kind of shape.
 
 ## Instance Methods
+
+### #area
+
+```ruby
+shape.area() → Float
+```
+
+**Abstract.** Every concrete subclass must implement this; unlike
+`#label`, no subclass in this example actually overrides it —
+this method exists purely to exercise the no-real-implementation
+case.
+
+The shape's area.
+
+**Returns:**
+
+- `Float` — the area
+
+**Raises:**
+
+- `NotImplementedError` — always, since this base
+  implementation is never meant to run
+
+**Defined in:** `example/lib/geometry/shape.rb:44`
 
 ### #label
 
@@ -29,10 +57,13 @@ own file).
 shape.label() → String
 ```
 
+**Abstract.** Overridden by every concrete subclass — `Polygon#label`
+returns `"polygon"`, and `Triangle` inherits that override.
+
 A short label identifying the kind of shape.
 
 **Returns:**
 
 - `String` — the shape's label
 
-**Defined in:** `example/lib/geometry/shape.rb:24`
+**Defined in:** `example/lib/geometry/shape.rb:29`
