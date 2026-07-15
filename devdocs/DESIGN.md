@@ -518,10 +518,13 @@ fixing ad hoc.
       comment of its own); settled alongside the paired "inherited, not
       overridden at all" open question — see "Subclass method content
       strategy" under "Decisions"
-- [ ] (mech) A mixin method's docs as seen from an including class — largely
-      settled by the mixin content-strategy decisions (link out, never
-      duplicate); this item just verifies nothing about the module-page side
-      remains undecided
+- [x] A mixin method's docs as seen from an including class — confirmed with
+      zero new fixture or template changes: `Geometry::Shape` `include`s
+      `Taggable` without overriding `#tag`, and `Shape.md` already omits
+      `#tag` entirely (only the `**Includes:**` line points to `Taggable.md`,
+      where `#tag` gets its normal full entry) — the existing mixin
+      content-strategy decision already covered this, this item just
+      verified nothing about the module-page side was left undecided
 
 ### Indexing & discovery
 
