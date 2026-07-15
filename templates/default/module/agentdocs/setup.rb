@@ -96,7 +96,7 @@ end
 # A class/module reopened purely to nest another class/module inside it
 # (e.g. `module Geometry; class Foo; ...; end; end`, once per nested type's
 # own file) doesn't gain a new entry here just for that — the nested type
-# already gets its own file and its own **Defined in:** line pointing at
+# already gets its own file and its own `- **Defined in:**` line pointing at
 # that same path, so repeating it on the *namespace's* line would list
 # every file in a multi-file gem (this is `object.files`' raw behavior;
 # every file wrapping a nested class/module in the namespace counts as
@@ -121,19 +121,19 @@ end
 # deterministic and independent of glob/parse order in that case, fall back
 # to the lexicographically-first path among all the object's files instead.
 #
-# Renders as one comma-separated line rather than switching to a bulleted
-# list like {#summary_suffix}'s callers do, since a bare path (no per-entry
-# description, and no line number at this whole-object granularity) doesn't
-# need one.
+# Multiple paths render as one comma-separated `- ` list item rather than
+# switching to a per-path bulleted list like {#summary_suffix}'s callers do,
+# since a bare path (no per-entry description, and no line number at this
+# whole-object granularity) doesn't need one.
 def defined_in_line
   member_files = object.children.reject { |c| c.is_a?(CodeObjects::NamespaceObject) }.map(&:file)
   primary = object.docstring.empty? ? object.files.map(&:first).min : object.file
   paths = ([primary] + member_files).compact.uniq
-  "**Defined in:** #{paths.map { |path| "`#{path}`" }.join(', ')}"
+  "- **Defined in:** #{paths.map { |path| "`#{path}`" }.join(', ')}"
 end
 
-# Shared by {includes_line}/{extends_line}: a bold `**Label:** ref, ref`
-# metadata line, or +nil+ when +mods+ is empty. Each ref links to the
+# Shared by {includes_line}/{extends_line}: a bulleted `- **Label:** ref,
+# ref` metadata line, or +nil+ when +mods+ is empty. Each ref links to the
 # mixin's own file when it resolves to real, parsed source and isn't a
 # self-reference (e.g. `extend self`); otherwise it's a plain, unlinked
 # backtick — same resolved/unresolved/self-reference policy every other
@@ -148,7 +148,7 @@ def mixin_line(label, mods)
       "[`#{name}`](#{link_path(mod)})"
     end
   end
-  "**#{label}:** #{refs.join(', ')}"
+  "- **#{label}:** #{refs.join(', ')}"
 end
 
 # @group Member rendering

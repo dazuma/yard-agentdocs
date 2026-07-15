@@ -1,8 +1,8 @@
 # class Geometry::Polygon
 
-**Superclass:** [`Shape`](Shape.md)
-**Includes:** [`Loud`](Loud.md)
-**Defined in:** `example/lib/geometry/polygon.rb`
+- **Superclass:** [`Shape`](Shape.md)
+- **Includes:** [`Loud`](Loud.md)
+- **Defined in:** `example/lib/geometry/polygon.rb`
 
 A polygon: a shape with a fixed number of straight sides.
 
@@ -42,12 +42,12 @@ undocumented.
 
 ### #sides
 
-**Type:** `Integer`
-**Read-only.**
+- **Type:** `Integer`
+- **Read-only.**
 
 The number of sides the polygon has.
 
-**Defined in:** `example/lib/geometry/polygon.rb:40`
+- **Defined in:** `example/lib/geometry/polygon.rb:40`
 
 ## Class Methods
 
@@ -65,7 +65,7 @@ Creates a polygon with the given number of sides.
 
 - `sides` (`Integer`) — the number of sides
 
-**Defined in:** `example/lib/geometry/polygon.rb:31`
+- **Defined in:** `example/lib/geometry/polygon.rb:31`
 
 ## Instance Methods
 
@@ -81,7 +81,7 @@ A short human-readable description of the polygon.
 
 - `String` — the description, e.g. `"polygon"`
 
-**Defined in:** `example/lib/geometry/polygon.rb:47`
+- **Defined in:** `example/lib/geometry/polygon.rb:47`
 
 ### #each_side
 
@@ -99,7 +99,7 @@ Calls the block once for each side of the polygon, in order.
 
 - `Integer` — the number of sides yielded
 
-**Defined in:** `example/lib/geometry/polygon.rb:57`
+- **Defined in:** `example/lib/geometry/polygon.rb:57`
 
 ### #label
 
@@ -107,6 +107,6 @@ Calls the block once for each side of the polygon, in order.
 polygon.label()
 ```
 
-**Overrides:** [`Shape#label`](Shape.md)
+- **Overrides:** [`Shape#label`](Shape.md)
 
-**Defined in:** `example/lib/geometry/polygon.rb:62`
+- **Defined in:** `example/lib/geometry/polygon.rb:62`

@@ -1,6 +1,6 @@
 # module Geometry
 
-**Defined in:** `example/lib/geometry.rb`
+- **Defined in:** `example/lib/geometry.rb`
 
 A small toy geometry namespace, used as a worked example and test case for
 the `yard-agentdocs` output format.

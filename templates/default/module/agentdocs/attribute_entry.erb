@@ -1,10 +1,10 @@
 ### #<%= @attribute[:name] %>
 
-**Type:** <%= type_ref(attribute_type(@attribute)) %>
+- **Type:** <%= type_ref(attribute_type(@attribute)) %>
 <%- if attribute_annotation(@attribute) -%>
-**<%= attribute_annotation(@attribute) %>**
+- **<%= attribute_annotation(@attribute) %>**
 <%- end -%>
 
 <%= attribute_docstring(@attribute) %>
 
-**Defined in:** `<%= attribute_file(@attribute) %>:<%= attribute_line(@attribute) %>`
+- **Defined in:** `<%= attribute_file(@attribute) %>:<%= attribute_line(@attribute) %>`

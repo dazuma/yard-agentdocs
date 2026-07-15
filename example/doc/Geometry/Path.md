@@ -1,8 +1,8 @@
 # class Geometry::Path
 
-**Superclass:** `Object`
-**Includes:** `Enumerable`
-**Defined in:** `example/lib/geometry/path.rb`
+- **Superclass:** `Object`
+- **Includes:** `Enumerable`
+- **Defined in:** `example/lib/geometry/path.rb`
 
 An ordered sequence of points.
 
@@ -44,7 +44,7 @@ Creates a path visiting the given points in order.
 
 - `points` (`Array<`[`Point`](Point.md)`>`) — the points to visit, in order
 
-**Defined in:** `example/lib/geometry/path.rb:21`
+- **Defined in:** `example/lib/geometry/path.rb:21`
 
 ## Instance Methods
 
@@ -64,7 +64,7 @@ Appends a point to the end of the path.
 
 - `self` — this path, for chaining
 
-**Defined in:** `example/lib/geometry/path.rb:31`
+- **Defined in:** `example/lib/geometry/path.rb:31`
 
 ### #clear
 
@@ -78,7 +78,7 @@ Removes every point from the path.
 
 - `void`
 
-**Defined in:** `example/lib/geometry/path.rb:41`
+- **Defined in:** `example/lib/geometry/path.rb:41`
 
 ### #closest_to
 
@@ -96,7 +96,7 @@ Finds the point in the path closest to the given target.
 
 - [`Point`](Point.md)`, nil` — the closest point, or `nil` if the path has no points
 
-**Defined in:** `example/lib/geometry/path.rb:51`
+- **Defined in:** `example/lib/geometry/path.rb:51`
 
 ### #each
 
@@ -114,7 +114,7 @@ Yields each point in the path, in order.
 
 - `Integer` — the number of points in the path
 
-**Defined in:** `example/lib/geometry/path.rb:63`
+- **Defined in:** `example/lib/geometry/path.rb:63`
 
 ### #each_segment
 
@@ -135,7 +135,7 @@ order. Returns an Enumerator instead if no block is given.
 - `Enumerator` — an enumerator over the path's segments, if no
   block is given
 
-**Defined in:** `example/lib/geometry/path.rb:90`
+- **Defined in:** `example/lib/geometry/path.rb:90`
 
 ### #segment_at
 
@@ -154,7 +154,7 @@ Builds the segment connecting the points at `index` and `index + 1`.
 - [`Segment`](Segment.md) — the segment between the two consecutive points
 - `nil` — if `index` is out of range
 
-**Defined in:** `example/lib/geometry/path.rb:75`
+- **Defined in:** `example/lib/geometry/path.rb:75`
 
 ### #transform!
 
@@ -177,4 +177,4 @@ Replaces each point in the path with the block's result, in place.
 
 - `self` — this path, for chaining
 
-**Defined in:** `example/lib/geometry/path.rb:105`
+- **Defined in:** `example/lib/geometry/path.rb:105`

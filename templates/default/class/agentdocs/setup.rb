@@ -24,5 +24,5 @@ def superclass_line
   return nil unless superclass
   name = superclass.name.to_s
   ref = superclass.is_a?(CodeObjects::Proxy) ? "`#{name}`" : "[`#{name}`](#{link_path(superclass)})"
-  "**Superclass:** #{ref}"
+  "- **Superclass:** #{ref}"
 end

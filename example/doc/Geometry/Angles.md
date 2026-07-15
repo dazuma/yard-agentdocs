@@ -1,7 +1,7 @@
 # module Geometry::Angles
 
-**Extends:** `Angles`
-**Defined in:** `example/lib/geometry/angles.rb`
+- **Extends:** `Angles`
+- **Defined in:** `example/lib/geometry/angles.rb`
 
 Angle-related helpers.
 
@@ -24,7 +24,7 @@ callable directly on the module itself, no receiver needed).
 
 ### NAMED_ANGLES
 
-**Type:** `Hash{Symbol => Float}`
+- **Type:** `Hash{Symbol => Float}`
 
 **Value:**
 
@@ -40,7 +40,7 @@ callable directly on the module itself, no receiver needed).
 Degree headings for the four cardinal compass directions, keyed by
 direction name.
 
-**Defined in:** `example/lib/geometry/angles.rb:21`
+- **Defined in:** `example/lib/geometry/angles.rb:21`
 
 ## Instance Methods
 
@@ -60,4 +60,4 @@ Normalizes an angle in degrees to the `[0, 360)` range.
 
 - `Float` — the equivalent angle in `[0, 360)`
 
-**Defined in:** `example/lib/geometry/angles.rb:34`
+- **Defined in:** `example/lib/geometry/angles.rb:34`

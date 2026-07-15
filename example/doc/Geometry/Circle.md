@@ -1,11 +1,11 @@
 # class Geometry::Circle
 
-**Superclass:** `Struct`
-**Defined in:** `example/lib/geometry/circle.rb`
+- **Superclass:** `Struct`
+- **Defined in:** `example/lib/geometry/circle.rb`
 
-**Deprecated.** Struct-based value objects like this one are being phased
-out in favor of Ruby's newer `Data.define`. Kept here only to keep
-exercising the `Struct.new` case.
+- **Deprecated.** Struct-based value objects like this one are being phased
+  out in favor of Ruby's newer `Data.define`. Kept here only to keep
+  exercising the `Struct.new` case.
 
 A circle, defined by its radius.
 
@@ -32,11 +32,11 @@ Circle.new(2).area.round(2)
 
 ### #radius
 
-**Type:** `Object`
+- **Type:** `Object`
 
 Returns the value of attribute radius
 
-**Defined in:** `example/lib/geometry/circle.rb:14`
+- **Defined in:** `example/lib/geometry/circle.rb:14`
 
 ## Instance Methods
 
@@ -52,4 +52,4 @@ Computes the area of the circle.
 
 - `Float` — the area
 
-**Defined in:** `example/lib/geometry/circle.rb:20`
+- **Defined in:** `example/lib/geometry/circle.rb:20`

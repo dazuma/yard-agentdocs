@@ -1,7 +1,7 @@
 # class Greeter
 
-**Superclass:** `Object`
-**Defined in:** `example/rdoc/lib/greeter.rb`
+- **Superclass:** `Object`
+- **Defined in:** `example/rdoc/lib/greeter.rb`
 
 Builds a greeting string. Written in **RDoc** markup instead of Markdown, to
 exercise the `rdoc` dialect of the "Docstring markup dialect" decision. See
@@ -40,4 +40,4 @@ Greets `name`, wrapping it in *emphasis*.
 
 - `String` — the greeting, with `name` emphasized
 
-**Defined in:** `example/rdoc/lib/greeter.rb:25`
+- **Defined in:** `example/rdoc/lib/greeter.rb:25`

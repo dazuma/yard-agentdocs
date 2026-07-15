@@ -1,7 +1,7 @@
 # class Geometry::Rectangle
 
-**Superclass:** `Object`
-**Defined in:** `example/lib/geometry/rectangle.rb`, `example/lib/geometry/rectangle_perimeter.rb`
+- **Superclass:** `Object`
+- **Defined in:** `example/lib/geometry/rectangle.rb`, `example/lib/geometry/rectangle_perimeter.rb`
 
 An axis-aligned rectangle, defined by its width and height.
 
@@ -37,7 +37,7 @@ Creates a rectangle from its width and height.
 - `width` (`Float`) — the width
 - `height` (`Float`) — the height
 
-**Defined in:** `example/lib/geometry/rectangle.rb:18`
+- **Defined in:** `example/lib/geometry/rectangle.rb:18`
 
 ## Instance Methods
 
@@ -53,7 +53,7 @@ Computes the area of the rectangle.
 
 - `Float` — the area
 
-**Defined in:** `example/lib/geometry/rectangle.rb:28`
+- **Defined in:** `example/lib/geometry/rectangle.rb:28`
 
 ### #perimeter
 
@@ -67,4 +67,4 @@ Computes the perimeter of the rectangle.
 
 - `Float` — the perimeter
 
-**Defined in:** `example/lib/geometry/rectangle_perimeter.rb:10`
+- **Defined in:** `example/lib/geometry/rectangle_perimeter.rb:10`

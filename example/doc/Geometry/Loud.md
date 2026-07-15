@@ -1,6 +1,6 @@
 # module Geometry::Loud
 
-**Defined in:** `example/lib/geometry/loud.rb`
+- **Defined in:** `example/lib/geometry/loud.rb`
 
 Prepended onto a class to upper-case whatever its own `#describe` method
 returns, without needing to know that method's implementation.
@@ -31,4 +31,4 @@ Upper-cases the prepending class's own `#describe` result.
 
 - `String` — the class's own description, upper-cased
 
-**Defined in:** `example/lib/geometry/loud.rb:20`
+- **Defined in:** `example/lib/geometry/loud.rb:20`

@@ -118,13 +118,13 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
-      # @return [String, nil] `"**Also known as:** `#restart`"` listing
+      # @return [String, nil] `"- **Also known as:** `#restart`"` listing
       #   every alias of +meth+ (comma-joined), or `nil` if it has none
       #
       def also_known_as_line(meth)
         return nil if meth.aliases.empty?
         names = meth.aliases.map { |a| "`#{member_heading(a)}`" }.join(", ")
-        "**Also known as:** #{names}"
+        "- **Also known as:** #{names}"
       end
 
       ##
@@ -188,14 +188,14 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
-      # @return [String, nil] `"**Overrides:** [`Shape#label`](Shape.md)"`
+      # @return [String, nil] `"- **Overrides:** [`Shape#label`](Shape.md)"`
       #   when +meth+ overrides a documented ancestor method without
       #   redocumenting it itself, or `nil` otherwise
       #
       def overrides_line(meth)
         ancestor = overridden_method(meth)
         return nil unless ancestor
-        "**Overrides:** [`#{ancestor.namespace.name}#{member_heading(ancestor)}`](#{link_path(ancestor)})"
+        "- **Overrides:** [`#{ancestor.namespace.name}#{member_heading(ancestor)}`](#{link_path(ancestor)})"
       end
 
       ##

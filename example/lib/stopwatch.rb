@@ -12,6 +12,11 @@
 #   stopwatch can lose updates.
 # @todo Support pausing/resuming instead of only accumulating.
 #
+#   Would also need to decide whether a paused stopwatch's own `#describe`
+#   output should say so explicitly, or just look identical to a running
+#   one — a second paragraph purely to exercise a multi-paragraph tag
+#   (blank line and all) instead of a single wrapped one.
+#
 class Stopwatch
   ##
   # The elapsed time a newly created stopwatch starts at, and the default

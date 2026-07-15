@@ -1,6 +1,6 @@
 ### <%= @constant.name %>
 
-**Type:** <%= type_ref(@constant.tag(:return) && @constant.tag(:return).types && @constant.tag(:return).types.first) %>
+- **Type:** <%= type_ref(@constant.tag(:return) && @constant.tag(:return).types && @constant.tag(:return).types.first) %>
 <%- if @constant.value.include?("\n") -%>
 
 **Value:**
@@ -9,7 +9,7 @@
 <%= @constant.value %>
 ```
 <%- else -%>
-**Value:** `<%= @constant.value %>`
+- **Value:** `<%= @constant.value %>`
 <%- end -%>
 
 <%= markdownify(@constant.docstring) %>
@@ -18,4 +18,4 @@
 <%= since_line(@constant) %>
 <%- end -%>
 
-**Defined in:** `<%= @constant.file %>:<%= @constant.line %>`
+- **Defined in:** `<%= @constant.file %>:<%= @constant.line %>`

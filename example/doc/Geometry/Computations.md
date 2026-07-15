@@ -1,6 +1,6 @@
 # module Geometry::Computations
 
-**Defined in:** `example/lib/geometry/computations.rb`
+- **Defined in:** `example/lib/geometry/computations.rb`
 
 Utility computations on `Point` values.
 
@@ -34,7 +34,7 @@ Computes the centroid (average position) of one or more points.
 
 - `ArgumentError` — if `points` is empty
 
-**Defined in:** `example/lib/geometry/computations.rb:28`
+- **Defined in:** `example/lib/geometry/computations.rb:28`
 
 ### .distance
 
@@ -42,7 +42,7 @@ Computes the centroid (average position) of one or more points.
 Computations.distance(a, b) → Float
 ```
 
-**Deprecated.** Use [`Point#distance_to`](Point.md) instead.
+- **Deprecated.** Use [`Point#distance_to`](Point.md) instead.
 
 Computes the distance between two points.
 
@@ -57,7 +57,7 @@ Computes the distance between two points.
 
 **See also:** [`Point#distance_to`](Point.md)
 
-**Defined in:** `example/lib/geometry/computations.rb:17`
+- **Defined in:** `example/lib/geometry/computations.rb:17`
 
 ### .each_point
 
@@ -79,4 +79,4 @@ Yields each of the given points in turn.
 
 - `Integer` — the number of points yielded
 
-**Defined in:** `example/lib/geometry/computations.rb:41`
+- **Defined in:** `example/lib/geometry/computations.rb:41`

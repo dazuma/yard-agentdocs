@@ -1,7 +1,7 @@
 # class Geometry::ThreeD::Point
 
-**Superclass:** `Object`
-**Defined in:** `example/lib/geometry/three_d/point.rb`
+- **Superclass:** `Object`
+- **Defined in:** `example/lib/geometry/three_d/point.rb`
 
 A point in three-dimensional space.
 
@@ -33,7 +33,7 @@ Creates a point from its coordinates.
 - `y` (`Numeric`) — the y-coordinate
 - `z` (`Numeric`) — the z-coordinate
 
-**Defined in:** `example/lib/geometry/three_d/point.rb:16`
+- **Defined in:** `example/lib/geometry/three_d/point.rb:16`
 
 ## Instance Methods
 
@@ -49,4 +49,4 @@ Computes the distance from the origin.
 
 - `Float` — the distance
 
-**Defined in:** `example/lib/geometry/three_d/point.rb:27`
+- **Defined in:** `example/lib/geometry/three_d/point.rb:27`

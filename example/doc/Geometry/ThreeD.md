@@ -1,6 +1,6 @@
 # module Geometry::ThreeD
 
-**Defined in:** `example/lib/geometry/three_d.rb`
+- **Defined in:** `example/lib/geometry/three_d.rb`
 
 ## Member Summary
 
