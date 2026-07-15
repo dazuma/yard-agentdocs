@@ -176,7 +176,12 @@ well, but it will systematically miss what real docstrings do — markup
 dialects, inline references, odd whitespace, very large classes that would
 trigger the deferred "escape valve" under "File granularity". Harvest
 anything the run surfaces back into this checklist as new items rather than
-fixing ad hoc.
+fixing ad hoc. Also verify the token-economy claim directly: on the
+hand-written example, `example/doc` is ~37% *larger* than `example/lib`
+(38.9KB vs. 28.5KB — judged an artifact of toy method bodies under rich
+docstrings; see "Agent-usefulness evaluation" under "Decisions"), so
+"cheaper than reading source" needs confirming on a real gem, where
+implementation bodies dominate, rather than assuming.
 
 ### Module/class structure
 
@@ -216,6 +221,19 @@ fixing ad hoc.
 - [x] A `Struct.new`-based class — `Geometry::Circle`
 - [x] A `Data.define`-based class (Ruby 3.2+ value object, relevant given the
       gem's `>= 3.4` floor) — `Geometry::Vector`
+- [ ] (design) Names-only inherited/mixin member roster in `## Member
+      Summary` — one line per ancestor/mixin listing member *names* only,
+      no descriptions (e.g. ``**Inherited from `Polygon`:** `#describe`,
+      `#each_side`, `#label`, `#sides` ``). Deliberately revisits the
+      settled "link out, don't duplicate" family ("Subclass method content
+      strategy" / "Mixin content strategy" under "Decisions"): those weighed
+      full doc duplication against a bare metadata pointer, but never this
+      names-only intermediate — which is what YARD's own HTML template
+      renders ("Methods inherited from …"), so the mirror-human-docs
+      heuristic favors it. Today `Triangle.md` shows only `.new`; assembling
+      a Triangle's full API surface takes four further file reads
+      (`Polygon`, `Shape`, `Taggable`, `Named`). Raised by the July 2026
+      agent-usefulness evaluation (see "Decisions")
 
 ### Mixins
 
@@ -302,6 +320,18 @@ fixing ad hoc.
       signature over an awkward real one" idiom); settled both the
       single-overload and two-or-more-overload rendering shapes — see
       "`@overload`" under "Decisions"
+- [ ] (design) Settle prose-vs-signature ordering as one uniform rule — the
+      2+-overload shape leads with the shared docstring and `@example`s
+      (`Point.of`'s two examples render before *any* signature, so a
+      top-down reader sees usage before learning the method's arity), while
+      every other entry kind leads with its signature/type block. Formerly
+      described under "Open questions"; the July 2026 agent-usefulness
+      evaluation (see "Decisions") recommends signature-first everywhere —
+      stack each overload's own signature/params/returns block first,
+      shared prose and examples after — restoring one uniform rule without
+      costing the common single-signature case its quick-lookup line.
+      Trade-off history is in "Overload order" within the "`@overload`"
+      decision write-up; only the `overloads.size >= 2` branch would change
 - [x] A method that returns early with multiple distinct return shapes
       (documented return type is a union, e.g. `String, nil`); also cover
       `@return [self]` (chainable methods — a type token that's neither
@@ -386,7 +416,11 @@ fixing ad hoc.
 - [ ] (mech) `attr_reader`, `attr_writer`, `attr_accessor` with doc comments
       (only `attr_reader` exercised so far, via `Point#x`/`#y`) — also the
       trigger for revisiting the undocumented-attribute boilerplate policy
-      noted under the `Struct`/`Data` decision
+      noted under the `Struct`/`Data` decision; the July 2026
+      agent-usefulness evaluation (see "Decisions") independently flagged
+      that boilerplate (`` **Type:** `Object` `` plus "Returns the value of
+      attribute …") as rendered noise indistinguishable from real
+      documentation, strengthening the case for that revisit
 - [ ] (mech) Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — escalate to (design) if YARD doesn't merge the pair into
@@ -556,6 +590,35 @@ fixing ad hoc.
 
 - [x] (design) Flat full-FQN index — see "Flat full-FQN index: classes/modules
       only, replacing the top-level list" under "Decisions".
+- [ ] (design) "How to navigate these docs" preamble — nothing in the
+      output currently discloses the conventions an agent needs in order
+      to exploit the format deliberately: the FQN→path derivation rule,
+      the `### .method`/`### #method` heading grammar and its grep recipes
+      (`grep -rn '^### #each' doc/` finds a member without knowing its
+      class), and the fact that inherited/mixed-in members live in
+      ancestor files reachable via the `**Superclass:**`/`**Includes:**`/
+      `**Extends:**` lines. Decide where it lives (top of `index.md` vs. a
+      linked conventions file) and what it covers. Raised by the July 2026
+      agent-usefulness evaluation (see "Decisions") as its highest-value
+      gap: mechanical navigation is the format's core strength, but only
+      if disclosed. Division of labor vs. the accompanying-skill item just
+      below is settled — the preamble owns the *how* (format mechanics),
+      ships unconditionally, and is the self-describing floor for any
+      agent regardless of harness; see "Navigation guidance: preamble plus
+      skill" under "Decisions"
+- [ ] (design) Accompanying agent skill for using/navigating the format —
+      an installable skill (SKILL.md) scoped to what the in-band preamble
+      structurally can't do: trigger *proactively* (steer an agent toward
+      these docs before it starts grepping gem source or an HTML yardoc
+      site), and carry workflow — how to generate docs for a dependency
+      that lacks them, where per-gem trees live, when to fall back to
+      source via the `**Defined in:**` pointers. Format mechanics stay out
+      (defer to the preamble) so the two artifacts can't drift. **Gated on
+      the dogfood milestone:** its core content is the generation/lookup
+      workflow, which depends on integration decisions (how a consuming
+      project invokes the template per-dependency, where output lands)
+      that dogfooding will settle — writing it earlier means guessing.
+      See "Navigation guidance: preamble plus skill" under "Decisions"
 
 ## Open questions
 
@@ -577,21 +640,12 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   discard data the output format wants, revisit the principle once,
   deliberately — rather than accumulating "permanent gap" decisions one at
   a time.
-- **Prose-vs-signature ordering isn't settled as a single rule.** The
-  2+-overload shape (see "`@overload`" under "Decisions") puts the shared
-  docstring *before* the repeated signature/params/returns groups,
-  diverging from every other entry (single/no-overload methods,
-  constants, attributes), which all lead with the signature/type block and
-  put prose second. Revisited once already (see "Overload order" in that
-  same decision's write-up) and kept as drafted, but not settled comfortably:
-  leading with prose everywhere would cost the common single-signature
-  case the one highest-value line for a quick lookup (the goal DESIGN.md
-  opens with); leading with signature(s) even in the 2+-overload case
-  (stacking each overload's own block first, prose after) is the
-  alternative that would restore one uniform rule without that cost, but
-  wasn't chosen. Come back to this once more entries exist to judge the
-  inconsistency against, rather than re-deciding from just the one
-  example.
+- **Prose-vs-signature ordering isn't settled as a single rule.** Now
+  tracked as a (design) checklist item under "Methods — shapes &
+  signatures" rather than re-described here, with a concrete
+  recommendation (signature-first everywhere) from the July 2026
+  agent-usefulness evaluation. The full trade-off history remains in
+  "Overload order" within the "`@overload`" decision write-up.
 
 ## Decisions
 
@@ -2674,6 +2728,133 @@ the way `@note`/`@deprecated`/`@abstract` are.
   decision above) and `Geometry::Vector` (`@since`/`@version`/`@author`, now
   trailing instead of top-of-page, plus the newly-visible transitive
   `@since` on its methods).
+
+### Agent-usefulness evaluation (July 2026)
+
+A read-through evaluation of the full `example/doc` output from the
+perspective of a coding agent needing to discover, search, and use the
+library — including a comparison against reading `example/lib` source
+directly. Not itself a format decision; logged here (like "Checklist
+pruning and prioritization" above) so its findings, measurements, and
+considered-and-rejected items don't get re-derived or re-proposed later.
+
+**What works, no changes recommended:** known-FQN lookup is one cheap,
+self-contained file read; the flat index plus the consistent
+`### .method`/`### #method` heading grammar make both class discovery and
+cross-corpus member search a single grep; the natural-call-syntax
+signature lines (`point.round(precision: 0) → Point`) are the
+highest-value single element; and the output surfaces semantics the
+source hides — `Data.define`-synthesized members that exist as no `def`
+in source (`Vector#dx`/`#dy`), reopened-class consolidation
+(`Rectangle`), deprecation/abstract/override/alias flags, and
+`**Defined in:**` file:line pointers as an escape hatch back to the
+implementation. Private members being filtered out also shrinks the
+surface an agent must read relative to source.
+
+**Measurement worth keeping:** on this fixture the docs are ~37% *larger*
+than the source (38.9KB vs. 28.5KB total; `Point.md` 7.2KB vs. `point.rb`
+6.0KB), so per-class token cost currently favors reading source. Judged
+an artifact of the fixture's toy method bodies under rich docstrings
+rather than a real problem — real gems' implementation bodies should flip
+the ratio — but this turns "cheaper than reading source" into an explicit
+claim for the dogfood milestone to verify (a sentence to that effect was
+added to the milestone's description).
+
+**Recommendations, added as checklist items** (all human-gated per the
+TDD loop, none acted on yet):
+
+1. **"How to navigate these docs" preamble** — (design), under "Indexing
+   & discovery". The format's mechanical conventions (path derivation,
+   heading grammar, grep recipes, where inherited members live) are
+   exploitable by an agent only if disclosed somewhere it will read
+   first. Judged the evaluation's highest-value gap.
+2. **Names-only inherited/mixin member roster in `## Member Summary`** —
+   (design), under "Module/class structure". Deliberately challenges the
+   settled "link out, don't duplicate" decisions: those weighed full doc
+   duplication against a bare metadata pointer, but never the names-only
+   intermediate that YARD's own HTML template renders. Motivating case:
+   `Triangle.md` shows only `.new`, and assembling a Triangle's full API
+   surface takes four further file reads.
+3. **Prose-vs-signature ordering** — (design), under "Methods — shapes &
+   signatures", replacing the former "Open questions" entry. The concrete
+   new evidence is `Point.of`: its `@example`s render before any
+   signature, so a top-down reader sees usage before learning the method
+   has two arities. Recommendation: signature-first everywhere.
+4. **Undocumented-attribute boilerplate** — already tracked by the
+   existing `attr_*` item under "Attributes & constants"; that item's
+   wording now records this evaluation's independent finding that the
+   YARD fallback text renders as pseudo-documentation
+   (`Circle#radius` — `` **Type:** `Object` ``, "Returns the value of
+   attribute radius") indistinguishable from a legitimately terse
+   docstring.
+
+**Considered, explicitly no action** (recorded so they aren't
+re-proposed):
+
+- **Member Summary in tiny files** (`Taggable.md`, `Named.md`, `Loud.md`)
+  is nearly half the file and pure duplication of the one or two entries
+  below it. A member-count threshold below which the summary is omitted
+  was considered and rejected: uniform, predictable structure is worth
+  more than the handful of tokens.
+- **Long `index.md` summary lines** (`Loud`/`Named` run ~150 characters).
+  Fine at 21 entries; revisit at dogfood scale if the index bloats, rather
+  than inventing a clamping rule now.
+- **Member cross-links land on the target file, not the member**
+  (`` [`Point#distance_to`](Point.md) `` — the reader greps the heading
+  after arriving). Heading-anchor schemes were considered and rejected as
+  fragile for operator names (`#[]=`, `#+`) and renderer-dependent; the
+  navigation preamble (item 1 above) should document "grep the `### `
+  heading" as the intended second hop instead.
+
+### Navigation guidance: preamble plus skill, staged, with a strict division of labor
+
+Follow-up to the agent-usefulness evaluation above, which recommended the
+"how to navigate" preamble. Weighed against an alternative delivery
+mechanism: an accompanying agent *skill* (SKILL.md) that teaches
+using/navigating the format, either instead of or in addition to the
+preamble. **Settled on both, staged, with a strict division of labor** —
+each is tracked as its own checklist item under "Indexing & discovery".
+
+The two mechanisms answer different questions, which is why neither
+subsumes the other:
+
+- **The preamble is in-band** — it travels inside the generated output, so
+  it helps any agent that has already located the docs, on any harness,
+  with zero installation, and it's version-locked to the tree it describes
+  (emitted by the same template run). But it's purely reactive: it can't
+  encode behavior ("when you need Ruby API info, look here first") or
+  procedure ("if the docs don't exist, generate them like so"), because it
+  has no way into an agent's context until the docs are already open.
+- **The skill is out-of-band routing** — its description sits in the
+  agent's context from session start, so it triggers *before* the agent
+  starts spelunking through installed-gem source or an HTML yardoc site.
+  That upstream discovery problem is the bigger one: the format's
+  conventions are learnable from one file read (the preamble makes that
+  reliable and instant rather than inferred), but no amount of in-band
+  documentation can make an agent look in the docs directory in the first
+  place. Costs: an installation/distribution burden the gem can't automate
+  (its own chicken-and-egg discovery problem), benefit limited to
+  harnesses that support skills, and a second artifact that can drift from
+  the format version that generated any given tree.
+
+Decisions embedded in the "both" outcome:
+
+- **Skill-instead-of-preamble was explicitly rejected.** It would make the
+  output format silently dependent on consumer-side configuration; an
+  unconfigured agent — or a non-skill harness — would lose even the cheap
+  win. Self-describing output is worth preserving as an invariant.
+- **Anti-drift rule:** the preamble owns the *how* (format mechanics —
+  path derivation, heading grammar, grep recipes); the skill owns the
+  *when and why* (prefer these docs, generate missing ones) and defers to
+  the preamble for mechanics rather than duplicating them. This is what
+  keeps the two artifacts from diverging as the format evolves.
+- **Staging:** preamble first — it's ~15 lines, universal, and the floor
+  even the skill's own users benefit from. The skill is gated on the
+  dogfood milestone, because its most valuable content is the
+  generation/lookup workflow, which depends on integration decisions (how
+  a consuming project invokes the template per-dependency, where output
+  lands) that aren't settled until dogfooding; writing it earlier means
+  guessing at the workflow.
 
 ## Implementation
 
