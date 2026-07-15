@@ -6,6 +6,11 @@
 ```
 
 **Alias for:** `<%= member_heading(alias_original(@method)) %>`
+<%- own_prose = alias_own_prose(@method) -%>
+<%- if own_prose -%>
+
+<%= markdownify(own_prose) %>
+<%- end -%>
 
 **Defined in:** `<%= @method.file %>:<%= @method.line %>`
 <%- else -%>

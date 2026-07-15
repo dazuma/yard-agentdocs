@@ -340,7 +340,11 @@ fixing ad hoc.
       (`alias_method :restart, :reset`, no comment of its own); settled on a
       minimal pointer entry for the alias plus a reciprocal
       `**Also known as:**` note on the original — see "Aliased method" under
-      "Decisions"
+      "Decisions". Also covers an alias with its own attached comment —
+      `Stopwatch#accrue` (aliasing `#add`) — whose extra prose renders as
+      its own top-level Markdown paragraph(s), still run through
+      `markdownify` (heading demotion included) — see "Aliased method with
+      its own comment" under "Decisions"
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [ ] (mech) Class methods defined via `class << self` — should render
@@ -866,6 +870,54 @@ YARD's own `MethodObject#aliases`/`#is_alias?`), not a docstring tag.
   wasn't fixed pre-emptively — same "not yet exercised, left for a real
   case to justify" stance this file already takes with `@since` on a method
   or attribute (see "Auxiliary one-line tags" below).
+
+### Aliased method with its own comment: isolate and render the extra prose, still markdownified
+
+Follow-up to "Aliased method" above, covering an alias statement that
+carries its own comment rather than relying entirely on the original's
+copied docstring. Exercised via `Stopwatch#accrue` (`alias_method :accrue,
+:add`, with its own comment including a level-2 Markdown heading
+specifically to prove heading demotion applies on this path too).
+
+Decided by probing YARD directly (`YARD.parse_string` against a minimal
+stub, not by reading `AliasHandler` alone — its concatenation logic doesn't
+say what the *re-parsed* result looks like): `AliasHandler` joins
+`[original.docstring.to_raw, statement.comments].join("\n")` and re-parses
+that as the alias's own docstring. Two things the probe confirmed that
+aren't obvious from the source:
+
+- The join point gets only a single `\n`, not a blank line, so the
+  original's copied prose and the alias's own new text land in the *same*
+  paragraph once re-parsed (`alias.docstring.to_s` for `#accrue` before any
+  fix: `"Adds to the elapsed time.\nOlder name for..."`, no paragraph
+  break) — rendering `@method.docstring` wholesale for an alias-with-comment
+  would both duplicate the original's full prose (the "Aliased method"
+  decision's whole reason for *not* doing that) and glue the new text onto
+  it with no visual separation.
+- Despite that, `alias.docstring.to_s` always starts with exactly
+  `original.docstring.to_s` as a literal string prefix — tags land wherever
+  they fall structurally, but the free-text (non-tag) portions concatenate
+  in source-encounter order with the tags stripped out, so the original's
+  contribution is always a clean, diffable prefix of the merged free-text.
+
+**The decision:** `alias_own_prose(meth)`
+(`lib/yard/agentdocs/method_signature.rb`) strips that shared prefix (and
+the seam's leading newline) to isolate just the alias's own new text, or
+returns `nil` if there isn't any (the common case — `Stopwatch#restart`,
+with no comment of its own, is unaffected). `method_entry.erb`'s alias
+branch renders it, when present, as its own paragraph between the
+`**Alias for:**` line and `**Defined in:**` — genuine top-level Markdown,
+not spliced into a bullet, so it goes through the plain `markdownify(text)`
+call every other docstring body already uses (not `summary_suffix`/
+`dash_join`'s `indent_continuation` bullet-escaping, which doesn't apply
+here). That's what makes heading demotion and dialect conversion apply for
+free: `#accrue`'s own `## Migrating` heading demotes to `#### Migrating`
+via the same `demote_headings` pass "Prose-embedded headings" already
+established, with zero special-casing for the alias path. Member
+Summary's `#accrue` bullet is unaffected — still the fixed `**Alias for:**`
+one-liner regardless of whether the alias has its own extra prose, keeping
+every alias's Member Summary line the same predictable shape; the extra
+commentary is only visible once the full entry is open.
 
 ### Mixin content strategy (direct `include`): link out, not duplicate
 

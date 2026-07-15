@@ -128,6 +128,37 @@ module YARD
       end
 
       ##
+      # An alias statement (`alias`/`alias_method`) can carry its own
+      # comment, which YARD appends to the *copied* original docstring
+      # rather than keeping separate (`AliasHandler` joins
+      # `[original.docstring.to_raw, statement.comments]` and re-parses the
+      # result) — so +meth.docstring+ for an alias with its own comment
+      # renders as the original's full prose immediately followed by the
+      # new text, with no paragraph break at the seam. Isolates just that
+      # new text by stripping the original's own rendered prose as a
+      # literal prefix (verified: the merged docstring's free-text always
+      # starts with the original's, in encounter order, regardless of where
+      # tags fall structurally), so an alias's own commentary can be shown
+      # once, on its own, without repeating the original's.
+      #
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [String, nil] +meth+'s own additional prose, still in its
+      #   original (unconverted) markup dialect — render it through
+      #   {Markdownify#markdownify} like any other docstring text, not
+      #   spliced in raw — or `nil` if +meth+ isn't an alias, has no
+      #   original to diff against, or has no text beyond what it copied
+      #
+      def alias_own_prose(meth)
+        original = alias_original(meth)
+        return nil unless original
+        full = meth.docstring.to_s
+        prefix = original.docstring.to_s
+        return nil unless full.start_with?(prefix)
+        extra = full[prefix.length..].sub(/\A\n+/, "")
+        extra.empty? ? nil : extra
+      end
+
+      ##
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [String, nil] the object's own name for the synthetic `.new`
       #   entry (constructors have no real `@return` type of their own), or

@@ -46,6 +46,16 @@ class Stopwatch
   end
 
   ##
+  # Older name for `#add`, from an earlier version of this API.
+  #
+  # ## Migrating
+  #
+  # Prefer `#add` in new code. `#accrue` is kept only so callers written
+  # against the 1.x API keep working.
+  #
+  alias_method :accrue, :add
+
+  ##
   # Resets the elapsed time.
   #
   # @param to [Float] the elapsed time to reset to; defaults to

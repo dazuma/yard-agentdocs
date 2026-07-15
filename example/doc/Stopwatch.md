@@ -26,6 +26,7 @@ Call the reset method to start over.
 **Instance Methods**
 
 - `#<=>` — Compares this stopwatch's elapsed time to another's, per Ruby's `<=>` convention.
+- `#accrue` — **Alias for:** `#add`
 - `#add` — Adds to the elapsed time.
 - `#describe` — Builds a descriptive label for this stopwatch.
 - `#measure` — Runs the given block and adds how long it took to this stopwatch's elapsed time.
@@ -80,13 +81,32 @@ makes the same choice).
 
 - `Integer` — -1, 0, or 1
 
-**Defined in:** `example/lib/stopwatch.rb:121`
+**Defined in:** `example/lib/stopwatch.rb:131`
+
+### #accrue
+
+```ruby
+stopwatch.accrue(seconds) → Float
+```
+
+**Alias for:** `#add`
+
+Older name for `#add`, from an earlier version of this API.
+
+#### Migrating
+
+Prefer `#add` in new code. `#accrue` is kept only so callers written
+against the 1.x API keep working.
+
+**Defined in:** `example/lib/stopwatch.rb:56`
 
 ### #add
 
 ```ruby
 stopwatch.add(seconds) → Float
 ```
+
+**Also known as:** `#accrue`
 
 Adds to the elapsed time.
 
@@ -127,7 +147,7 @@ formatting API.
 
 - `String` — the assembled label
 
-**Defined in:** `example/lib/stopwatch.rb:93`
+**Defined in:** `example/lib/stopwatch.rb:103`
 
 ### #measure
 
@@ -150,7 +170,7 @@ elapsed time.
 
 - `Object` — the block's return value
 
-**Defined in:** `example/lib/stopwatch.rb:69`
+**Defined in:** `example/lib/stopwatch.rb:79`
 
 ### #raw_elapsed_s
 
@@ -168,7 +188,7 @@ part of the stable public API.
 
 - `String` — the elapsed time, in seconds, as a plain string
 
-**Defined in:** `example/lib/stopwatch.rb:108`
+**Defined in:** `example/lib/stopwatch.rb:118`
 
 ### #reset
 
@@ -190,7 +210,7 @@ Resets the elapsed time.
 
 - `Float` — the new elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:56`
+**Defined in:** `example/lib/stopwatch.rb:66`
 
 ### #restart
 
@@ -200,4 +220,4 @@ stopwatch.restart(to = DEFAULT_ELAPSED) → Float
 
 **Alias for:** `#reset`
 
-**Defined in:** `example/lib/stopwatch.rb:59`
+**Defined in:** `example/lib/stopwatch.rb:69`
