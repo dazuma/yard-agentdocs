@@ -403,7 +403,11 @@ fixing ad hoc.
       typing itself not exercised, but the tag is otherwise thorough
 - [x] `@return` (including `void` and multi-type unions) — `void`/unions not
       exercised, but the tag is otherwise thorough
-- [ ] (design) `@option` (documenting keys of an options hash/kwargs)
+- [x] (design) `@option` (documenting keys of an options hash/kwargs) —
+      `Geometry::Point#translate`'s existing `deltas` param; settled a
+      separate `**Options (`deltas`):**` block, one per documented hash
+      param, default folded into the type parenthetical — see "`@option`"
+      under "Decisions"
 - [x] `@yield`, `@yieldparam`, `@yieldreturn` — shared the block-presentation
       decision with the `&block`/implicit-block items under "Methods"; see
       "Block presentation" under "Decisions"
@@ -2254,6 +2258,54 @@ fixed by the same change. Exercised via five new `Geometry::Path` methods:
   per-overload Returns bullet (`ov.tag(:return)`) still takes only the
   first tag/type — no fixture combines `@overload` with a union or multiple
   `@return` tags, so extending that branch would be unverified generality.
+
+### `@option`: a separate `**Options (`param`):**` bulleted block, one per documented hash param
+
+Exercised via `Geometry::Point#translate(**deltas)`, adding
+`@option deltas [Numeric] :x (0) the x offset to add` /
+`@option deltas [Numeric] :y (0) the y offset to add` alongside its existing
+`@param deltas [Hash{Symbol => Numeric}]` tag. Probed YARD's actual tag
+model first (`OptionTag#name` is the parent param's name; `#pair` is a
+`DefaultTag` holding the option key as `pair.name` — with its leading `:`
+kept, e.g. `":x"` — plus `pair.types`, `pair.text`, and `pair.defaults`, an
+array of raw default-value source text or `nil`).
+
+- **A new top-level `**Options (`deltas`):**` heading, immediately after
+  `**Params:**`, not a nested sub-list under the `deltas` bullet.** Every
+  other tag family in `method_entry.erb` (Params, Yields, Yield Params,
+  Yield Returns, Returns, Raises) is a flat, independent heading — even
+  Yield Params, conceptually "inside" the yielded block, gets its own
+  heading rather than nesting under Yields. Nesting would have introduced
+  the template's first multi-level list and breaks down if a method ever
+  has two separate hash params each with their own `@option`s; a
+  `(`param`)`-qualified heading per param, matching YARD's own default HTML
+  template's grouping, avoids both problems. `method_entry.erb` iterates
+  `param_tags` (already computed for `**Params:**`) and, for each param,
+  filters `@method.tags(:option)` down to the ones whose `name` matches
+  that param — only emitting a heading when that filtered list is
+  non-empty.
+- **The default renders inside the type parenthetical** (`` `Numeric`,
+  default `0` ``), **not appended after the dash text.** Unlike an ordinary
+  optional param, an option key has no natural-syntax home in the method
+  signature (`point.translate(**deltas) → Point` can't show it) — so,
+  unlike "Optional param default rendering" above, the bullet is the *only*
+  place left to put it. Bundled with the type as one structural
+  parenthetical, keeping the dash-text free for the description only
+  (`option_line` in `setup.rb`).
+- **Only the primary (non-`@overload`) rendering branch handles
+  `@option`.** The 2+-`@overload` branch's own Params block
+  (`ov.tags(:param)`) has no fixture pairing `@overload` with `@option`, so
+  it stays unchanged — same "don't build untested generality" call as the
+  `@overload`/multi-return-type gap above.
+- **Left deliberately unexercised: an `@option` key with no default.**
+  Both `:x` and `:y` ended up with `(0)` defaults (matching
+  `deltas.fetch(:x, 0)`/`deltas.fetch(:y, 0)`, and the docstring's "Any
+  coordinate not given defaults to no change"), so `option_line`'s
+  no-default branch (`type_part = ... : type`) is exercised only by
+  inference from the identical, already-proven `@param`-with-no-default
+  bullet shape, not by a byte-for-byte-asserted `@option` fixture of its
+  own. Revisit if a real case (dogfood milestone) or a future checklist
+  pass wants that branch directly covered.
 
 ## Implementation
 

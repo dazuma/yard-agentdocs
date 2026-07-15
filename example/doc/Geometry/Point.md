@@ -239,7 +239,7 @@ Returns the coordinate at the given index: `0` for `#x`, `1` for `#y`.
 
 - `ArgumentError` — if `index` isn't `0` or `1`
 
-**Defined in:** `example/lib/geometry/point.rb:183`
+**Defined in:** `example/lib/geometry/point.rb:185`
 
 ### #[]=
 
@@ -261,7 +261,7 @@ than modify the receiver, `#[]=` mutates this point in place.
 
 - `ArgumentError` — if `index` isn't `0` or `1`
 
-**Defined in:** `example/lib/geometry/point.rb:201`
+**Defined in:** `example/lib/geometry/point.rb:203`
 
 ### #distance_to
 
@@ -343,11 +343,16 @@ given defaults to no change.
 
 - `deltas` (`Hash{Symbol => Numeric}`) — `:x` and/or `:y` offsets to add
 
+**Options (`deltas`):**
+
+- `:x` (`Numeric`, default `0`) — the x offset to add
+- `:y` (`Numeric`, default `0`) — the y offset to add
+
 **Returns:**
 
 - `Point` — a new point shifted by the given deltas
 
-**Defined in:** `example/lib/geometry/point.rb:172`
+**Defined in:** `example/lib/geometry/point.rb:174`
 
 ### #zero?
 
@@ -359,4 +364,4 @@ point.zero?() → Boolean
 
 - `Boolean`
 
-**Defined in:** `example/lib/geometry/point.rb:209`
+**Defined in:** `example/lib/geometry/point.rb:211`

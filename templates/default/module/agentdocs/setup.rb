@@ -192,9 +192,25 @@ def dash_join(prefix, text)
   [prefix, indent_continuation(markdown)].reject { |s| s.to_s.empty? }.join(" — ")
 end
 
+# An `@option` tag's key/type/default/description quadruple, rendered as one
+# **Options (`param`):** bullet. The default has no natural-syntax home in
+# the signature the way an ordinary optional param's does (it's a key
+# inside a captured hash, not a `def`-level parameter with its own `=
+# default`), so — unlike {MethodSignature}'s "default renders in the
+# signature only" policy — it's folded into the type parenthetical here,
+# the only place left to put it.
+def option_line(tag)
+  pair = tag.pair
+  default = pair.defaults&.first
+  type = type_ref(pair.types && pair.types.first)
+  type_part = default ? "#{type}, default `#{default}`" : type
+  "- `#{pair.name}` (#{type_part})#{summary_suffix(pair.text)}"
+end
+
 # Every caller of {#summary_suffix}/{#dash_join} splices its result onto a
 # single `- ` list-item bullet (Member Summary, Params/Yield Params/Raises,
-# and — per the Returns/Yields/Yield Returns bullet-list shape — those too).
+# Options, and — per the Returns/Yields/Yield Returns bullet-list shape —
+# those too).
 # A tag's raw +text+ can itself be multi-line (a soft-wrapped description,
 # or genuine multi-paragraph prose with a nested list — real-world docstrings
 # do this, e.g. API-client gems generated from language-agnostic specs), and

@@ -167,6 +167,8 @@ module Geometry
     # given defaults to no change.
     #
     # @param deltas [Hash{Symbol => Numeric}] `:x` and/or `:y` offsets to add
+    # @option deltas [Numeric] :x (0) the x offset to add
+    # @option deltas [Numeric] :y (0) the y offset to add
     # @return [Point] a new point shifted by the given deltas
     #
     def translate(**deltas)
