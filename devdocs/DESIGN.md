@@ -389,9 +389,13 @@ fixing ad hoc.
       one attribute cleanly
 - [x] Simple constant (numeric/string literal) with a doc comment —
       `Point::DIMENSIONS`
-- [ ] (design) Structured constant (`Hash`, `Array`, `Regexp` literal) — a
+- [x] (design) Structured constant (`Hash`, `Array`, `Regexp` literal) — a
       multiline literal forces a decision on how `**Value:**` renders when
-      the raw source text doesn't fit one line
+      the raw source text doesn't fit one line — `Geometry::Angles::NAMED_ANGLES`
+      (multiline `Hash`); settled that a multiline value escalates from the
+      inline `` **Value:** `...` `` span to a `` ```ruby `` fence, mirroring
+      `@example`'s own raw-code fence — see "Structured constant: multiline
+      value escalates to a `` ```ruby `` fence" under "Decisions"
 - [ ] (mech) Constant that references another documented class (e.g.
       `DEFAULT_HANDLER = SomeClass.new`) — `Point::ORIGIN = new(0, 0)` is close
       but is a *self*-reference (an instance of the class it's defined on, not
@@ -2366,6 +2370,68 @@ array of raw default-value source text or `nil`).
   bullet shape, not by a byte-for-byte-asserted `@option` fixture of its
   own. Revisit if a real case (dogfood milestone) or a future checklist
   pass wants that branch directly covered.
+
+### Structured constant: multiline value escalates to a ` ```ruby ` fence
+
+Settles the "Structured constant" checklist item. `@constant.value` is
+`Base#value`'s verbatim source text of the constant's right-hand side, not
+markdownified prose — the same category of content `@example` already
+renders as raw code, not the same category the `@param`/`@return`
+list-item-continuation fix (see "Prose/summary containing Markdown
+metacharacters") applies to.
+
+- **The bug, proven against a real CommonMark parser first, not assumed:**
+  the pre-existing single-line `` **Value:** `<value>` `` inline code span
+  breaks the moment the value spans multiple lines *and* contains a blank
+  line — a realistic style choice in a real hash/array literal (grouped
+  entries separated for readability). CommonMark closes the paragraph at
+  the blank line before inline parsing (code spans) ever runs, so the
+  backtick pair never matches; the stray literal backticks and the value's
+  own text spill across multiple broken paragraphs. This is the same
+  corruption class the `@return`/`@yield` rendering-shape change already
+  fixed for tag text, just not yet fixed for `**Value:**`, which had never
+  been exercised past a single-line literal (`Point::DIMENSIONS`/`ORIGIN`).
+- **The fix: escalate to a ` ```ruby ` fence when (and only when)
+  `@constant.value` contains a newline**, leaving the existing single-line
+  `` **Value:** `<value>` `` rendering untouched — verified this needs no
+  metacharacter escaping or reflow logic of its own (unlike the tag-text
+  fix): a fenced code block is a block-level container that correctly
+  interrupts a preceding paragraph without a blank line first (verified
+  with `commonmarker`), and YARD's `value` text already comes indented
+  relative to the literal's own first line, not the source file's nesting
+  depth, so it drops into the fence with no reformatting. Implemented as a
+  `<%- if @constant.value.include?("\n") -%>` branch directly in
+  `constant_entry.erb`, not a `setup.rb` helper — this is exactly the kind
+  of optional block-shape branching "Template coding convention" reserves
+  for the `.erb` file itself.
+- **Reused `@example`'s established shape** (plain ` ```ruby ` fence, value
+  never passed through `markdownify` — it's code, not prose) rather than
+  inventing a new one, for the same reason `@example`'s own decision gives:
+  a constant's raw value is source text, not RDoc/Markdown prose.
+- **The `**Value:**` label gets its own line plus a blank line before the
+  fence in the escalated case** (unlike the tight, no-blank-line
+  `**Type:**`/`**Value:**` pairing the single-line case keeps), matching
+  how `**Examples:**` already separates its header from its own fence —
+  once `**Value:**` is fronting a block instead of a trailing inline value,
+  it reads as a block header like the format's other block sections, not a
+  second bare fact glued under `**Type:**`.
+- **Known, deliberately deferred edge case:** a value containing a literal
+  line starting with `` ``` `` (fence-delimiter collision) or with `## `/
+  `### ` (this format's own raw-grep heading-index prefixes, e.g. from an
+  inline double-hash Ruby comment) isn't specially handled. This risk
+  already exists, unaddressed, for `@example`'s fenced code today — this
+  change doesn't introduce a new gap, just doesn't close the pre-existing
+  one. Revisit only if a real case surfaces (dogfood milestone).
+
+Exercised via `Geometry::Angles::NAMED_ANGLES`, a multiline `Hash`
+constant (compass-direction degree headings) added to `Geometry::Angles`
+— chosen over a dedicated new fixture class since the design question
+(single-line vs. multiline) doesn't depend on which structured literal
+type (`Hash`/`Array`/`Regexp`) is involved, only on newline presence, so
+one multiline `Hash` proves the mechanism for all three; unit-test-only
+coverage for `Array`/`Regexp` shapes was not added, consistent with this
+project's existing precedent of proving shared machinery once (see the
+compound-type/code-span precedents elsewhere in this document).
 
 ## Implementation
 

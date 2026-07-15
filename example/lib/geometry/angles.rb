@@ -13,6 +13,19 @@ module Geometry
     extend self
 
     ##
+    # Degree headings for the four cardinal compass directions, keyed by
+    # direction name.
+    #
+    # @return [Hash{Symbol => Float}]
+    #
+    NAMED_ANGLES = {
+      north: 0.0,
+      east: 90.0,
+      south: 180.0,
+      west: 270.0,
+    }.freeze
+
+    ##
     # Normalizes an angle in degrees to the `[0, 360)` range.
     #
     # @param degrees [Float] the angle to normalize

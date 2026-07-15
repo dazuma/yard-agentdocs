@@ -1,7 +1,16 @@
 ### <%= @constant.name %>
 
 **Type:** <%= type_ref(@constant.tag(:return) && @constant.tag(:return).types && @constant.tag(:return).types.first) %>
+<%- if @constant.value.include?("\n") -%>
+
+**Value:**
+
+```ruby
+<%= @constant.value %>
+```
+<%- else -%>
 **Value:** `<%= @constant.value %>`
+<%- end -%>
 
 <%= markdownify(@constant.docstring) %>
 <%- if since_line(@constant) -%>
