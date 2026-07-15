@@ -85,20 +85,24 @@
 - `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
-<%- yieldreturn_tag = @method.tag(:yieldreturn) -%>
-<%- if yieldreturn_tag -%>
+<%- yieldreturn_tags = @method.tags(:yieldreturn) -%>
+<%- unless yieldreturn_tags.empty? -%>
 
 **Yield Returns:**
 
-- <%= dash_join(type_ref(yieldreturn_tag.types && yieldreturn_tag.types.first), yieldreturn_tag.text) %>
+<%- yieldreturn_tags.each do |yrt| -%>
+- <%= dash_join(type_ref(yrt.types && yrt.types.join(", ")), yrt.text) %>
+<%- end -%>
 <%- end -%>
 <%- if overloads.size < 2 -%>
-<%- return_tag = primary ? primary.tag(:return) : method_return_tag(@method) -%>
-<%- if return_tag -%>
+<%- return_tags = primary ? primary.tags(:return) : method_return_tags(@method) -%>
+<%- unless return_tags.empty? -%>
 
 **Returns:**
 
-- <%= dash_join(type_ref(return_tag.types && return_tag.types.first), return_tag.text) %>
+<%- return_tags.each do |rt| -%>
+- <%= dash_join(type_ref(rt.types && rt.types.join(", ")), rt.text) %>
+<%- end -%>
 <%- end -%>
 <%- end -%>
 <%- unless @method.tags(:raise).empty? -%>

@@ -62,6 +62,15 @@ describe ::YARD::AgentDocs::MethodSignature do
         def no_return_value
         end
 
+        # @return [String] the first shape
+        # @return [nil] the second shape
+        def multi_return
+        end
+
+        # @return [String, nil]
+        def union_return
+        end
+
         # @overload of(x, y)
         #   @param x [Integer]
         #   @param y [Integer]
@@ -184,6 +193,14 @@ describe ::YARD::AgentDocs::MethodSignature do
     it "is nil when there is no @return tag" do
       assert_nil(holder.signature_return_type(meth(:no_return_value)))
     end
+
+    it "joins every type from every @return tag when there is more than one" do
+      assert_equal("String, nil", holder.signature_return_type(meth(:multi_return)))
+    end
+
+    it "joins every type within a single @return tag's own union type" do
+      assert_equal("String, nil", holder.signature_return_type(meth(:union_return)))
+    end
   end
 
   describe "#signature_text" do
@@ -213,18 +230,22 @@ describe ::YARD::AgentDocs::MethodSignature do
     end
   end
 
-  describe "#method_return_tag" do
-    it "is nil for the constructor even if YARD synthesized a @return tag" do
+  describe "#method_return_tags" do
+    it "is empty for the constructor even if YARD synthesized a @return tag" do
       assert(meth(:initialize).tag(:return), "expected YARD to synthesize a @return tag on the constructor")
-      assert_nil(holder.method_return_tag(meth(:initialize)))
+      assert_empty(holder.method_return_tags(meth(:initialize)))
     end
 
     it "is the method's own @return tag otherwise" do
-      assert_equal("Float", holder.method_return_tag(meth(:distance_to)).types.first)
+      assert_equal(["Float"], holder.method_return_tags(meth(:distance_to)).map { |t| t.types.first })
     end
 
-    it "is nil when there is no @return tag" do
-      assert_nil(holder.method_return_tag(meth(:no_return_value)))
+    it "is empty when there is no @return tag" do
+      assert_empty(holder.method_return_tags(meth(:no_return_value)))
+    end
+
+    it "includes every @return tag when there is more than one" do
+      assert_equal(["String", "nil"], holder.method_return_tags(meth(:multi_return)).map { |t| t.types.first })
     end
   end
 end

@@ -94,12 +94,14 @@ module YARD
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [String, nil] the object's own name for the synthetic `.new`
       #   entry (constructors have no real `@return` type of their own), or
-      #   the method's declared `@return` type otherwise
+      #   every type from every declared `@return` tag, comma-joined (a
+      #   single tag's own union type and multiple `@return` tags render
+      #   identically here — both are just "more than one type token")
       #
       def signature_return_type(meth)
         return object.name.to_s if meth.constructor?
-        tag = meth.tag(:return)
-        tag&.types&.first
+        types = meth.tags(:return).flat_map { |tag| tag.types || [] }
+        types.empty? ? nil : types.join(", ")
       end
 
       ##
@@ -205,14 +207,15 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
-      # @return [::YARD::Tags::Tag, nil] the method's `@return` tag, except
-      #   for a constructor, which is always treated as having none — YARD
-      #   auto-synthesizes a `@return` tag on `#initialize` even when none
-      #   was written, and the synthetic `.new` entry already gets its
-      #   return type from {#signature_return_type} instead
+      # @return [Array<::YARD::Tags::Tag>] the method's `@return` tags,
+      #   except for a constructor, which is always treated as having
+      #   none — YARD auto-synthesizes a `@return` tag on `#initialize`
+      #   even when none was written, and the synthetic `.new` entry
+      #   already gets its return type from {#signature_return_type}
+      #   instead
       #
-      def method_return_tag(meth)
-        meth.constructor? ? nil : meth.tag(:return)
+      def method_return_tags(meth)
+        meth.constructor? ? [] : meth.tags(:return)
       end
     end
   end

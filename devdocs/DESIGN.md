@@ -299,11 +299,16 @@ fixing ad hoc.
       signature over an awkward real one" idiom); settled both the
       single-overload and two-or-more-overload rendering shapes — see
       "`@overload`" under "Decisions"
-- [ ] (mech) A method that returns early with multiple distinct return shapes
+- [x] A method that returns early with multiple distinct return shapes
       (documented return type is a union, e.g. `String, nil`); also cover
       `@return [self]` (chainable methods — a type token that's neither
-      resolvable nor an ordinary class name) and `@return [void]` here
-- [ ] (design) Multiple `@return` tags on a single method, and correspondingly
+      resolvable nor an ordinary class name) and `@return [void]` here —
+      `Geometry::Path#closest_to` (union), `#add`/`#transform!` (`self`),
+      `#clear` (`void`); tackled together with multiple `@return`/
+      `@yieldreturn` tags below since both turned out to be the same
+      underlying gap — see "Multiple return types: union tags, multiple
+      `@return`/`@yieldreturn` tags" under "Decisions"
+- [x] Multiple `@return` tags on a single method, and correspondingly
       multiple `@yield`/`@yieldreturn` tags — YARD's own default HTML template
       already renders every tag instance generically as its own list item
       (`templates/default/tags/html/tag.erb`), confirming this is idiomatically
@@ -313,7 +318,10 @@ fixing ad hoc.
       (ditto `@yield`/`@yieldreturn`) — but the open design question is what
       the *signature line*'s `→ Type` arrow shows when there's more than one
       `@return` type (a union of all of them? the first? omitted?), which the
-      single-tag case never had to answer
+      single-tag case never had to answer — `Geometry::Path#segment_at` (two
+      `@return` tags), `#transform!` (two `@yieldreturn` tags); `@yield` tag
+      multiplicity itself intentionally left unexercised — see "Multiple
+      return types" under "Decisions"
 - [ ] (design) A method returning an `Enumerator` when called without a
       block, and yielding when called with one (tests combined
       `@yield`/`@return` docs)
@@ -1916,6 +1924,61 @@ docstrings should win).
   - Verified against all three fixtures: `Rectangle`/`Geometry` (both
     docstring-bearing) render identically to before, and `ThreeD.md` now
     shows `example/lib/geometry/three_d.rb`.
+
+### Multiple return types: union tags, multiple `@return`/`@yieldreturn` tags
+
+Tackled together (originally two separate checklist items) once tracing the
+code showed they're the same underlying gap: `signature_return_type` and
+`method_entry.erb`'s Returns/Yield Returns blocks all did `tag.types.first`
+off a single `.tag(:return)`/`.tag(:yieldreturn)` call — so a union type in
+one tag (`@return [Point, nil]`) silently dropped everything but the first
+type, and a second `@return`/`@yieldreturn` tag was silently dropped
+entirely. Both are just "more than one type token exists," so both get
+fixed by the same change. Exercised via five new `Geometry::Path` methods:
+`#add`/`#transform!` (`@return [self]`), `#clear` (`@return [void]`),
+`#closest_to` (single tag, union type `[Point, nil]`), `#segment_at` (two
+`@return` tags), `#transform!` (also two `@yieldreturn` tags).
+
+- **The signature arrow joins every return type with `", "`, in source
+  order — a union in one tag and multiple tags render identically.**
+  `signature_return_type` now does `meth.tags(:return).flat_map { |t|
+  t.types || [] }.join(", ")` instead of `meth.tag(:return)&.types&.first`:
+  `path.closest_to(target) → Point, nil`, `path.segment_at(index) →
+  Segment, nil`. Rejected showing only the first type (matches today's
+  accidental behavior, but silently discards what the docstring author
+  wrote) and rejected omitting the arrow entirely (throws away the
+  signature line's whole value for exactly the methods where a reader most
+  needs the at-a-glance shape). `self`/`void` needed no new handling —
+  neither ever resolves via `Registry.resolve` (confirmed by probe), so
+  they already rendered as plain unresolved tokens through the existing
+  `type_ref`/arrow machinery; only the truncation-to-`.first` bug was new.
+- **The `**Returns:**`/`**Yield Returns:**` blocks become bulleted lists,
+  one bullet per tag, each tag showing its own (possibly still
+  comma-joined, for a same-tag union) type** — `method_entry.erb` now
+  iterates `method_return_tags(@method)` (renamed from the singular
+  `method_return_tag`, now returning `meth.tags(:return)` filtered to `[]`
+  for a constructor) and `@method.tags(:yieldreturn)`, each bullet's prefix
+  now `type_ref(tag.types.join(", "))` instead of `type_ref(tag.types.first)`.
+  Exactly the same iterate-and-bullet shape `**Params:**`/`**Raises:**`
+  already used — no new rendering primitive, and the existing
+  `type_ref`/"Compound-type cross-referencing" scanner already tokenizes a
+  comma-joined union correctly (verified by probe: `"Point, nil"` from a
+  different file renders `` [`Point`](Point.md)`, nil` ``, with `Point`
+  linked and `nil` left a plain token), so a same-tag union bullet needed no
+  new cross-referencing logic either.
+- **`@yield` tag multiplicity itself (as opposed to `@yieldreturn`) is
+  intentionally left unexercised and unimplemented.** Multiple *different*
+  `@yield` signatures on one method (as opposed to multiple acceptable
+  `@yieldreturn` values, which is a realistic "return X to replace, nil to
+  skip" convention) is a genuinely rare, contrived pattern with no natural
+  fixture — per the project's "don't build untested generality" stance,
+  `yield_tag`/the `**Yields:**` block still use the singular `.tag(:yield)`
+  and would silently drop a second `@yield` tag if one appeared. Revisit if
+  real usage (the dogfood milestone) surfaces a genuine case.
+- **Left deliberately unchanged, out of scope:** the 2+-`@overload` branch's
+  per-overload Returns bullet (`ov.tag(:return)`) still takes only the
+  first tag/type — no fixture combines `@overload` with a union or multiple
+  `@return` tags, so extending that branch would be unverified generality.
 
 ## Implementation
 
