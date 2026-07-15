@@ -159,6 +159,59 @@ module YARD
       end
 
       ##
+      # Finds the nearest ancestor (walking the superclass chain) that
+      # defines a same-named, same-scope method with real docs of its own —
+      # but only when +meth+ itself has none. YARD never copies a
+      # superclass method's docstring onto an undocumented override (proven
+      # directly against YARD, not assumed), so without this, a subclass
+      # override that doesn't redocument itself would otherwise render
+      # exactly like a genuinely undocumented method, silently losing the
+      # pointer to the ancestor's real docs. Only checks the class's own
+      # `meths` at each step (`inherited: false, included: false`) since
+      # this method does its own walking; deliberately doesn't also search
+      # mixins — that's the separate "mixin method's docs as seen from an
+      # including class" checklist item.
+      #
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [::YARD::CodeObjects::MethodObject, nil]
+      #
+      def overridden_method(meth)
+        return nil unless meth.docstring.empty? && meth.tags.empty?
+        ancestor = object.is_a?(::YARD::CodeObjects::ClassObject) ? object.superclass : nil
+        while ancestor.is_a?(::YARD::CodeObjects::ClassObject)
+          found = ancestor.meths(scope: meth.scope, inherited: false, included: false).find { |m| m.name == meth.name }
+          return found if found && !found.docstring.empty?
+          ancestor = ancestor.superclass
+        end
+        nil
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [String, nil] `"**Overrides:** [`Shape#label`](Shape.md)"`
+      #   when +meth+ overrides a documented ancestor method without
+      #   redocumenting it itself, or `nil` otherwise
+      #
+      def overrides_line(meth)
+        ancestor = overridden_method(meth)
+        return nil unless ancestor
+        "**Overrides:** [`#{ancestor.namespace.name}#{member_heading(ancestor)}`](#{link_path(ancestor)})"
+      end
+
+      ##
+      # Short form of {#overrides_line} for a Member Summary bullet, e.g.
+      # `"overrides `Shape#label`"`.
+      #
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [String, nil]
+      #
+      def overrides_annotation_short(meth)
+        ancestor = overridden_method(meth)
+        return nil unless ancestor
+        "overrides `#{ancestor.namespace.name}#{member_heading(ancestor)}`"
+      end
+
+      ##
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [String, nil] the object's own name for the synthetic `.new`
       #   entry (constructors have no real `@return` type of their own), or

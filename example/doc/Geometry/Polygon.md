@@ -15,6 +15,13 @@ so `Loud` shows up below under the ordinary `**Includes:**` line,
 indistinguishable there from a plain `include` — this paragraph is the
 only place that calls out the actual override behavior.
 
+`#label` is deliberately overridden here with no doc comment of its own,
+to exercise the "subclass overrides a documented parent method without
+redocumenting it" case: `Shape#label` has real docs, but YARD doesn't
+copy them onto an undocumented override, so this class's own file needs
+to point somewhere rather than rendering `#label` as if it were plain
+undocumented.
+
 ## Member Summary
 
 **Attributes**
@@ -29,6 +36,7 @@ only place that calls out the actual override behavior.
 
 - `#describe` — A short human-readable description of the polygon.
 - `#each_side` — Calls the block once for each side of the polygon, in order.
+- `#label` (overrides `Shape#label`)
 
 ## Attributes
 
@@ -39,7 +47,7 @@ only place that calls out the actual override behavior.
 
 The number of sides the polygon has.
 
-**Defined in:** `example/lib/geometry/polygon.rb:33`
+**Defined in:** `example/lib/geometry/polygon.rb:40`
 
 ## Class Methods
 
@@ -57,7 +65,7 @@ Creates a polygon with the given number of sides.
 
 - `sides` (`Integer`) — the number of sides
 
-**Defined in:** `example/lib/geometry/polygon.rb:24`
+**Defined in:** `example/lib/geometry/polygon.rb:31`
 
 ## Instance Methods
 
@@ -73,7 +81,7 @@ A short human-readable description of the polygon.
 
 - `String` — the description, e.g. `"polygon"`
 
-**Defined in:** `example/lib/geometry/polygon.rb:40`
+**Defined in:** `example/lib/geometry/polygon.rb:47`
 
 ### #each_side
 
@@ -91,4 +99,14 @@ Calls the block once for each side of the polygon, in order.
 
 - `Integer` — the number of sides yielded
 
-**Defined in:** `example/lib/geometry/polygon.rb:50`
+**Defined in:** `example/lib/geometry/polygon.rb:57`
+
+### #label
+
+```ruby
+polygon.label()
+```
+
+**Overrides:** [`Shape#label`](Shape.md)
+
+**Defined in:** `example/lib/geometry/polygon.rb:62`

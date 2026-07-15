@@ -512,9 +512,12 @@ fixing ad hoc.
 - [ ] (mech) `@see` pointing at another method in the same class
 - [x] `@see` pointing at a method in a different class/namespace —
       `Geometry.distance`'s `@see Point#distance_to`
-- [ ] (design) A subclass method that overrides a documented parent method
+- [x] A subclass method that overrides a documented parent method
       without redocumenting it (does output inherit/copy/link the parent
-      doc?) — pairs with the inherited-method open question below
+      doc?) — `Geometry::Polygon#label` (overrides `Shape#label`, no doc
+      comment of its own); settled alongside the paired "inherited, not
+      overridden at all" open question — see "Subclass method content
+      strategy" under "Decisions"
 - [ ] (mech) A mixin method's docs as seen from an including class — largely
       settled by the mixin content-strategy decisions (link out, never
       duplicate); this item just verifies nothing about the module-page side
@@ -531,14 +534,6 @@ Output format, indexing/lookup, cross-referencing, and the core YARD
 integration mechanics are now decided *and implemented* — see "Decisions" and
 "Implementation" below. What's still open:
 
-- **Content strategy for a subclass method inherited (not overridden) from a
-  superclass** — does the subclass's file duplicate, link out, or say
-  nothing at all? Resolved for `include` (see "Mixin content strategy"
-  under "Decisions"), `extend` (see "`extend` content strategy"), and
-  `prepend` (see "`prepend` content strategy") — all three "link out, not
-  duplicate" (or, for `prepend`, indistinguishable from `include`). Still
-  open for plain superclass inheritance itself. Not yet exercised in
-  `example/lib`.
 - **Flat full-FQN index** — tracked as a (design) checklist item under
   "Indexing & discovery" rather than re-described here. (Docstring markup
   dialect, formerly also listed here, is now decided — see "Docstring markup
@@ -1014,6 +1009,76 @@ over `Polygon`'s own `#describe` at call time, the opposite precedence from
 This means an agent reading just the `**Includes:**` line (without reading
 the prose) cannot tell a `prepend`ed module from an `include`d one; that's a
 real, permanent gap in the output format, not a TODO to close later.
+
+### Subclass method content strategy: link out via `**Superclass:**`; an undocumented override points back via `**Overrides:**`
+
+Resolves plain superclass inheritance, the one case the "Mixin/inheritance
+content strategy" family (`include`/`extend`/`prepend` above) left open —
+covering both halves of the paired open question at once:
+
+- **Inherited, not overridden at all** — turned out to already be settled
+  behavior, just never written up as a deliberate decision.
+  `instance_method_objects`/`class_method_objects` already pass
+  `inherited: false` (predates this decision — see the "Latent bug fixed
+  along the way" note under "Mixin content strategy" above, which caught the
+  *mixin* half of the same flags but not this one), so a subclass's own file
+  never duplicates a superclass method it doesn't redefine. The only pointer
+  is the existing `**Superclass:**` metadata line — same "link out, don't
+  duplicate" shape as `**Includes:**`/`**Extends:**`, just riding on
+  metadata that already existed for an unrelated reason. Already exercised
+  incidentally by `Triangle` (inherits `#label`/`#describe`/`#sides`/
+  `#each_side` from `Shape`/`Polygon` without redefining any of them) before
+  this decision made it deliberate.
+- **Overridden without redocumenting** — genuinely unexercised until now.
+  Probed directly against YARD (not assumed): an override with no doc
+  comment of its own gets a completely empty `docstring` and `tags` —
+  YARD never copies a superclass method's docs onto it, even when the
+  superclass method is fully documented. Left alone, this would render
+  exactly like a plain undocumented method (the "Intentionally undocumented
+  objects" policy below), silently discarding the one-hop pointer to the
+  ancestor's real docs that a human reader would get for free just by
+  glancing at the class hierarchy.
+
+Considered against the same three options "Aliased method" above weighed for
+aliases — full omission (already ruled out generally: it's genuinely public,
+unlike Ruby-scope `private`), full duplication (rejected there and here for
+the same reason: it would assert, falsely, that the override's behavior
+still matches the parent's contract, when overriding is usually done
+*because* it doesn't), and a flag-line pointer. **Settled on the pointer**,
+consistent with `include`/`extend`'s "link out, don't duplicate": a new
+`**Overrides:**` bold key-value line (no trailing period — a factual
+pointer, not a warning, matching `**Also known as:**`) in the same
+"before prose" flag-line slot, immediately after `**Also known as:**`. Its
+Member Summary counterpart is a parenthetical, `(overrides `Shape#label`)`,
+same shape as `(private API)`/`(deprecated)`. Exercised via
+`Geometry::Polygon#label` (overrides `Geometry::Shape#label`, no comment of
+its own).
+
+**Scope, deliberately narrow:** the line only appears when the override
+itself has *zero* declared documentation (`docstring.empty? &&
+tags.empty?`) — an override with even a bare `@return [Type]` and no prose
+is left to render normally, on the theory that it's already conveying
+something rather than nothing. Resolution walks the superclass chain
+looking for the nearest ancestor's same-named, same-scope method that
+*does* have a non-empty docstring (`MethodSignature#overridden_method`);
+mixins aren't searched — that's the separate, still-open "mixin method's
+docs as seen from an including class" checklist item, not folded in here.
+No reciprocal note is added to the ancestor's own page (unlike aliases'
+`**Also known as:**` back-reference) — `**Includes:**`/`**Extends:**`
+already established that this metadata family points one direction only
+(child → parent), and finding every overriding subclass would mean
+scanning the whole registry for what's ultimately a minor convenience.
+
+**Known gap, left deliberately unresolved:** YARD auto-synthesizes a
+`@return [Boolean]` tag for a `?`-suffixed predicate method even with zero
+doc comment (confirmed by probe, same as the `Sub2#zero?` case in this
+section's investigation) — so an undocumented predicate-method override
+has a non-empty `tags`, fails the scope check above, and renders with a
+`**Returns:** Boolean` line but no `**Overrides:**` pointer. Not fixed
+here: the page in that case isn't content-free the way `#label`'s would
+be, so it's a smaller gap than the one this decision closes, and no current
+fixture exercises a predicate-method override to judge whether it's worth
+a special case.
 
 ### `extend self` / `module_function`
 

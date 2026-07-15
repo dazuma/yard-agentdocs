@@ -13,6 +13,13 @@ module Geometry
   # indistinguishable there from a plain `include` — this paragraph is the
   # only place that calls out the actual override behavior.
   #
+  # `#label` is deliberately overridden here with no doc comment of its own,
+  # to exercise the "subclass overrides a documented parent method without
+  # redocumenting it" case: `Shape#label` has real docs, but YARD doesn't
+  # copy them onto an undocumented override, so this class's own file needs
+  # to point somewhere rather than rendering `#label` as if it were plain
+  # undocumented.
+  #
   class Polygon < Shape
     prepend Loud
 
@@ -50,6 +57,10 @@ module Geometry
     def each_side
       1.upto(sides) { |n| yield n }
       sides
+    end
+
+    def label
+      "polygon"
     end
   end
 end

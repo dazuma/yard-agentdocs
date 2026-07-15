@@ -20,7 +20,7 @@
 <%- end -%>
 <%- overloads = @method.tags(:overload) -%>
 <%- if overloads.size >= 2 -%>
-<%- lines = annotation_lines(@method) + [also_known_as_line(@method)].compact -%>
+<%- lines = annotation_lines(@method) + [also_known_as_line(@method), overrides_line(@method)].compact -%>
 <%- unless lines.empty? -%>
 <%= lines.join("\n") %>
 
@@ -59,7 +59,7 @@
 ```ruby
 <%= signature_text(@method, overload: primary) %>
 ```
-<%- lines = annotation_lines(@method) + [also_known_as_line(@method)].compact -%>
+<%- lines = annotation_lines(@method) + [also_known_as_line(@method), overrides_line(@method)].compact -%>
 <%- unless lines.empty? -%>
 
 <%= lines.join("\n") %>
