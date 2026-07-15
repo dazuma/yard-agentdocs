@@ -173,6 +173,39 @@ module Geometry
       Point.new(x + deltas.fetch(:x, 0), y + deltas.fetch(:y, 0))
     end
 
+    ##
+    # Returns the coordinate at the given index: `0` for `#x`, `1` for `#y`.
+    #
+    # @param index [Integer] `0` or `1`
+    # @return [Numeric] the corresponding coordinate
+    # @raise [ArgumentError] if `index` isn't `0` or `1`
+    #
+    def [](index)
+      case index
+      when 0 then x
+      when 1 then y
+      else raise ArgumentError, "index out of range: #{index.inspect}"
+      end
+    end
+
+    ##
+    # Sets the coordinate at the given index: `0` for `#x`, `1` for `#y`.
+    #
+    # Unlike this class's other methods, which return a new `Point` rather
+    # than modify the receiver, `#[]=` mutates this point in place.
+    #
+    # @param index [Integer] `0` or `1`
+    # @param value [Numeric] the new coordinate value
+    # @raise [ArgumentError] if `index` isn't `0` or `1`
+    #
+    def []=(index, value)
+      case index
+      when 0 then @x = value
+      when 1 then @y = value
+      else raise ArgumentError, "index out of range: #{index.inspect}"
+      end
+    end
+
     def zero?
       x.zero? && y.zero?
     end

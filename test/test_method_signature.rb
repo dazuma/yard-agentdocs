@@ -80,6 +80,20 @@ describe ::YARD::AgentDocs::MethodSignature do
         #   @return [Array<Point>]
         def self.of(*args)
         end
+
+        # @param index [Integer]
+        # @return [Integer]
+        def [](index)
+        end
+
+        # @param index [Integer]
+        # @param value [Integer]
+        def []=(index, value)
+        end
+
+        # @return [Point]
+        def -@
+        end
       end
     RUBY
   end
@@ -227,6 +241,18 @@ describe ::YARD::AgentDocs::MethodSignature do
     it "renders using the given overload's params and return type instead of the real method's" do
       assert_equal("Point.of(x, y) → Point", holder.signature_text(meth(:of), overload: overload(:of, 0)))
       assert_equal("Point.of(count) → Array<Point>", holder.signature_text(meth(:of), overload: overload(:of, 1)))
+    end
+
+    it "renders a #[] method in bracket form" do
+      assert_equal("point[index] → Integer", holder.signature_text(meth(:[])))
+    end
+
+    it "renders a #[]= method in bracket-assignment form, with no arrow" do
+      assert_equal("point[index] = value", holder.signature_text(meth(:[]=)))
+    end
+
+    it "renders a unary operator method in prefix form" do
+      assert_equal("-point → Point", holder.signature_text(meth(:-@)))
     end
   end
 

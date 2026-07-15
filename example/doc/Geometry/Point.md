@@ -30,6 +30,8 @@ comparable with `<=>`.
 **Instance Methods**
 
 - `#+` — Adds this point to another, component-wise.
+- `#[]` — Returns the coordinate at the given index: `0` for `#x`, `1` for `#y`.
+- `#[]=` — Sets the coordinate at the given index: `0` for `#x`, `1` for `#y`.
 - `#distance_to` — Computes the Euclidean distance to another point.
 - `#label` — Returns a short label for this point, formatted `"x,y"` by default (the same format `.parse` understands).
 - `#round` — Rounds this point's coordinates to the given decimal precision.
@@ -217,6 +219,50 @@ Adds this point to another, component-wise.
 
 **Defined in:** `example/lib/geometry/point.rb:121`
 
+### #[]
+
+```ruby
+point[index] → Numeric
+```
+
+Returns the coordinate at the given index: `0` for `#x`, `1` for `#y`.
+
+**Params:**
+
+- `index` (`Integer`) — `0` or `1`
+
+**Returns:**
+
+- `Numeric` — the corresponding coordinate
+
+**Raises:**
+
+- `ArgumentError` — if `index` isn't `0` or `1`
+
+**Defined in:** `example/lib/geometry/point.rb:183`
+
+### #[]=
+
+```ruby
+point[index] = value
+```
+
+Sets the coordinate at the given index: `0` for `#x`, `1` for `#y`.
+
+Unlike this class's other methods, which return a new `Point` rather
+than modify the receiver, `#[]=` mutates this point in place.
+
+**Params:**
+
+- `index` (`Integer`) — `0` or `1`
+- `value` (`Numeric`) — the new coordinate value
+
+**Raises:**
+
+- `ArgumentError` — if `index` isn't `0` or `1`
+
+**Defined in:** `example/lib/geometry/point.rb:201`
+
 ### #distance_to
 
 ```ruby
@@ -313,4 +359,4 @@ point.zero?() → Boolean
 
 - `Boolean`
 
-**Defined in:** `example/lib/geometry/point.rb:176`
+**Defined in:** `example/lib/geometry/point.rb:209`

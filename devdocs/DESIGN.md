@@ -327,10 +327,14 @@ fixing ad hoc.
       `@yield`/`@return` docs)
 - [x] Infix binary operator method — `Point#+`, rendered infix
       (`point + other → Point`)
-- [ ] (design) Remaining operator forms — `#[]` / `#[]=` (`point[i]`,
-      `point[i] = v`), `#<=>` / `#==`, unary `-@` / `+@` (`-point`) — each
-      has a distinct natural-call-syntax rendering that the infix-binary
-      case doesn't settle
+- [x] Remaining operator forms — `#[]` / `#[]=` (`point[i]`, `point[i] = v`),
+      `#<=>` / `#==`, unary `-@` / `+@` (`-point`) — `Geometry::Point#[]`/
+      `#[]=` (bracket form) and `Geometry::Vector#-@`/`#+@` (unary prefix
+      form) and `#==` (infix, no new rendering needed); `Stopwatch#<=>`
+      (already existing) confirmed the infix case already covered `<=>`.
+      New `bracket_call?`/`prefix_call?` rendering branches added alongside
+      the existing `infix_call?` — see "Remaining operator forms" under
+      "Decisions"
 - [ ] (design) Aliased method (`alias`/`alias_method`) — does the alias get
       its own entry or point back at the original?
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
@@ -711,6 +715,65 @@ parameter as `` "#{name} = #{default}" `` when YARD reports a default,
 `` name `` otherwise — a param with no default (required) is unaffected, so
 every already-covered signature (required-positional-only) renders exactly
 as before.
+
+### Remaining operator forms: bracket and unary-prefix rendering, `#[]=` never shows an arrow
+
+Settles the "Remaining operator forms" checklist item, extending the natural-
+call-syntax convention the infix-binary decision (`point + other → Point`)
+established, to the operator shapes that decision didn't cover. Exercised via
+`Geometry::Point#[]`/`#[]=` (index `0`/`1` → `x`/`y`) and `Geometry::Vector#-@`/
+`#+@`/`#==` (negation, unary-plus no-op, and an explicit override of `Data`'s
+auto-generated `==` purely to attach docs to it). `#<=>` needed no new fixture:
+`Stopwatch#<=>` (added earlier, for the tag-based-privacy/visibility work)
+already exercises it, and — being an ordinary one-argument operator — was
+already rendered correctly by the existing infix logic without any code
+changes, confirming that half of the bundled checklist item was already done.
+
+**The gap this closed:** before this change, `infix_call?` (any one-argument
+operator method) already matched `#[]` (single index) and would have rendered
+it as `point [] index` — wrong, not what natural Ruby call syntax looks like
+— and unary `#-@`/`#+@` (zero arguments) fell through to the generic dotted-
+call branch, rendering as `vector.-@()`. Both were real, silent bugs waiting
+for a fixture to catch them, not just missing polish.
+
+**The decision, in `lib/yard/agentdocs/method_signature.rb`:**
+
+- Two new method-name sets alongside the existing `OPERATOR_METHOD_NAMES`:
+  `BRACKET_METHOD_NAMES` (`[]`, `[]=`) and `UNARY_METHOD_NAMES` (`+@`, `-@`).
+  `infix_call?` now explicitly excludes `BRACKET_METHOD_NAMES`, since `#[]`
+  would otherwise still match its own one-argument rule.
+- `bracket_call?`/`prefix_call?` are two new predicates, checked in
+  `signature_text` before `infix_call?`: `#[]` renders `point[index]`; `#[]=`
+  renders `point[index] = value` (every param but the last inside the
+  brackets, the last as the assigned value — `bracket_call_text`); a unary
+  operator renders as its bare symbol directly against the receiver, no dot,
+  no parens, no space — `-vector`, `+vector` (`"#{name[0]}#{receiver_name(meth)}"`,
+  stripping the trailing `@` by taking just the first character of `-@`/`+@`).
+- **`#[]=` never gets a `→ Type` arrow, even if a future example gives it an
+  `@return` tag.** Ruby's assignment-expression semantics guarantee `a[i] = v`
+  always evaluates to `v`, regardless of what the method body actually
+  returns, so an arrow would risk asserting something false. Rather than add
+  a dedicated suppression rule, the `example/lib` fixture simply omits
+  `#[]=`'s `@return` tag — the already-existing "no `@return` tag → no arrow"
+  behavior (`signature_return_type` returning `nil`) handles it for free. This
+  is a real gap, not just an unexercised case: a `#[]=` that *does* carry an
+  `@return` tag will still render an (misleading) arrow today, matching this
+  project's general "reflect what's actually parseable" stance (see the
+  `Struct`/`Data` decision) rather than trying to special-case it pre-emptively.
+- No changes were needed for `#==` or `#<=>` — both are ordinary one-argument
+  instance operators, already handled correctly by the pre-existing
+  `infix_call?` path.
+
+**Why `#[]`/`#[]=` went on `Point` and `-@`/`+@`/`==` went on `Vector`, not
+some other combination:** `Point`'s docstring already explicitly disclaims
+`Comparable`/`<=>` ("Doesn't mix in `Comparable`, so points aren't directly
+sortable or comparable with `<=>`"), so adding `#==` there would read as a
+contradiction; `Vector` had no such disclaimer and (being `Data`-backed)
+already has an implicit, undocumented `==`, making an explicit, documented
+override a realistic thing to exercise. `Point#[]=` is also notable as the
+first *mutating* method in an otherwise value-object-style API (every other
+`Point` method returns a new instance) — called out explicitly in its own
+docstring rather than left as a silent inconsistency for a reader to notice.
 
 ### Mixin content strategy (direct `include`): link out, not duplicate
 

@@ -25,6 +25,18 @@ module YARD
       ].freeze
 
       ##
+      # Operator method names rendered in bracket form (`point[i]`,
+      # `point[i] = v`) rather than infix or dotted call form.
+      #
+      BRACKET_METHOD_NAMES = ["[]", "[]="].freeze
+
+      ##
+      # Operator method names rendered in unary prefix form (`-vector`)
+      # rather than infix or dotted call form.
+      #
+      UNARY_METHOD_NAMES = ["+@", "-@"].freeze
+
+      ##
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [Boolean]
       #
@@ -161,10 +173,47 @@ module YARD
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @param params [Array<String>] as returned by {#param_names}
       # @return [Boolean] whether +meth+ should render in infix operator form
-      #   (`point + other`) rather than dotted call form (`point.+(other)`)
+      #   (`point + other`) rather than dotted call form (`point.+(other)`).
+      #   Excludes {BRACKET_METHOD_NAMES}, which render in bracket form
+      #   instead even though `[]` also takes exactly one argument.
       #
       def infix_call?(meth, params)
+        return false if BRACKET_METHOD_NAMES.include?(meth.name.to_s)
         !meth.constructor? && operator?(meth) && meth.scope == :instance && params.size == 1
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [Boolean] whether +meth+ should render in bracket call form
+      #   (`point[i]`, `point[i] = v`) — see {BRACKET_METHOD_NAMES}
+      #
+      def bracket_call?(meth)
+        !meth.constructor? && meth.scope == :instance && BRACKET_METHOD_NAMES.include?(meth.name.to_s)
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param params [Array<String>] as returned by {#param_names}
+      # @return [Boolean] whether +meth+ should render in unary prefix form
+      #   (`-vector`) — see {UNARY_METHOD_NAMES}. Requires no parameters,
+      #   same as Ruby itself (`def -@` takes none).
+      #
+      def prefix_call?(meth, params)
+        !meth.constructor? && meth.scope == :instance && UNARY_METHOD_NAMES.include?(meth.name.to_s) && params.empty?
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param params [Array<String>] as returned by {#param_names}
+      # @return [String] the bracket-call fragment, e.g. `point[i]` for
+      #   `#[]`, or `point[i] = v` for `#[]=` (the last param is the
+      #   assigned value, every other param is an index inside the
+      #   brackets)
+      #
+      def bracket_call_text(meth, params)
+        receiver = receiver_name(meth)
+        return "#{receiver}[#{params.join(', ')}]" unless meth.name.to_s == "[]="
+        "#{receiver}[#{params[0...-1].join(', ')}] = #{params.last}"
       end
 
       ##
@@ -194,7 +243,11 @@ module YARD
         params = param_names(meth, overload: overload)
         block = block_literal(meth)
         call =
-          if infix_call?(meth, params)
+          if bracket_call?(meth)
+            bracket_call_text(meth, params)
+          elsif prefix_call?(meth, params)
+            "#{name[0]}#{receiver_name(meth)}"
+          elsif infix_call?(meth, params)
             "#{receiver_name(meth)} #{name} #{params.first}"
           else
             base = "#{receiver_name(meth)}.#{name}"
