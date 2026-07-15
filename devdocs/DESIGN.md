@@ -96,8 +96,11 @@ implementation code gets touched:
    how much design latitude each item carries).
 2. **Claude** proposes the corresponding additions/edits to `example/lib`
    (Ruby source exercising the item) and `example/doc` (the hand-authored
-   target output for it), asking clarifying questions along the way where the
-   item raises a design choice not already settled in "Decisions".
+   target output for it) — for any multi-line tag/docstring text, mirror the
+   source comment's exact line breaks, since the template preserves raw text
+   verbatim rather than rewrapping it — asking clarifying questions along the
+   way where the item raises a design choice not already settled in
+   "Decisions".
 3. **Human** reviews the proposed `example/lib`/`example/doc` changes; they
    iterate with Claude as needed until both are satisfied. Nothing outside
    `example/` (templates, `test/test_agentdocs_template.rb`) is touched during
