@@ -79,6 +79,22 @@ module Geometry
     end
 
     ##
+    # Yields each segment connecting consecutive points in the path, in
+    # order. Returns an Enumerator instead if no block is given.
+    #
+    # @yieldparam segment [Segment] each segment, in order
+    # @return [Integer] the number of segments yielded, if a block is given
+    # @return [Enumerator] an enumerator over the path's segments, if no
+    #   block is given
+    #
+    def each_segment
+      return enum_for(:each_segment) unless block_given?
+
+      (0...(@points.size - 1)).each { |i| yield Segment.new(@points[i], @points[i + 1]) }
+      @points.size - 1
+    end
+
+    ##
     # Replaces each point in the path with the block's result, in place.
     #
     # @yieldparam point [Point] each point, in order

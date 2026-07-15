@@ -325,9 +325,13 @@ fixing ad hoc.
       `@return` tags), `#transform!` (two `@yieldreturn` tags); `@yield` tag
       multiplicity itself intentionally left unexercised — see "Multiple
       return types" under "Decisions"
-- [ ] (design) A method returning an `Enumerator` when called without a
+- [x] (design) A method returning an `Enumerator` when called without a
       block, and yielding when called with one (tests combined
-      `@yield`/`@return` docs)
+      `@yield`/`@return` docs) — `Geometry::Path#each_segment`; confirmed
+      mechanical, zero template changes — settled that the signature line
+      shows only the block-calling form, not a second no-block form — see
+      "Enumerator-returning method: single block-form signature line, no
+      overload-aware block detection" under "Decisions"
 - [x] Infix binary operator method — `Point#+`, rendered infix
       (`point + other → Point`)
 - [x] Remaining operator forms — `#[]` / `#[]=` (`point[i]`, `point[i] = v`),
@@ -2432,6 +2436,44 @@ one multiline `Hash` proves the mechanism for all three; unit-test-only
 coverage for `Array`/`Regexp` shapes was not added, consistent with this
 project's existing precedent of proving shared machinery once (see the
 compound-type/code-span precedents elsewhere in this document).
+
+### Enumerator-returning method: single block-form signature line, no overload-aware block detection
+
+Settles the "A method returning an `Enumerator`..." checklist item.
+Exercised via `Geometry::Path#each_segment` (`return enum_for(:each_segment)
+unless block_given?`, `@yieldparam segment`, and two `@return` tags —
+`Integer` when a block is given, `Enumerator` when not).
+
+- **Confirmed mechanical: zero template changes.** Probed the real,
+  already-implemented template against this fixture before touching
+  `example/` at all. Multiple `@return` tags (see "Multiple return types"),
+  `@yieldparam` rendering, and the implicit-block-literal signature line
+  (see "Block presentation") are all independently-settled machinery that
+  compose correctly with no new code: `path.each_segment { |segment| ... }
+  → Integer, Enumerator`, with both `@return` tags listed in declaration
+  order under `**Returns:**`.
+- **The real design question: the signature line shows only the
+  block-calling form**, never the no-block form (`path.each_segment →
+  Enumerator`) that this exact method also supports. Considered making
+  `@overload` show both forms separately (already-settled machinery for
+  "multiple distinct call forms" in general) but rejected it: `block_literal`/
+  `implicit_block?` in `method_signature.rb` inspect the *method's* own
+  `@yield`/`@yieldparam` tags, not a specific `@overload` tag's, so every
+  overload of a method currently gets identical block-literal treatment —
+  giving each overload its own independently-detected block presence would
+  be new, more invasive machinery, not a mechanical extension of what's
+  already there.
+  - **Accepted the single-signature-line simplification instead** — matches
+    this project's own "natural call syntax over invented schema" precedent
+    (prefer composing settled machinery over inventing a new rendering
+    schema), and mirrors how Ruby's own core docs handle the identical
+    idiom (e.g. `Array#each`: one signature line showing the block form,
+    with the no-block/Enumerator behavior carried in prose/`@return` rather
+    than a second signature line) — not a novel shortcut, a well-precedented
+    one.
+  - Not revisited unless a real case (dogfood milestone) makes the omission
+    genuinely confusing in practice, at which point overload-aware block
+    detection would need its own design pass.
 
 ## Implementation
 

@@ -24,6 +24,7 @@ documented on this page.
 - `#clear` — Removes every point from the path.
 - `#closest_to` — Finds the point in the path closest to the given target.
 - `#each` — Yields each point in the path, in order.
+- `#each_segment` — Yields each segment connecting consecutive points in the path, in order.
 - `#segment_at` — Builds the segment connecting the points at `index` and `index + 1`.
 - `#transform!` — Replaces each point in the path with the block's result, in place.
 
@@ -115,6 +116,27 @@ Yields each point in the path, in order.
 
 **Defined in:** `example/lib/geometry/path.rb:63`
 
+### #each_segment
+
+```ruby
+path.each_segment { |segment| ... } → Integer, Enumerator
+```
+
+Yields each segment connecting consecutive points in the path, in
+order. Returns an Enumerator instead if no block is given.
+
+**Yield Params:**
+
+- `segment` ([`Segment`](Segment.md)) — each segment, in order
+
+**Returns:**
+
+- `Integer` — the number of segments yielded, if a block is given
+- `Enumerator` — an enumerator over the path's segments, if no
+  block is given
+
+**Defined in:** `example/lib/geometry/path.rb:90`
+
 ### #segment_at
 
 ```ruby
@@ -155,4 +177,4 @@ Replaces each point in the path with the block's result, in place.
 
 - `self` — this path, for chaining
 
-**Defined in:** `example/lib/geometry/path.rb:89`
+**Defined in:** `example/lib/geometry/path.rb:105`
