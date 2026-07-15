@@ -385,11 +385,32 @@ implementation bodies dominate, rather than assuming.
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [ ] (mech) Class methods defined via `class << self` — should render
-      identically to `def self.foo`
+      identically to `def self.foo`; also cover *attributes* defined on the
+      singleton (`class << self; attr_reader :config; end`, the standard
+      module-level configuration pattern), which exercise `AttributeInfo`
+      down a different path than instance attributes
 - [x] (mech) A private class method — `Geometry::Computations.average`
       (`private_class_method`-marked, backing `.centroid`'s x/y averaging);
       confirmed omitted with zero template changes, same policy as instance
       `private`/`protected`
+- [ ] (mech) Argument forwarding and anonymous params — `def foo(...)` and
+      `def foo(*, **, &)` (Ruby 3.0–3.2, well within the gem's `>= 3.4`
+      floor and increasingly idiomatic): `param_names` renders whatever
+      YARD's `parameters` reports for these, which nobody has inspected —
+      the natural-call-syntax line might come out fine (`obj.foo(...)`) or
+      mangled. Escalate to (design) if the raw report needs cleanup.
+      Flagged by the July 2026 coverage review
+- [ ] (mech) Endless method definition (`def area = width * height`) —
+      almost certainly renders identically to the block form, but it's a
+      distinct parse path in YARD and a one-line fixture proves it.
+      Flagged by the July 2026 coverage review
+- [ ] (mech) Explicit assignment method (`def name=(value)`) not paired
+      via `attr_*` — YARD treats it as a plain method named `name=`, not
+      an attribute, so it takes the method-entry path; the assignment-form
+      rendering settled for `#[]=` (natural `obj[i] = v` syntax, no `→`
+      arrow — see "Remaining operator forms" under "Decisions") should
+      extend to it, else it renders as the awkward `obj.name=(value)`.
+      Flagged by the July 2026 coverage review
 
 ### Visibility
 
@@ -410,6 +431,19 @@ implementation bodies dominate, rather than assuming.
       unlike Ruby-scope privacy, these render but are flagged (`**Private
       API.**` full-entry line, `(private API)` Member Summary suffix) —
       see "Visibility policy" under "Decisions"
+- [ ] (mech) `@api` with non-private values (`@api public`, `@api
+      internal`) — `VisibilityInfo` only special-cases `text == "private"`,
+      so any other value vanishes entirely today; and `@api` is one of
+      YARD's two transitive tags (see the `@since` discussion under
+      "Splitting the flag block" in "Decisions"), so a class-level tag
+      covers every method. Decide render-vs-drop. Flagged by the July 2026
+      coverage review
+- [ ] (mech) Class-level `@private` (or `@api private`) on a class/module —
+      tag-based privacy was settled and exercised on methods only; whether
+      a `@private`-tagged class gets a file, gets flagged on its own page,
+      and gets flagged (or filtered) in `index.md` is unverified. Escalate
+      to (design) if the index treatment isn't obvious. Flagged by the
+      July 2026 coverage review
 
 ### Attributes & constants
 
@@ -441,6 +475,12 @@ implementation bodies dominate, rather than assuming.
 - [x] (mech) Private constant (`private_constant`) — `Stopwatch::CLOCK`,
       backing `#current_time`; confirmed omitted with zero template changes,
       same policy as instance/class-method privacy
+- [ ] (stretch) Class variables (`@@foo`) — YARD registers them as
+      first-class code objects; the template has no section for them, so
+      they're silently dropped today. Modern Ruby style avoids them, so
+      deliberate omission is probably the right outcome — but that should
+      be a recorded decision, not an accident. Flagged by the July 2026
+      coverage review
 
 ### YARD tags
 
@@ -497,6 +537,19 @@ implementation bodies dominate, rather than assuming.
       machinery, rather than dropping — see "Remaining free-form tags:
       render generically via existing `@since`/`@note` machinery, don't
       drop" under "Decisions"
+- [ ] (design) Reference tags — a docstring that is literally
+      `(see #other)`, and the per-tag form `@param x (see #other)`:
+      YARD's doc-copying syntax, used in real gems to avoid duplicating
+      docs across overloads/aliases. Whether `Docstring` resolves these
+      transparently before the template sees them, or the template renders
+      a content-free entry, is unknown — probe first; a wrong rendering
+      here fails silently. Flagged by the July 2026 coverage review
+- [ ] (stretch) Custom user-defined tags (`--tag foo:"Header"` in
+      `.yardopts`) — the free-form-tag decision routed
+      `@todo`/`@version`/`@author` through existing machinery, but a
+      user-defined tag is likely dropped silently today. Wait for dogfood
+      evidence that real gems' custom tags matter before designing
+      anything. Flagged by the July 2026 coverage review
 
 ### YARD directives (for dynamically-defined methods/attrs)
 
@@ -506,6 +559,15 @@ implementation bodies dominate, rather than assuming.
       a loop, or via a class-level DSL macro — common in real-world gems)
 - [ ] (stretch) `@!group` / `@!endgroup` (method grouping) — only include if
       we decide the output format should reflect YARD groups
+- [ ] (design) `@!macro` — attach-mode macros on class-level DSL methods
+      are the workhorse of DSL-heavy and generated codebases, so the
+      dogfood run will hit them. YARD expands macros at parse time, so
+      rendering *may* be free — probe rather than assume. Flagged by the
+      July 2026 coverage review
+- [ ] (stretch) `@!parse` / `@!scope` / `@!visibility` — the remaining
+      directives; mainly matter for C-extension gems documenting via stub
+      files. Wait for real-usage evidence. Flagged by the July 2026
+      coverage review
 
 ### Documentation content / prose patterns
 
@@ -585,6 +647,13 @@ implementation bodies dominate, rather than assuming.
       where `#tag` gets its normal full entry) — the existing mixin
       content-strategy decision already covered this, this item just
       verified nothing about the module-page side was left undecided
+- [ ] (mech) Graceful degradation for the inline forms scoped out of the
+      inline-reference decision — `{file:...}`, `{include:...}`,
+      `{render:...}`, bare URLs: full support was deliberately rejected
+      (see "Inline cross-references in prose" under "Decisions"), but
+      nothing proves what a docstring containing them renders as today
+      (presumably literal unresolved text). Decide and prove the
+      degradation, not support. Flagged by the July 2026 coverage review
 
 ### Indexing & discovery
 
@@ -619,6 +688,15 @@ implementation bodies dominate, rather than assuming.
       project invokes the template per-dependency, where output lands)
       that dogfooding will settle — writing it earlier means guessing.
       See "Navigation guidance: preamble plus skill" under "Decisions"
+- [ ] (design) README and extra files (guides) — YARD's human output leads
+      with the README and `--files` guides; agentdocs renders only code
+      objects, so an agent arriving fresh gets reference granularity with
+      no conceptual on-ramp. Directly affects "ease of understanding how
+      to use the library for a particular application", the weakest of the
+      July 2026 agent-usefulness evaluation's three framing questions, and
+      the July 2026 coverage review's biggest *content* (vs. rendering)
+      gap. Interacts with the navigation-preamble item above — both
+      compete for `index.md` real estate
 
 ## Open questions
 
