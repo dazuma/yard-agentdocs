@@ -2078,6 +2078,10 @@ and `Geometry::Vector` (a class-level example) for `@since`.
     merely *link* to it (a nested-class bullet in its parent's Member
     Summary, or the flat FQN index) — left unexercised and unimplemented;
     revisit if the dogfood milestone shows this matters.
+  - **Superseded:** rendering shape later changed from a bare bold line to a
+    `- **Label:**` bulleted list item, and `@todo` was pulled out of this
+    group entirely — see "Bulleted-list rendering for metadata/flag lines"
+    and "Splitting the flag block" below.
 - **`@since` renders as a trailing `**Since:**` key-value line** instead — a
   version string isn't a flag to call out up front the way a deprecation or
   caveat is, so it goes wherever each object kind already puts its own
@@ -2085,24 +2089,19 @@ and `Geometry::Vector` (a class-level example) for `@since`.
   - Constants: right before `**Defined in:**` (`constant_entry.erb`), after
     the docstring — the same slot a method's `**Returns:**`/`**See also:**`
     occupy relative to *its* `**Defined in:**`.
-  - Classes/modules: folded into the metadata block itself (`metadata.erb`),
-    right after `**Superclass:**`/`**Includes:**`/`**Extends:**` and before
-    `**Defined in:**` — classes put `**Defined in:**` at the *top* of the
-    file (see "Output format" above), not trailing like every other entry
-    kind, so there's no separate trailing-tags region to reuse; the metadata
-    block is the closest existing analog (also bold key-value lines, also
-    already ordered with `**Defined in:**` last).
+  - Classes/modules: **(superseded — see below)** originally folded into the
+    metadata block itself (`metadata.erb`), right after `**Superclass:**`/
+    `**Includes:**`/`**Extends:**` and before `**Defined in:**`; later moved
+    out of `metadata.erb` entirely into its own trailing block after the
+    docstring — see "Splitting the flag block" below.
   - No backticks around the version text (`**Since:** 1.0.0`, not `` **Since:**
     `1.0.0` ``) — unlike `**Superclass:**`/`**Value:**`, it isn't a type
     reference or Ruby literal, just a plain version token, matching how
     YARD's own default template renders it unadorned too.
-  - **Not exercised, left for a real case to justify:** `@since` on a method
-    or an attribute — no current fixture needs the trailing-line placement
-    outside a constant, so `method_entry.erb`/`attribute_entry.erb` don't
-    call `since_line` at all yet (the helper itself,
-    `AuxiliaryTags#since_line`, is object-agnostic and ready to wire in
-    whenever a fixture needs it — see "Extracting generic logic into `lib/`
-    mixins" below for why this split exists).
+  - **Superseded:** `@since` on a method is no longer un-exercised —
+    `method_entry.erb` now calls `since_line` (via `trailing_annotation_lines`),
+    which surfaced that `@since` is one of YARD's two transitive tags. See
+    "Splitting the flag block" below for the full decision.
 - **Implementation:** a new `YARD::AgentDocs::AuxiliaryTags` mixin
   (`lib/yard/agentdocs/auxiliary_tags.rb`, alongside `VisibilityInfo`) adds
   `annotation_lines`/`annotation_lines_short` (the flag-line array and its
@@ -2503,13 +2502,14 @@ else needs covering under "and anything similar."
   diverge.
 - **`@version` reuses `@since`'s exact rendering shape and scope** — a
   trailing `**Version:** 1.2.0` key-value line (`version_line` in
-  `AuxiliaryTags`), wired into `metadata.erb` right after `since_line`. Not
-  wired into `constant_entry.erb` — `@since` itself is only exercised there
-  (`Point::DIMENSIONS`) and at the class/module level (`Vector`), never on
-  a method/attribute (`since_line` isn't called from `method_entry.erb`/
-  `attribute_entry.erb` at all, a pre-existing gap this item isn't
-  fixing) — `@version`/`@author` match that same scope rather than
-  reaching further un-exercised ground.
+  `AuxiliaryTags`), originally wired into `metadata.erb` right after
+  `since_line`. **Superseded:** `since_line`/`version_line`/`author_line` all
+  moved out of `metadata.erb` into a separate trailing block, and
+  `since_line`/`version_line`/`author_line` are now also wired into
+  `method_entry.erb` — see "Splitting the flag block" below.
+  `constant_entry.erb`/`attribute_entry.erb` still only wire in `since_line`
+  (constants) or nothing at all (attributes); `@todo`/`@version`/`@author`
+  remain unwired for both, same pre-existing "not exercised" gap as before.
 - **`@author` supports multiple tags**, comma-joined under one `**Author:**`
   label (`Vector`'s `@author Ada Lovelace` / `@author Alan Turing` →
   `**Author:** Ada Lovelace, Alan Turing`) — same "one label, join the
@@ -2523,14 +2523,157 @@ else needs covering under "and anything similar."
   order — YARD's own template has no equivalent ordering to match (it
   renders `@todo` as a separate callout, not part of the same flag-line
   group), so "last" was picked arbitrarily as the lowest-priority
-  annotation. Deliberately not added to `annotation_lines_short` (Member
-  Summary bullet annotations) — `@note` itself has no short form either,
-  an existing precedent `@todo` just follows.
+  annotation. **Superseded:** `@todo` was later pulled out of this group
+  entirely into its own trailing block, after the prose rather than before
+  it — see "Splitting the flag block" below. Deliberately not added to
+  `annotation_lines_short` (Member Summary bullet annotations) — `@note`
+  itself has no short form either, an existing precedent `@todo` just
+  follows; this is unaffected by the later move.
 - Exercised via `Stopwatch` (`@todo`, alongside its existing `@note`,
   proving the flag-line family holds more than two entries at once) and
   `Geometry::Vector` (`@since`/`@version`/`@author` stacked together,
   proving `metadata.erb`'s trailing block holds more than one optional line
   at once — previously only ever exercised with `@since` alone).
+
+### Bulleted-list rendering for metadata/flag lines: CommonMark reflow and embedded-newline corruption
+
+Prompted by re-reading the generated output as a human would (not just an
+agent) and noticing `Stopwatch.md`'s `**Superclass:**`/`**Defined in:**`
+lines, and its `**Note:**`/`**Todo:**` flag lines, were stacked with only a
+single `\n` between them — no blank line. Verified two distinct problems
+with a real CommonMark parser (`commonmarker`, GitHub's `cmark-gfm`, in a
+scratch dir — not a project dependency), not by reasoning from the spec
+alone:
+
+- **Reflow.** Under strict CommonMark (no `hardbreaks`, which is how most
+  non-GitHub renderers behave — Python-Markdown, pandoc, `marked` without
+  options), consecutive bare `**Label:** value` lines land in one `<p>`, and
+  the raw `\n` the parser emits between them gets collapsed by a browser
+  into a single space — `Superclass: Object Defined in:
+  example/lib/stopwatch.rb` reads as one flowing line. (`commonmarker`'s own
+  default *does* insert `<br>` there, since its Ruby API defaults
+  `render.hardbreaks` to `true` — confirmed directly — which isn't
+  representative of a generic renderer, so the reflow probe was re-run with
+  `hardbreaks: false` to see the strict-spec behavior instead.)
+- **Embedded-newline corruption — the more serious finding.** `note_line`/
+  `todo_line`/`deprecated_line`/`abstract_line`/`since_line`/`version_line`/
+  `author_line` (`AuxiliaryTags`) all splice `markdownify(tag.text)` directly
+  into a bare line — exactly the shape "Prose/summary containing Markdown
+  metacharacters" (above) already fixed for `@param`/`@raise`/`@return`/
+  `@yield` — but the fix (`indent_continuation`) was never applied here.
+  Confirmed directly that `Tags::Tag#text` retains raw embedded newlines,
+  including a blank-line paragraph break, for these tags too, and reproduced
+  the exact severe failure mode already documented above: a multi-paragraph
+  `@note` containing an unmatched fenced-code delimiter swallows every
+  subsequent heading/entry to end of document, with no error.
+
+**The decision:** every currently-bare `**Label:** value` line that either
+(a) could be stacked adjacent to another such line with no blank line, or
+(b) splices in raw tag text, becomes a `- **Label:** value` bulleted list
+item, reusing `indent_continuation` for every value built from tag text
+(`@note`/`@todo`/`@deprecated`/`@abstract`/`@since`/`@version`/`@author`).
+Verified with `commonmarker` that this fixes both problems at once: list
+items stay structurally distinct `<li>`s regardless of `hardbreaks`, and a
+multi-paragraph value nests safely inside its own `<li>` instead of leaking
+into the next block. For uniformity, *every* field line was converted this
+way, even ones that were already isolated by blank lines and had no
+adjacency risk (a method/constant/attribute's own trailing
+`**Defined in:**`, the alias branch's `**Alias for:**`) — "a field is always
+a bullet" is one simple rule to hold onto, rather than one that depends on
+incidental adjacency. Not touched: `**See also:**` (a type/link list, not
+raw prose, so no corruption risk, and already isolated), `**Params:**`/
+`**Returns:**`/`**Raises:**`/`**Yields:**` (already bulleted), and the
+multi-file comma-joined `**Defined in:**` line (already an established
+single-line exception — see "Class/module reopened across files" above —
+now `- **Defined in:** \`a.rb\`, \`b.rb\`` instead of a bare line, same
+comma-joining).
+
+- **Implementation:** `AuxiliaryTags#annotation_lines`, `#since_line`,
+  `#version_line`, `#author_line` (and the private `#deprecated_line`/
+  `#note_line`/`#abstract_line`/`#todo_line`) all prefix `- ` and wrap
+  tag-text values in `indent_continuation`; `class/agentdocs/setup.rb#
+  superclass_line`, `module/agentdocs/setup.rb#mixin_line`/`#defined_in_line`,
+  `lib/yard/agentdocs/method_signature.rb#also_known_as_line`/
+  `#overrides_line` gained the same `- ` prefix; `constant_entry.erb`/
+  `attribute_entry.erb`/`method_entry.erb` got the same prefix spliced onto
+  their remaining inline `**Type:**`/`**Value:**`/`**Defined in:**`/
+  `**Alias for:**` lines.
+- **Regression coverage:** extended `Stopwatch`'s `@todo` into a genuine
+  multi-paragraph tag (a real blank line inside the tag text, not just a
+  soft-wrapped single paragraph) — no fixture previously exercised a blank
+  line inside `@note`/`@todo`/`@deprecated`/`@abstract`, so nothing would
+  have caught a regression here otherwise. Verified end to end with
+  `commonmarker` that the second paragraph nests correctly inside the
+  `- **Todo:**` list item with no bleed into neighboring content, then
+  regenerated every `example/doc`/`example/rdoc/doc` fixture from the actual
+  template output (never hand-edited) and diffed to confirm only the
+  intended lines changed.
+
+### Splitting the flag block: `@todo`/`@since`/`@version`/`@author` move to a trailing block after the prose
+
+Follow-up to "Auxiliary one-line tags" and "Remaining free-form tags" above,
+prompted by looking at `Stopwatch.md` again and judging that
+`**Note:**`/`**Todo:**` (grouped together, before the description) put too
+much weight on `@todo`, which isn't really a caveat about *using* the object
+the way `@note`/`@deprecated`/`@abstract` are.
+
+- **Split by how actionable the tag is, not by tag "family."**
+  `@deprecated`/`@abstract`/`@note` stay exactly where they were — the
+  "before prose" flag slot — because they're genuine caveats that change how
+  the rest of the entry should be read (a thread-safety warning, a
+  deprecation notice), matching YARD's own default template's placement of
+  these as callouts before the description. `@todo` (forward-looking, not a
+  present caveat) and `@since`/`@version`/`@author` (provenance/bibliographic
+  metadata, not usage-relevant) move to a new trailing block instead, placed
+  after the docstring — burying lower-priority information below the actual
+  content, rather than making a reader wade through it first, is the right
+  trade-off here. `@note` was explicitly *not* moved, even though it was
+  raised alongside `@todo` initially — `Geometry::Point#round`'s and
+  `Stopwatch`'s own `@note` tags are exactly the kind of "read this before
+  you use the method" caveat that belongs up front.
+- **Where "trailing" means depends on the entry kind.** For a method, it's
+  literally the bottom of the entry — right before the already-trailing
+  `**Defined in:**` line (both the single-overload/primary branch and the
+  `overloads.size >= 2` branch, the latter having no `**Defined in:**` line
+  to anchor against at all — a pre-existing, unexercised gap this change
+  doesn't fix, but the trailing block was still added at the end of that
+  branch for symmetry). For a class/module, "just above `**Defined in:**`"
+  doesn't work — classes put `**Defined in:**` at the *top* of the page (see
+  "Output format" above), so the trailing block goes right after the
+  docstring/`@example`s instead, before `## Member Summary`.
+- **Surfaced a real YARD semantic while wiring `since_line` into
+  `method_entry.erb` for the first time** (previously "not exercised," per
+  "Remaining free-form tags" above): `@since` is one of only two tags YARD
+  marks *transitive* (`@since` and `@api` — confirmed via
+  `YARD::Tags::Library.transitive_tags`, *not* `@version`/`@author`). A
+  transitive tag on a namespace applies to every child object that doesn't
+  redeclare it, so `Geometry::Vector`'s class-level `@since 2.0.0` now also
+  shows on all four of its methods. No bundled YARD template special-cases
+  transitivity — the inheritance happens in `Docstring#tag` itself, not the
+  template — so this is exactly how YARD's own default HTML template would
+  render the same fixture. Decided, after presenting the trade-off, to leave
+  it un-special-cased rather than filtering to only-directly-declared tags:
+  it matches upstream semantics, and it's genuinely useful information for
+  an agent looking at one method in isolation.
+- **Implementation:** `AuxiliaryTags#annotation_lines` narrowed to Private
+  API/Deprecated/Abstract/Note only; new `AuxiliaryTags#trailing_annotation_lines`
+  added, returning Todo/Since/Version/Author in that order. `metadata.erb` no
+  longer calls `since_line`/`version_line`/`author_line` (only
+  `**Superclass:**`/`**Includes:**`/`**Extends:**`/`**Defined in:**` remain).
+  `page.erb` calls `trailing_annotation_lines(object)` after the
+  docstring/examples block, before `## Member Summary`. `method_entry.erb`
+  calls `trailing_annotation_lines(@method)` in both overload branches,
+  right before (or, for the `>= 2` branch, in place of) `**Defined in:**`.
+  `constant_entry.erb`'s existing standalone `since_line(@constant)` call
+  (already positioned correctly, after the docstring and before
+  `**Defined in:**`) is untouched; `@todo`/`@version`/`@author` remain
+  unwired for constants/attributes, same "not exercised" scope this item
+  already had.
+- Exercised via `Stopwatch` (`@todo`, now the sole occupant of the trailing
+  block there, with its multi-paragraph text from the bulleted-list-rendering
+  decision above) and `Geometry::Vector` (`@since`/`@version`/`@author`, now
+  trailing instead of top-of-page, plus the newly-visible transitive
+  `@since` on its methods).
 
 ## Implementation
 
