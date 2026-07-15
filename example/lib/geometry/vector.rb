@@ -5,6 +5,9 @@ module Geometry
   # An immutable 2D displacement vector.
   #
   # @since 2.0.0
+  # @version 2.1.0
+  # @author Ada Lovelace
+  # @author Alan Turing
   #
   Vector = Data.define(:dx, :dy) do
     ##

@@ -5,6 +5,7 @@
 
 **Note:** Not thread-safe: concurrent `#add`/`#measure` calls on the same
 stopwatch can lose updates.
+**Todo:** Support pausing/resuming instead of only accumulating.
 
 A simple stopwatch that accumulates elapsed time, in seconds.
 
@@ -44,7 +45,7 @@ Call the reset method to start over.
 The elapsed time a newly created stopwatch starts at, and the default
 value `#reset` resets to.
 
-**Defined in:** `example/lib/stopwatch.rb:21`
+**Defined in:** `example/lib/stopwatch.rb:22`
 
 ## Class Methods
 
@@ -58,7 +59,7 @@ Stopwatch.new() → Stopwatch
 
 Creates a stopwatch with no elapsed time yet recorded.
 
-**Defined in:** `example/lib/stopwatch.rb:34`
+**Defined in:** `example/lib/stopwatch.rb:35`
 
 ## Instance Methods
 
@@ -81,7 +82,7 @@ makes the same choice).
 
 - `Integer` — -1, 0, or 1
 
-**Defined in:** `example/lib/stopwatch.rb:131`
+**Defined in:** `example/lib/stopwatch.rb:132`
 
 ### #accrue
 
@@ -98,7 +99,7 @@ Older name for `#add`, from an earlier version of this API.
 Prefer `#add` in new code. `#accrue` is kept only so callers written
 against the 1.x API keep working.
 
-**Defined in:** `example/lib/stopwatch.rb:56`
+**Defined in:** `example/lib/stopwatch.rb:57`
 
 ### #add
 
@@ -118,7 +119,7 @@ Adds to the elapsed time.
 
 - `Float` — the new total elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:44`
+**Defined in:** `example/lib/stopwatch.rb:45`
 
 ### #describe
 
@@ -147,7 +148,7 @@ formatting API.
 
 - `String` — the assembled label
 
-**Defined in:** `example/lib/stopwatch.rb:103`
+**Defined in:** `example/lib/stopwatch.rb:104`
 
 ### #measure
 
@@ -170,7 +171,7 @@ elapsed time.
 
 - `Object` — the block's return value
 
-**Defined in:** `example/lib/stopwatch.rb:79`
+**Defined in:** `example/lib/stopwatch.rb:80`
 
 ### #raw_elapsed_s
 
@@ -188,7 +189,7 @@ part of the stable public API.
 
 - `String` — the elapsed time, in seconds, as a plain string
 
-**Defined in:** `example/lib/stopwatch.rb:118`
+**Defined in:** `example/lib/stopwatch.rb:119`
 
 ### #reset
 
@@ -210,7 +211,7 @@ Resets the elapsed time.
 
 - `Float` — the new elapsed time
 
-**Defined in:** `example/lib/stopwatch.rb:66`
+**Defined in:** `example/lib/stopwatch.rb:67`
 
 ### #restart
 
@@ -220,4 +221,4 @@ stopwatch.restart(to = DEFAULT_ELAPSED) → Float
 
 **Alias for:** `#reset`
 
-**Defined in:** `example/lib/stopwatch.rb:69`
+**Defined in:** `example/lib/stopwatch.rb:70`

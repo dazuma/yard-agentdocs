@@ -10,6 +10,7 @@
 #
 # @note Not thread-safe: concurrent `#add`/`#measure` calls on the same
 #   stopwatch can lose updates.
+# @todo Support pausing/resuming instead of only accumulating.
 #
 class Stopwatch
   ##

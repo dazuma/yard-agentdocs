@@ -453,10 +453,16 @@ fixing ad hoc.
       NotImplementedError` stub); settled that it folds into the existing
       flag-line mechanism with no extra prominence — see "`@abstract`"
       under "Decisions"
-- [ ] (design, one decision) Remaining free-form/low-value tags — `@todo`,
+- [x] (design, one decision) Remaining free-form/low-value tags — `@todo`,
       `@author`, `@version`, and anything similar: a single policy (render
       generically or deliberately drop). These are rarely what an agent
-      needs; per-tag treatment isn't worth it.
+      needs; per-tag treatment isn't worth it. — `Geometry::Vector`
+      (`@version`, two `@author` tags, alongside its existing `@since`) and
+      `Stopwatch` (`@todo`, alongside its existing `@note`); settled on
+      generic rendering, reusing the existing flag-line/trailing-key-value
+      machinery, rather than dropping — see "Remaining free-form tags:
+      render generically via existing `@since`/`@note` machinery, don't
+      drop" under "Decisions"
 
 ### YARD directives (for dynamically-defined methods/attrs)
 
@@ -2474,6 +2480,57 @@ unless block_given?`, `@yieldparam segment`, and two `@return` tags —
   - Not revisited unless a real case (dogfood milestone) makes the omission
     genuinely confusing in practice, at which point overload-aware block
     detection would need its own design pass.
+
+### Remaining free-form tags: render generically via existing `@since`/`@note` machinery, don't drop
+
+Settles the "Remaining free-form/low-value tags" checklist item. Scanned
+`YARD::Tags::Library.labels` (the full set of tags YARD knows about) against
+every tag this project's templates already reference by name, and confirmed
+`@author`/`@todo`/`@version` were the *only* three with no handling
+anywhere — silently dropped today purely because nothing names them, not by
+any deliberate policy. So this one decision closes the whole gap; nothing
+else needs covering under "and anything similar."
+
+- **Initially proposed dropping them** (matching the pre-existing de facto
+  behavior) on terseness grounds, but reconsidered after checking what
+  YARD's own default HTML template actually does — per this project's
+  "agent reference needs mirror human reference needs" heuristic, that's
+  the reference point a divergence needs to justify itself against, not an
+  assumption. YARD's default template renders all three: `@author`/
+  `@version` generically via its catch-all tag-list section
+  (`Tags::Library.visible_tags`), `@todo` specially as a highlighted
+  callout. Human decision: render, matching that precedent, rather than
+  diverge.
+- **`@version` reuses `@since`'s exact rendering shape and scope** — a
+  trailing `**Version:** 1.2.0` key-value line (`version_line` in
+  `AuxiliaryTags`), wired into `metadata.erb` right after `since_line`. Not
+  wired into `constant_entry.erb` — `@since` itself is only exercised there
+  (`Point::DIMENSIONS`) and at the class/module level (`Vector`), never on
+  a method/attribute (`since_line` isn't called from `method_entry.erb`/
+  `attribute_entry.erb` at all, a pre-existing gap this item isn't
+  fixing) — `@version`/`@author` match that same scope rather than
+  reaching further un-exercised ground.
+- **`@author` supports multiple tags**, comma-joined under one `**Author:**`
+  label (`Vector`'s `@author Ada Lovelace` / `@author Alan Turing` →
+  `**Author:** Ada Lovelace, Alan Turing`) — same "one label, join the
+  values" policy `defined_in_line` already uses for multiple file paths,
+  chosen over flexing the label to `**Authors:**` for consistency with this
+  format's established "labels don't flex for count" precedent (`@example`'s
+  `**Examples:**` header, `@raise`'s always-bulleted `**Raises:**`).
+- **`@todo` joins the existing flag-line family** (`deprecated_line`/
+  `abstract_line`/`note_line` in `AuxiliaryTags`, via `annotation_lines`),
+  appended last in the fixed Private API/Deprecated/Abstract/Note/Todo
+  order — YARD's own template has no equivalent ordering to match (it
+  renders `@todo` as a separate callout, not part of the same flag-line
+  group), so "last" was picked arbitrarily as the lowest-priority
+  annotation. Deliberately not added to `annotation_lines_short` (Member
+  Summary bullet annotations) — `@note` itself has no short form either,
+  an existing precedent `@todo` just follows.
+- Exercised via `Stopwatch` (`@todo`, alongside its existing `@note`,
+  proving the flag-line family holds more than two entries at once) and
+  `Geometry::Vector` (`@since`/`@version`/`@author` stacked together,
+  proving `metadata.erb`'s trailing block holds more than one optional line
+  at once — previously only ever exercised with `@since` alone).
 
 ## Implementation
 
