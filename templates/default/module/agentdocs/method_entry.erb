@@ -1,12 +1,21 @@
 ### <%= member_heading(@method) %>
 
+<%- if @method.is_alias? -%>
+```ruby
+<%= signature_text(@method) %>
+```
+
+**Alias for:** `<%= member_heading(alias_original(@method)) %>`
+
+**Defined in:** `<%= @method.file %>:<%= @method.line %>`
+<%- else -%>
 <%- if @method.constructor? -%>
 *(Ruby's default constructor; documents `#initialize`.)*
 
 <%- end -%>
 <%- overloads = @method.tags(:overload) -%>
 <%- if overloads.size >= 2 -%>
-<%- lines = annotation_lines(@method) -%>
+<%- lines = annotation_lines(@method) + [also_known_as_line(@method)].compact -%>
 <%- unless lines.empty? -%>
 <%= lines.join("\n") %>
 
@@ -45,7 +54,7 @@
 ```ruby
 <%= signature_text(@method, overload: primary) %>
 ```
-<%- lines = annotation_lines(@method) -%>
+<%- lines = annotation_lines(@method) + [also_known_as_line(@method)].compact -%>
 <%- unless lines.empty? -%>
 
 <%= lines.join("\n") %>
@@ -119,3 +128,4 @@
 <%- end -%>
 
 **Defined in:** `<%= @method.file %>:<%= @method.line %>`
+<%- end -%>

@@ -335,8 +335,12 @@ fixing ad hoc.
       New `bracket_call?`/`prefix_call?` rendering branches added alongside
       the existing `infix_call?` — see "Remaining operator forms" under
       "Decisions"
-- [ ] (design) Aliased method (`alias`/`alias_method`) — does the alias get
-      its own entry or point back at the original?
+- [x] Aliased method (`alias`/`alias_method`) — does the alias get its own
+      entry or point back at the original? — `Stopwatch#restart`
+      (`alias_method :restart, :reset`, no comment of its own); settled on a
+      minimal pointer entry for the alias plus a reciprocal
+      `**Also known as:**` note on the original — see "Aliased method" under
+      "Decisions"
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [ ] (mech) Class methods defined via `class << self` — should render
@@ -774,6 +778,94 @@ override a realistic thing to exercise. `Point#[]=` is also notable as the
 first *mutating* method in an otherwise value-object-style API (every other
 `Point` method returns a new instance) — called out explicitly in its own
 docstring rather than left as a silent inconsistency for a reader to notice.
+
+### Aliased method: minimal pointer entry, not full duplication or omission
+
+Settles the "Aliased method" checklist item. Exercised via `Stopwatch#restart`
+(`alias_method :restart, :reset`, added with no comment of its own — the
+base case; an alias with its own additional comment is left as a follow-up
+variant).
+
+YARD's own `AliasHandler` (`yard/handlers/ruby/alias_handler.rb`) registers
+an alias as a real, independent `MethodObject`, copying the original's
+docstring onto it (concatenated with any comment on the alias statement
+itself, if present) — but its own default HTML template hides aliases from
+method listings (`ModuleHelper#prune_method_listing`) and instead adds an
+`(Also known as: ...)` note to the *original* method's page. Three options
+considered against that precedent and this project's existing "link out,
+not duplicate" call for mixins (see "Mixin content strategy" below):
+
+- **Full omission** (matching this project's Ruby-scope `private`/
+  `protected` policy) — rejected: unlike a `private` method, an alias is
+  genuinely public and callable, and Ruby gives no signal that it's hidden;
+  disappearing it entirely would leave an agent that encounters the alias
+  name in someone else's code with nothing to find.
+- **Summary-bullet-only** (a Member Summary line plus an "Also known as"
+  note on the original, no separate per-kind heading) — rejected. "Indexing/
+  lookup" (see below) already commits to a single sanctioned member-lookup
+  mechanism, headings plus `grep -n '^### '`, specifically *instead of*
+  building any separate member index — Member Summary is documented
+  elsewhere as "pure overhead... not a source of truth," not a lookup path.
+  Making the alias findable only there would mean the one mechanism this
+  project relies on for member lookup silently doesn't cover it.
+- **Full duplicate entry** (mirroring the synthetic `.new`/`#initialize`
+  pattern) — rejected: unlike `#initialize`, which never gets its own real
+  entry anywhere, the original method here already has one. Duplicating its
+  params/returns/prose onto the alias would just be redundant content the
+  "link out, not duplicate" mixin decision already argues against, and
+  would imply (falsely, since Ruby's alias semantics guarantee identical
+  behavior) that the two might independently diverge.
+
+**Settled on: the alias gets its own minimal H3 entry** — real signature
+line, then `` **Alias for:** `#original` `` in place of prose, then
+`**Defined in:**` — no `**Params:**`/`**Returns:**`/etc. blocks, since that
+content lives solely on the original's entry. Bolded as a key-value line
+(no trailing period), matching `**Also known as:**`/`**Type:**`/etc.
+rather than the period-terminated `**Private API.**`/`**Deprecated.**`
+state flags — it's a factual pointer, not a warning. This keeps the
+`grep -n '^### '` contract intact (every real, public member name is
+heading-discoverable) while keeping the actually expensive content
+(descriptions, params, returns) in exactly one place. Member Summary gets
+the matching one-liner (`` - `#restart` — **Alias for:** `#reset` ``), not
+the alias's copied docstring summary, for the same reason. The original
+method's entry gets a reciprocal `**Also known as:** `#restart`` line, in
+the same
+"flag line, right after the signature block, before prose" slot
+`@deprecated`/`@note`/tag-based-privacy already occupy (see "Auxiliary
+one-line tags" below) — not folded into the shared `annotation_lines`
+helper itself (which stays tag-only, shared by both classes/modules and
+methods), but composed alongside it at the template level in
+`method_entry.erb`, since aliasing is method-only, structural metadata (via
+YARD's own `MethodObject#aliases`/`#is_alias?`), not a docstring tag.
+
+**Implementation, in `lib/yard/agentdocs/method_signature.rb`:**
+
+- `alias_original(meth)` — `nil` unless `meth.is_alias?`; otherwise looks up
+  `meth.namespace.aliases[meth]` (the original's name, per YARD's own
+  bookkeeping) among `meth.namespace.meths(scope: meth.scope,
+  included: false)` to find the actual original `MethodObject`.
+- `also_known_as_line(meth)` — `nil` if `meth.aliases` (YARD's own reverse
+  list) is empty, otherwise the `**Also known as:**` line, comma-joining
+  every alias.
+- **Latent bug fixed along the way:** `param_names` built the signature
+  line's parameter list from `meth.parameters` directly, which is always
+  empty for an alias — `alias`/`alias_method` never parses a real parameter
+  list, unlike a `def`. Before this fix, `Stopwatch#restart`'s signature
+  line rendered as `stopwatch.restart() → Float`, silently dropping the
+  `to = DEFAULT_ELAPSED` parameter `#reset` actually takes (caught by the
+  failing-fixture step of the TDD loop, not spotted by inspection). Fixed
+  generally — `param_names` now sources from `overload || alias_original(meth)
+  || meth` — so any alias's signature line reflects its original's real
+  parameter list, not just `#restart`'s. `signature_return_type` needed no
+  equivalent fix: it reads `meth.tags(:return)`, which YARD already
+  populates correctly on the alias via the copied docstring.
+- **Left deliberately unexercised:** `implicit_block?`/`block_param_names`
+  (in the same file) also read `meth.parameters` directly and would
+  misjudge a `&block`-capturing method's alias as taking an *implicit*
+  block instead. No current fixture aliases a block-taking method, so this
+  wasn't fixed pre-emptively — same "not yet exercised, left for a real
+  case to justify" stance this file already takes with `@since` on a method
+  or attribute (see "Auxiliary one-line tags" below).
 
 ### Mixin content strategy (direct `include`): link out, not duplicate
 

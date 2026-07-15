@@ -96,10 +96,35 @@ module YARD
       #   `name: = default`)
       #
       def param_names(meth, overload: nil)
-        (overload || meth).parameters.map do |name, default|
+        (overload || alias_original(meth) || meth).parameters.map do |name, default|
           next name.to_s unless default
           name.end_with?(":") ? "#{name} #{default}" : "#{name} = #{default}"
         end
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [::YARD::CodeObjects::MethodObject, nil] the method +meth+
+      #   is an alias of (`alias`/`alias_method`), or `nil` if +meth+ isn't
+      #   an alias. An alias's own {::YARD::CodeObjects::MethodObject#parameters}
+      #   is always empty (`alias`/`alias_method` never parses a real
+      #   parameter list), so {#param_names} sources it from here instead.
+      #
+      def alias_original(meth)
+        return nil unless meth.is_alias?
+        old_name = meth.namespace.aliases[meth]
+        meth.namespace.meths(scope: meth.scope, included: false).find { |m| m.name == old_name }
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [String, nil] `"**Also known as:** `#restart`"` listing
+      #   every alias of +meth+ (comma-joined), or `nil` if it has none
+      #
+      def also_known_as_line(meth)
+        return nil if meth.aliases.empty?
+        names = meth.aliases.map { |a| "`#{member_heading(a)}`" }.join(", ")
+        "**Also known as:** #{names}"
       end
 
       ##

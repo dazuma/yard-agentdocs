@@ -56,6 +56,7 @@ class Stopwatch
   def reset(to = DEFAULT_ELAPSED)
     @elapsed = to
   end
+  alias_method :restart, :reset
 
   ##
   # Runs the given block and adds how long it took to this stopwatch's

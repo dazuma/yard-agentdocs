@@ -230,5 +230,6 @@ end
 
 def method_summary_line(meth)
   suffix = annotation_lines_short(meth).join(", ")
-  "- `#{member_heading(meth)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(meth.docstring.summary)}"
+  summary = meth.is_alias? ? "**Alias for:** `#{member_heading(alias_original(meth))}`" : meth.docstring.summary
+  "- `#{member_heading(meth)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(summary)}"
 end
