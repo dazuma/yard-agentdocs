@@ -1,12 +1,13 @@
 # class Geometry::Vector
 
 - **Superclass:** `Data`
-- **Since:** 2.0.0
-- **Version:** 2.1.0
-- **Author:** Ada Lovelace, Alan Turing
 - **Defined in:** `example/lib/geometry/vector.rb`
 
 An immutable 2D displacement vector.
+
+- **Since:** 2.0.0
+- **Version:** 2.1.0
+- **Author:** Ada Lovelace, Alan Turing
 
 ## Member Summary
 
@@ -57,6 +58,8 @@ is conventionally a no-op in Ruby.
 
 - `Vector` — this same vector
 
+- **Since:** 2.0.0
+
 - **Defined in:** `example/lib/geometry/vector.rb:37`
 
 ### #-@
@@ -70,6 +73,8 @@ The negation of this vector: same magnitude, opposite direction.
 **Returns:**
 
 - `Vector` — a new vector with both components negated
+
+- **Since:** 2.0.0
 
 - **Defined in:** `example/lib/geometry/vector.rb:27`
 
@@ -92,6 +97,8 @@ to it; the comparison itself (memberwise equality) is unchanged.
 
 - `Boolean` — `true` if `other` is a `Vector` with equal `dx` and `dy`
 
+- **Since:** 2.0.0
+
 - **Defined in:** `example/lib/geometry/vector.rb:50`
 
 ### #magnitude
@@ -105,5 +112,7 @@ Computes the magnitude (length) of the vector.
 **Returns:**
 
 - `Float` — the magnitude
+
+- **Since:** 2.0.0
 
 - **Defined in:** `example/lib/geometry/vector.rb:18`

@@ -15,6 +15,11 @@
 
 <%= examples %>
 <%- end -%>
+<%- trailing = trailing_annotation_lines(object) -%>
+<%- unless trailing.empty? -%>
+
+<%= trailing.join("\n") %>
+<%- end -%>
 <%- if any_members? -%>
 
 <%= erb(:member_summary).strip %>

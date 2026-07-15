@@ -5,12 +5,6 @@
 
 - **Note:** Not thread-safe: concurrent `#add`/`#measure` calls on the same
   stopwatch can lose updates.
-- **Todo:** Support pausing/resuming instead of only accumulating.
-
-  Would also need to decide whether a paused stopwatch's own `#describe`
-  output should say so explicitly, or just look identical to a running
-  one — a second paragraph purely to exercise a multi-paragraph tag
-  (blank line and all) instead of a single wrapped one.
 
 A simple stopwatch that accumulates elapsed time, in seconds.
 
@@ -18,6 +12,13 @@ Defined at the top level (not nested inside any module), to exercise how
 `yard-agentdocs` renders a class that isn't namespaced.
 
 Call the reset method to start over.
+
+- **Todo:** Support pausing/resuming instead of only accumulating.
+
+  Would also need to decide whether a paused stopwatch's own `#describe`
+  output should say so explicitly, or just look identical to a running
+  one — a second paragraph purely to exercise a multi-paragraph tag
+  (blank line and all) instead of a single wrapped one.
 
 ## Member Summary
 

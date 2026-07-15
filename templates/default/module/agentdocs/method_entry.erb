@@ -54,6 +54,11 @@
 - <%= dash_join(type_ref(ov_return.types && ov_return.types.first), ov_return.text) %>
 <%- end -%>
 <%- end -%>
+<%- trailing = trailing_annotation_lines(@method) -%>
+<%- unless trailing.empty? -%>
+
+<%= trailing.join("\n") %>
+<%- end -%>
 <%- else -%>
 <%- primary = overloads.first -%>
 ```ruby
@@ -141,6 +146,11 @@
 <%- unless @method.tags(:see).empty? -%>
 
 **See also:** <%= @method.tags(:see).map { |t| see_ref(t) }.join(', ') %>
+<%- end -%>
+<%- trailing = trailing_annotation_lines(@method) -%>
+<%- unless trailing.empty? -%>
+
+<%= trailing.join("\n") %>
 <%- end -%>
 
 - **Defined in:** `<%= @method.file %>:<%= @method.line %>`

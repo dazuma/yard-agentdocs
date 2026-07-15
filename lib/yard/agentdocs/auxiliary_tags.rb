@@ -4,26 +4,36 @@ module YARD
   module AgentDocs
     ##
     # `@deprecated`/`@note`/`@abstract`/`@todo`/`@since`/`@version`/`@author`
-    # rendering shared by the `module`/`class` `agentdocs` templates.
-    # `@deprecated`, `@abstract`, `@note`, and `@todo` render as bulleted flag
-    # lines in the same "before prose" slot {VisibilityInfo}'s private-API
-    # annotation already occupies — fixed order when more than one is
-    # present (Private API, Deprecated, Abstract, Note, Todo), matching
-    # YARD's own default template's `private`/`deprecated`/`abstract`/`note`
-    # ordering, with `todo` appended last (YARD's own template renders it
-    # separately, as a distinct callout, so there's no existing order to
-    # match it against). `@since`/`@version`/`@author` instead render as
-    # trailing `- **Label:**` bulleted key-value lines: a version string or
-    # author name isn't a flag to call out up front, so each is placed
-    # wherever the including template already puts its own trailing/metadata
-    # key-value lines. Every line here is a `- ` list item, never a bare bold
-    # paragraph line — stacking bare lines with only a single `\n` between
-    # them lets a CommonMark renderer merge them into one flowing paragraph
-    # (confirmed with a real parser), and since these all splice in raw,
-    # possibly multi-line/multi-paragraph tag text via `markdownify`, a bare
-    # line also risks the same embedded-newline corruption
-    # `indent_continuation` (`templates/default/module/agentdocs/setup.rb`)
-    # already exists to prevent for `@param`/`@raise`/etc. — reused here via
+    # rendering shared by the `module`/`class` `agentdocs` templates, split
+    # across two slots by how actionable each tag is. `@deprecated`,
+    # `@abstract`, and `@note` render as bulleted flag lines in the same
+    # "before prose" slot {VisibilityInfo}'s private-API annotation already
+    # occupies — fixed order when more than one is present (Private API,
+    # Deprecated, Abstract, Note), matching YARD's own default template's
+    # `private`/`deprecated`/`abstract`/`note` ordering. These are genuine
+    # caveats that change how the rest of the entry should be read (a
+    # thread-safety warning, a deprecation notice), so they need to be seen
+    # before the description, not after it.
+    #
+    # `@todo`/`@since`/`@version`/`@author` instead render as a trailing
+    # block, placed by the including template wherever its own trailing
+    # metadata already goes (right before `- **Defined in:**`, or — for a
+    # class/module, which puts `- **Defined in:**` at the *top* of the page
+    # instead — right after the docstring/examples, before `## Member
+    # Summary`). These are lower-priority: a to-do about future changes or
+    # version/author provenance doesn't change how to use the object *now*,
+    # so burying it below the description (rather than making a reader
+    # or agent wade through it before reaching the actual content) is the
+    # right trade-off.
+    #
+    # Every line here is a `- ` list item, never a bare bold paragraph line —
+    # stacking bare lines with only a single `\n` between them lets a
+    # CommonMark renderer merge them into one flowing paragraph (confirmed
+    # with a real parser), and since these all splice in raw, possibly
+    # multi-line/multi-paragraph tag text via `markdownify`, a bare line also
+    # risks the same embedded-newline corruption `indent_continuation`
+    # (`templates/default/module/agentdocs/setup.rb`) already exists to
+    # prevent for `@param`/`@raise`/etc. — reused here via
     # `indent_continuation` on every value built from tag text.
     #
     # Requires the including template to also mix in {VisibilityInfo} (for
@@ -36,8 +46,10 @@ module YARD
     module AuxiliaryTags
       ##
       # Bulleted-line annotations to render before an object's prose, in
-      # {VisibilityInfo}/`@deprecated`/`@abstract`/`@note`/`@todo` order —
-      # only the ones actually present.
+      # {VisibilityInfo}/`@deprecated`/`@abstract`/`@note` order — only the
+      # ones actually present. See {#trailing_annotation_lines} for
+      # `@todo`/`@since`/`@version`/`@author`, rendered separately, after the
+      # prose.
       #
       # @param object [::YARD::CodeObjects::Base]
       # @return [::Array<String>] each already fully formatted, e.g.
@@ -50,7 +62,26 @@ module YARD
           deprecated_line(object),
           abstract_line(object),
           note_line(object),
+        ].compact
+      end
+
+      ##
+      # Bulleted trailing-metadata lines to render after an object's prose
+      # (and any Params/Returns/etc.), in `@todo`/`@since`/`@version`/
+      # `@author` order — only the ones actually present. See
+      # {#annotation_lines} for the higher-priority tags rendered before the
+      # prose instead.
+      #
+      # @param object [::YARD::CodeObjects::Base]
+      # @return [::Array<String>] each already fully formatted, e.g.
+      #   `"- **Since:** 1.0.0"`
+      #
+      def trailing_annotation_lines(object)
+        [
           todo_line(object),
+          since_line(object),
+          version_line(object),
+          author_line(object),
         ].compact
       end
 
