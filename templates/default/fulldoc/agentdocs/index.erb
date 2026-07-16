@@ -1,5 +1,24 @@
 # <%= options.title %>
 
+## How to navigate these docs
+
+- **Path derivation:** a class/module's file path mirrors its fully-qualified
+  name, with `::` becoming a directory separator — e.g. `Foo::Bar` is
+  `Foo/Bar.md`, `Foo::Bar::Baz` is `Foo/Bar/Baz.md`. If you already know the
+  FQN you're after, go straight to that path; the index below is only for
+  discovering a name you don't have yet.
+- **Member lookup:** every constant, attribute, and method is its own `### `
+  heading inside its class/module's file — `` ### NAME `` for constants,
+  `` ### #name `` for instance methods/attributes, `` ### .name `` for class
+  methods. `grep -n '^### '` in one file lists every member there with its
+  exact line number; e.g. `grep -rn '^### #each' .` finds the `#each` method
+  across the whole tree without knowing which class it belongs to.
+- **Inherited and mixed-in members are not duplicated.** A class/module's
+  file only documents members defined in its own source. For members
+  contributed by a superclass or mixin, follow the `**Superclass:**`,
+  `**Includes:**`, or `**Extends:**` link near the top of the file to that
+  type's own file, where they're fully documented.
+
 ## Classes & modules
 
 <%- @indexed_objects.each do |object| -%>

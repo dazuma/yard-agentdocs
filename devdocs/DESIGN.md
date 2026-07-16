@@ -233,7 +233,11 @@ implementation bodies dominate, rather than assuming.
       heuristic favors it. Today `Triangle.md` shows only `.new`; assembling
       a Triangle's full API surface takes four further file reads
       (`Polygon`, `Shape`, `Taggable`, `Named`). Raised by the July 2026
-      agent-usefulness evaluation (see "Decisions")
+      agent-usefulness evaluation (see "Decisions"). **Reminder:** if this
+      lands, revisit the "How to navigate these docs" preamble's
+      "inherited and mixed-in members are not duplicated" bullet
+      (`example/doc/index.md`) — a names-only roster changes what "not
+      duplicated" means and the preamble should describe it accurately
 
 ### Mixins
 
@@ -659,7 +663,7 @@ implementation bodies dominate, rather than assuming.
 
 - [x] (design) Flat full-FQN index — see "Flat full-FQN index: classes/modules
       only, replacing the top-level list" under "Decisions".
-- [ ] (design) "How to navigate these docs" preamble — nothing in the
+- [x] (design) "How to navigate these docs" preamble — nothing in the
       output currently discloses the conventions an agent needs in order
       to exploit the format deliberately: the FQN→path derivation rule,
       the `### .method`/`### #method` heading grammar and its grep recipes
@@ -2933,6 +2937,39 @@ Decisions embedded in the "both" outcome:
   a consuming project invokes the template per-dependency, where output
   lands) that aren't settled until dogfooding; writing it earlier means
   guessing at the workflow.
+
+### "How to navigate these docs" preamble: inline at the top of `index.md`
+
+Implemented per the staging decision above. Settled placement: its own
+`## How to navigate these docs` section, inline in `index.md` between the
+title and `## Classes & modules` — not a separate linked conventions file
+(the alternative the checklist item raised), since it's ~15 lines and an
+agent that has just opened `index.md` shouldn't need a second file read to
+get the mechanics.
+
+Covers exactly the three things the checklist item named, one bullet each:
+path derivation (`::` → directory separator), the `### NAME`/`### #name`/
+`### .name` heading grammar with both grep recipes (single-file and
+whole-tree), and that inherited/mixed-in members aren't duplicated —
+follow `**Superclass:**`/`**Includes:**`/`**Extends:**` to their own file
+instead.
+
+**Generic placeholders, not fixture names.** The first draft illustrated
+path derivation with the fixture's own classes (`Geometry::Point`,
+`Geometry::ThreeD::Point`) and the grep recipe with a fixture-adjacent
+`#each`. Caught before implementing: this text is static boilerplate
+`index.erb` emits for *any* consuming gem, not content specific to this
+repo's example — a real project's generated docs would carry a preamble
+talking about `Geometry::Point`, which doesn't exist in their codebase.
+Switched to metasyntactic placeholders (`Foo::Bar`, `Foo::Bar::Baz`) for
+path derivation, and reworded the `#each` grep example with an explicit
+"e.g." so it reads as an illustration of the recipe rather than a claim
+that the gem being documented has that method.
+
+**Reminder left on a future item:** the "Names-only inherited/mixin member
+roster" checklist item (above, under "Module/class structure") notes that
+landing it should revisit this preamble's "not duplicated" bullet, since a
+names-only roster changes what "not duplicated" means.
 
 ## Implementation
 
