@@ -540,13 +540,19 @@ whether agents actually exercise those pointers.
       machinery, rather than dropping — see "Remaining free-form tags:
       render generically via existing `@since`/`@note` machinery, don't
       drop" under "Decisions"
-- [ ] (design) Reference tags — a docstring that is literally
-      `(see #other)`, and the per-tag form `@param x (see #other)`:
-      YARD's doc-copying syntax, used in real gems to avoid duplicating
-      docs across overloads/aliases. Whether `Docstring` resolves these
-      transparently before the template sees them, or the template renders
-      a content-free entry, is unknown — probe first; a wrong rendering
-      here fails silently. Flagged by the July 2026 coverage review
+- [x] Reference tags — a docstring that is literally `(see #other)`, and the
+      per-tag form `@param x (see #other)`: YARD's doc-copying syntax, used
+      in real gems to avoid duplicating docs across overloads/aliases.
+      Confirmed by direct probing (not just source-reading) that `Docstring`
+      resolves both forms transparently before the template ever sees them
+      — `Geometry::Point#[]=` (per-tag form, reusing `#[]`'s `@param
+      index`/`@raise`) and `Geometry::Vector#eql?` (whole-docstring form,
+      reusing `#==`'s docs entirely). Surfaced one genuine rendering bug
+      along the way: a resolved reference tag always sorts after a method's
+      own tags of the same name, which silently reordered `#[]=`'s
+      `**Params:**` list away from signature order — see "Reference tags:
+      transparent resolution, plus a `Params:`-ordering fix for mixed
+      own/ref tags" under "Decisions"
 - [ ] (stretch) Custom user-defined tags (`--tag foo:"Header"` in
       `.yardopts`) — the free-form-tag decision routed
       `@todo`/`@version`/`@author` through existing machinery, but a
@@ -3343,6 +3349,57 @@ per-entry overhead percentage on a real gem, and look for evidence of
 whether agents actually exercise the pointers in practice. Revisit with
 that data if the overhead stays high *and* the pointers go unused — not
 before.
+
+### Reference tags: transparent resolution, plus a `Params:`-ordering fix for mixed own/ref tags
+
+Settles the "Reference tags" checklist item under "YARD tags". YARD's
+`(see ...)` doc-copying syntax has two forms, both probed directly against a
+running parser rather than inferred from source:
+
+- **Whole-docstring form** (`(see #other)` as the *entire* docstring) is
+  detected only when it's the very first content (`DocstringParser
+  #detect_reference` anchors with `\A`); any prose before it silently
+  defeats detection, leaving `(see #other)` as inert literal text — YARD's
+  own contract, not something a template can rescue. Once detected, it's
+  resolved lazily (`Docstring#resolve_reference`) the first time any normal
+  accessor (`#summary`, `#tags`, `#to_s`) is called: the referenced object's
+  full raw docstring is prepended and reparsed, merging its prose *and* its
+  tags. Works across classes/namespaces, not just same-class. Exercised by
+  `Geometry::Vector#eql?`, whose entire docstring is `(see #==)`.
+- **Per-tag form** (`@tag name (see #other)`, e.g. `@param index (see
+  #[])`) resolves via `Tags::RefTagList#tags`, matched by tag name and,
+  when a name is given, by that name too — so `@raise (see #[])` (no name)
+  pulls every `@raise` from `#[]`, while `@param index (see #[])` pulls
+  only the `index` one. Exercised by `Geometry::Point#[]=`, whose `@param
+  index` and `@raise` were already textually identical to `#[]`'s and are
+  now sourced from it instead of duplicated.
+
+Both forms are fully transparent to the template — `param_tags =
+@method.tags(:param)` and friends already see fully-resolved, ordinary-
+looking `Tags::Tag` objects, exactly like a plain `@param`. **Zero template
+changes were needed to render resolved content.** An unresolvable target
+(e.g. `(see #nonexistent)`) degrades silently: the whole-docstring form
+leaves the docstring blank (same rendering as an undocumented object —
+see "Intentionally undocumented objects"), and the per-tag form just drops
+that one tag (same rendering as a param with no `@param` at all). Neither
+needed new handling.
+
+**The one real surprise, found only by generating output and diffing it,
+not by reading source:** `Docstring#tags` builds its list as `@tags +
+convert_ref_tags` (own tags first, resolved reference tags appended after),
+then stable-sorts by tag name. So on a method mixing an *own* `@param` with
+a *referenced* `@param`, the own one always sorts first regardless of which
+was actually declared first — `Point#[]=`'s `**Params:**` came out as
+`value, index` instead of `index, value`, breaking the signature-order
+convention every other entry follows. Fixed with
+`MethodSignature#ordered_param_tags`, which re-sorts a method's rendered
+`@param` tags to match its real parameter order (`meth.parameters` — already
+the signature line's own source of truth via `#param_names`), applied at
+both `**Params:**` call sites in `method_entry.erb` (the `>= 2`-overload
+loop and the single-signature case). Scoped to `@param` only: it's the only
+tag family with a canonical declaration order to align with (`@raise` and
+friends have no such order, and nothing here mixes own/ref tags for them)
+— not extended speculatively.
 
 ## Implementation
 

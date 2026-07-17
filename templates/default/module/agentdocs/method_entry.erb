@@ -42,11 +42,12 @@
 <%- overloads.each do |ov| -%>
 
 **`<%= signature_text(@method, overload: ov) %>`**
-<%- unless ov.tags(:param).empty? -%>
+<%- ov_param_tags = ordered_param_tags(@method, ov.tags(:param), overload: ov) -%>
+<%- unless ov_param_tags.empty? -%>
 
 **Params:**
 
-<%- ov.tags(:param).each do |p| -%>
+<%- ov_param_tags.each do |p| -%>
 - `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
@@ -77,7 +78,7 @@
 
 <%= examples %>
 <%- end -%>
-<%- param_tags = primary ? primary.tags(:param) : @method.tags(:param) -%>
+<%- param_tags = ordered_param_tags(@method, primary ? primary.tags(:param) : @method.tags(:param), overload: primary) -%>
 <%- unless param_tags.empty? -%>
 
 **Params:**

@@ -50,5 +50,12 @@ module Geometry
     def ==(other)
       other.is_a?(Vector) && dx == other.dx && dy == other.dy
     end
+
+    ##
+    # (see #==)
+    #
+    def eql?(other)
+      self == other
+    end
   end
 end

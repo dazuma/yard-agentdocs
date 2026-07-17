@@ -201,9 +201,9 @@ module Geometry
     # Unlike this class's other methods, which return a new `Point` rather
     # than modify the receiver, `#[]=` mutates this point in place.
     #
-    # @param index [Integer] `0` or `1`
+    # @param index (see #[])
     # @param value [Numeric] the new coordinate value
-    # @raise [ArgumentError] if `index` isn't `0` or `1`
+    # @raise (see #[])
     #
     def []=(index, value)
       case index

@@ -21,6 +21,7 @@ An immutable 2D displacement vector.
 - `#+@` — This vector, unchanged.
 - `#-@` — The negation of this vector: same magnitude, opposite direction.
 - `#==` — Whether this vector has the same components as another.
+- `#eql?` — Whether this vector has the same components as another.
 - `#magnitude` — Computes the magnitude (length) of the vector.
 
 ## Attributes
@@ -97,6 +98,28 @@ to it; the comparison itself (memberwise equality) is unchanged.
 
 * **Since:** 2.0.0
 * **Defined in:** `example/lib/geometry/vector.rb:50`
+
+### #eql?
+
+```ruby
+vector.eql?(other) → Boolean
+```
+
+Whether this vector has the same components as another.
+
+Overrides `Data`'s own generated `==` purely to attach documentation
+to it; the comparison itself (memberwise equality) is unchanged.
+
+**Params:**
+
+- `other` (`Object`) — the value to compare to
+
+**Returns:**
+
+- `Boolean` — `true` if `other` is a `Vector` with equal `dx` and `dy`
+
+* **Since:** 2.0.0
+* **Defined in:** `example/lib/geometry/vector.rb:57`
 
 ### #magnitude
 

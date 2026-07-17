@@ -103,6 +103,29 @@ module YARD
       end
 
       ##
+      # Reorders +param_tags+ (typically `meth.tags(:param)`, or an
+      # overload's) to match +meth+'s real parameter order, rather than
+      # trusting the tags' own order. Needed because a resolved `(see ...)`
+      # reference tag always sorts after a method's own tags of the same
+      # name (`Docstring#tags` appends resolved reference tags to the end
+      # before its stable sort — see "Reference tags" in
+      # devdocs/DESIGN.md), so a method mixing an own `@param` with a
+      # referenced one would otherwise list its `**Params:**` bullets out
+      # of signature order.
+      #
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param param_tags [Array<::YARD::Tags::Tag>]
+      # @param overload [::YARD::Tags::OverloadTag, nil] see {#param_names}
+      # @return [Array<::YARD::Tags::Tag>] +param_tags+, reordered
+      #
+      def ordered_param_tags(meth, param_tags, overload: nil)
+        real_names = (overload || alias_original(meth) || meth).parameters.map do |name, _default|
+          name.sub(/\A[*&]+/, "").chomp(":")
+        end
+        param_tags.sort_by { |p| real_names.index(p.name.to_s) || real_names.length }
+      end
+
+      ##
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [::YARD::CodeObjects::MethodObject, nil] the method +meth+
       #   is an alias of (`alias`/`alias_method`), or `nil` if +meth+ isn't
