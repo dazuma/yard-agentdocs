@@ -17,14 +17,14 @@ describe ::YARD::AgentDocs::AttributeInfo do
     holder_class.new.tap { |h| h.options = ::Struct.new(:markup).new(:markdown) }
   end
 
-  # Parses +source+ and returns the `{ name:, read:, write: }` hash for
-  # +name+ on +namespace_path+, the same shape
-  # `module/agentdocs/setup.rb#attribute_objects` builds.
+  # Parses +source+ and returns the {::YARD::AgentDocs::Attribute} for
+  # +name+ on +namespace_path+, the same value
+  # {::YARD::AgentDocs::MemberListing#attribute_objects} builds.
   def attr_hash(source, namespace_path, name)
     ::YARD::Registry.clear
     ::YARD.parse_string(source)
     rw = ::YARD::Registry.at(namespace_path).attributes[:instance][name.to_sym]
-    { name: name.to_s, read: rw[:read], write: rw[:write] }
+    ::YARD::AgentDocs::Attribute.new(name: name.to_s, read: rw[:read], write: rw[:write])
   end
 
   describe "read-only attribute (attr_reader)" do
@@ -39,8 +39,8 @@ describe ::YARD::AgentDocs::AttributeInfo do
       RUBY
     end
 
-    it "#attribute_source_method returns the reader" do
-      assert_equal(:x, holder.attribute_source_method(attr).name)
+    it "#source_method returns the reader" do
+      assert_equal(:x, attr.source_method.name)
     end
 
     it "#attribute_type returns the declared @return type" do
@@ -70,8 +70,8 @@ describe ::YARD::AgentDocs::AttributeInfo do
       RUBY
     end
 
-    it "#attribute_source_method returns the writer" do
-      assert_equal(:x=, holder.attribute_source_method(attr).name)
+    it "#source_method returns the writer" do
+      assert_equal(:x=, attr.source_method.name)
     end
 
     it "#attribute_annotation reports Write-only." do

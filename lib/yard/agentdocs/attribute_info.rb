@@ -4,41 +4,29 @@ module YARD
   module AgentDocs
     ##
     # Attribute-data helpers shared by the `module`/`class` `agentdocs`
-    # templates. `module/agentdocs/setup.rb`'s `attribute_objects` gathers
-    # each attribute as a plain `{ name:, read:, write: }` hash (`read`/
-    # `write` are the backing `YARD::CodeObjects::MethodObject`s, either of
-    # which may be `nil`) rather than a single YARD object, since a
-    # reader/writer pair doesn't otherwise have one; these helpers all
-    # operate on that hash shape.
+    # templates, operating on the {Attribute} value
+    # {MemberListing#attribute_objects} builds for each `attr_reader`/
+    # `attr_writer`/`attr_accessor` declaration.
     #
     module AttributeInfo
       ##
-      # @param attr [Hash] `{ name:, read:, write: }`
-      # @return [::YARD::CodeObjects::MethodObject] whichever of the
-      #   reader/writer actually exists, preferring the reader
-      #
-      def attribute_source_method(attr)
-        attr[:read] || attr[:write]
-      end
-
-      ##
-      # @param attr [Hash] `{ name:, read:, write: }`
+      # @param attr [Attribute]
       # @return [String, nil] the attribute's declared `@return` type
       #
       def attribute_type(attr)
-        tag = attribute_source_method(attr).tag(:return)
+        tag = attr.source_method.tag(:return)
         tag&.types&.first
       end
 
       ##
       # Bold-line annotation, e.g. for a `**Read-only.**` metadata line.
       #
-      # @param attr [Hash] `{ name:, read:, write: }`
+      # @param attr [Attribute]
       # @return [String, nil]
       #
       def attribute_annotation(attr)
-        return "Read-only." if attr[:write].nil?
-        return "Write-only." if attr[:read].nil?
+        return "Read-only." if attr.write.nil?
+        return "Write-only." if attr.read.nil?
         nil
       end
 
@@ -46,45 +34,45 @@ module YARD
       # Parenthetical annotation for a Member Summary bullet, e.g.
       # `(read-only)`.
       #
-      # @param attr [Hash] `{ name:, read:, write: }`
+      # @param attr [Attribute]
       # @return [String, nil]
       #
       def attribute_annotation_short(attr)
-        return "read-only" if attr[:write].nil?
-        return "write-only" if attr[:read].nil?
+        return "read-only" if attr.write.nil?
+        return "write-only" if attr.read.nil?
         nil
       end
 
       ##
-      # @param attr [Hash] `{ name:, read:, write: }`
+      # @param attr [Attribute]
       # @return [String] Markdown
       #
       def attribute_docstring(attr)
-        markdownify(attribute_source_method(attr).docstring)
+        markdownify(attr.source_method.docstring)
       end
 
       ##
-      # @param attr [Hash] `{ name:, read:, write: }`
+      # @param attr [Attribute]
       # @return [String]
       #
       def attribute_docstring_summary(attr)
-        attribute_source_method(attr).docstring.summary
+        attr.source_method.docstring.summary
       end
 
       ##
-      # @param attr [Hash] `{ name:, read:, write: }`
+      # @param attr [Attribute]
       # @return [String] source file path
       #
       def attribute_file(attr)
-        attribute_source_method(attr).file
+        attr.source_method.file
       end
 
       ##
-      # @param attr [Hash] `{ name:, read:, write: }`
+      # @param attr [Attribute]
       # @return [Integer] source line number
       #
       def attribute_line(attr)
-        attribute_source_method(attr).line
+        attr.source_method.line
       end
     end
   end

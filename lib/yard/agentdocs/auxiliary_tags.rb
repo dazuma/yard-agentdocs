@@ -32,16 +32,14 @@ module YARD
     # with a real parser), and since these all splice in raw, possibly
     # multi-line/multi-paragraph tag text via `markdownify`, a bare line also
     # risks the same embedded-newline corruption `indent_continuation`
-    # (`templates/default/module/agentdocs/setup.rb`) already exists to
-    # prevent for `@param`/`@raise`/etc. — reused here via
-    # `indent_continuation` on every value built from tag text.
+    # ({TextLayout}) already exists to prevent for `@param`/`@raise`/etc. —
+    # reused here via `indent_continuation` on every value built from tag
+    # text.
     #
     # Requires the including template to also mix in {VisibilityInfo} (for
     # the private-API annotation), {Markdownify} (for tag-text rendering),
-    # and expose `indent_continuation` (defined directly in
-    # `module/agentdocs/setup.rb`) — true of every current caller;
-    # `module/agentdocs/setup.rb` includes both mixins and defines
-    # `indent_continuation` itself.
+    # and {TextLayout} (for `indent_continuation`) — true of every current
+    # caller; `module/agentdocs/setup.rb` includes all three.
     #
     module AuxiliaryTags
       ##

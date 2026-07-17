@@ -13,10 +13,10 @@ module YARD
     # doesn't already list itself. See devdocs/DESIGN.md's "Names-only
     # inherited/mixin member roster" decision.
     #
-    # Requires the including template to provide `object`, plus the
-    # `module/agentdocs` member-listing methods (`constant_objects`,
-    # `attribute_objects`, `class_method_objects`, `instance_method_objects`,
-    # each accepting an optional namespace argument) and
+    # Requires the including template to provide `object`, plus
+    # {MemberListing} (for `constant_objects`/`attribute_objects`/
+    # `class_method_objects`/`instance_method_objects`, each accepting an
+    # optional namespace argument) and
     # {CrossReferencing#link_path}/{CrossReferencing#self_reference?}.
     #
     module MemberRoster
@@ -40,7 +40,7 @@ module YARD
       # roster.
       def own_member_headings
         constant_objects.map { |c| c.name.to_s } +
-          attribute_objects.map { |a| "##{a[:name]}" } +
+          attribute_objects.map { |a| "##{a.name}" } +
           class_method_objects.map { |m| member_heading(m) } +
           instance_method_objects.map { |m| member_heading(m) }
       end
@@ -58,7 +58,7 @@ module YARD
 
       def superclass_headings(namespace)
         constant_objects(namespace).map { |c| c.name.to_s } +
-          attribute_objects(namespace).map { |a| "##{a[:name]}" } +
+          attribute_objects(namespace).map { |a| "##{a.name}" } +
           class_method_objects(namespace).map { |m| member_heading(m) } +
           instance_method_objects(namespace).map { |m| member_heading(m) }
       end
@@ -77,7 +77,7 @@ module YARD
 
       def include_headings(namespace)
         constant_objects(namespace).map { |c| c.name.to_s } +
-          attribute_objects(namespace).map { |a| "##{a[:name]}" } +
+          attribute_objects(namespace).map { |a| "##{a.name}" } +
           instance_method_objects(namespace).map { |m| member_heading(m) }
       end
 
@@ -106,7 +106,7 @@ module YARD
       end
 
       def extend_headings(namespace)
-        attribute_objects(namespace).map { |a| ".#{a[:name]}" } +
+        attribute_objects(namespace).map { |a| ".#{a.name}" } +
           instance_method_objects(namespace).map { |m| ".#{member_name(m)}" }
       end
 

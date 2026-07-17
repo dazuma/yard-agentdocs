@@ -2,14 +2,17 @@
 
 require "yard"
 
+require "yard/agentdocs/attribute"
 require "yard/agentdocs/attribute_info"
 require "yard/agentdocs/auxiliary_tags"
 require "yard/agentdocs/cross_referencing"
 require "yard/agentdocs/erb_with_trim_mode"
 require "yard/agentdocs/example_tags"
 require "yard/agentdocs/markdownify"
+require "yard/agentdocs/member_listing"
 require "yard/agentdocs/member_roster"
 require "yard/agentdocs/method_signature"
+require "yard/agentdocs/text_layout"
 require "yard/agentdocs/version"
 require "yard/agentdocs/visibility_info"
 
