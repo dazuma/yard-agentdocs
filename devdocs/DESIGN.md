@@ -181,7 +181,12 @@ hand-written example, `example/doc` is ~37% *larger* than `example/lib`
 (38.9KB vs. 28.5KB — judged an artifact of toy method bodies under rich
 docstrings; see "Agent-usefulness evaluation" under "Decisions"), so
 "cheaper than reading source" needs confirming on a real gem, where
-implementation bodies dominate, rather than assuming.
+implementation bodies dominate, rather than assuming. Two further
+measurements ride along from the per-entry `Defined in:` review (see
+"Per-entry `Defined in:` retained at all levels" under "Decisions"):
+re-measure the per-entry `**Defined in:**` overhead on a real gem (8.6%
+of corpus bytes on the hand-written example), and watch for evidence of
+whether agents actually exercise those pointers.
 
 ### Module/class structure
 
@@ -716,78 +721,6 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   discard data the output format wants, revisit the principle once,
   deliberately — rather than accumulating "permanent gap" decisions one at
   a time.
-- **Should per-entry `Defined in:` (method/attribute/constant) exist at
-  all?** Raised in a (July 2026) session while fixing the trailing-bullet
-  list-merging bug (see "Trailing-bullet list merging" under "Decisions") —
-  that fix is implemented and doesn't depend on this question, but working
-  through it surfaced a deeper, unresolved disagreement about whether the
-  feature belongs at all. Flagged here, unresolved and unimplemented,
-  specifically for a higher-level model/session to review — this write-up
-  is a summary of the discussion's arguments, not a decision. **Current
-  behavior is unchanged**: `Defined in:` still renders at class/module
-  level (in the leading metadata block) and per-entry for every method,
-  attribute, and constant (as a trailing `* **Defined in:** path:line`
-  line), exactly as before this discussion.
-
-  - **The question, precisely:** the July 2026 agent-usefulness evaluation
-    (see "Decisions") praised per-entry `**Defined in:**` as "an escape
-    hatch back to the implementation... no changes recommended." A later
-    session, prompted by a human pushing back on the assumption underneath
-    that praise, questioned whether an agent using this format for its
-    *stated* purpose would actually want it — and, if not for all entries,
-    whether it should be trimmed to class/module level only (dropping the
-    per-method/attribute/constant lines) rather than removed outright or
-    kept as-is everywhere.
-  - **Case for removing it (or trimming to class-level only):** the
-    project's own purpose statement frames the target scenario as an agent
-    *consuming* a dependency ("fetch exactly the reference info it needs...
-    without multi-step exploration through source files"), and the dogfood
-    milestone plan is explicitly "run the template against a real, mid-size
-    gem" — i.e. someone else's library, not the agent's own codebase. For
-    that consuming agent, needing to open the gem's own implementation is
-    close to the exact failure mode this project exists to eliminate, not a
-    feature it's likely to want for routine lookups. Class-level `**Defined
-    in:**` (kept regardless, cheap — paid once per file) already gives the
-    minimum information needed to make "go to source if truly warranted" a
-    single cheap `grep def method_name` rather than a blind search, so
-    dropping the *per-entry* line wouldn't reintroduce the multi-step
-    exploration problem — it would just stop paying a repeated cost (one
-    line on every single method/attribute/constant) for precision that's
-    rarely exercised for this persona. Side benefit, though not the
-    primary argument: most methods carry no `@since`/`@deprecated`/etc., so
-    dropping their `**Defined in:**` line would leave most method entries
-    with no trailing block at all, shrinking exposure to the
-    list-merging issue class fixed elsewhere in this same session.
-  - **Case for keeping it as-is (all levels, current behavior):** even a
-    pure dependency-consuming agent sometimes needs to verify observed
-    behavior against actual implementation — documented behavior turning
-    out to be incomplete, or a suspected bug in the dependency itself — and
-    that's a real, recurring need, not a rare maintainer-only scenario.
-    When it does arise, the method-level pointer is strictly more useful
-    than the class-level one: it's line-precise (class-level is
-    file-only), and it correctly resolves the case where a class is
-    reopened across multiple files (`Geometry::Rectangle`, split across
-    `rectangle.rb`/`rectangle_perimeter.rb` — the class-level line lists
-    both files comma-joined and can't tell you which one a given method is
-    actually in; `#perimeter`'s own line resolves this exactly). The
-    absolute cost is also small — one line per entry — and isn't a
-    meaningful contributor to this format's known verbosity (per the July
-    2026 evaluation, that's dominated by rich docstrings/examples over toy
-    method bodies, not single-line metadata).
-  - **Where the discussion converged, informally, before being paused for
-    review:** trim to class-level only — drop the per-entry line for
-    methods, attributes, *and* constants (not just methods; the same
-    numerous/granular/narrow-individual-value reasoning applies to all
-    three), keep it in the class/module metadata block. Reasoning: the
-    debugging/verification need is real but doesn't require per-entry
-    precision to be served — given the class-level file(s), finding one
-    method's exact line is a single cheap grep, so keeping *only* the
-    class-level pointer preserves the "one cheap step, not a search"
-    property this project cares about while dropping the repeated
-    per-entry cost. This was **not** acted on — logged here as the
-    discussion's tentative direction, for a fresh, higher-level review to
-    confirm, reject, or complicate before any implementation happens.
-
 ## Decisions
 
 ### File granularity: one file per class/module, members as sections
@@ -3308,6 +3241,108 @@ instead of duplicating it. `any_members?` now also checks
 object with zero own members but a non-empty roster (not exercised by any
 current fixture, but a real case once dogfooding hits a documentation-only
 subclass).
+
+### Per-entry `Defined in:` retained at all levels (July 2026 review)
+
+Resolves the former open question "Should per-entry `Defined in:`
+(method/attribute/constant) exist at all?", raised alongside the
+trailing-bullet list-merging fix. That discussion questioned whether an
+agent consuming a *dependency's* docs (the project's stated persona) would
+ever want a per-entry source pointer — needing to open the gem's
+implementation being close to the failure mode this project exists to
+eliminate — and had informally converged on trimming to class-level only:
+drop the trailing `* **Defined in:** path:line` line from every method,
+attribute, and constant, keep the class/module metadata-block line, on
+the reasoning that "given the class-level file(s), finding one method's
+exact line is a single cheap `grep def method_name`." It was paused,
+deliberately unimplemented, for a higher-level review. That review (July
+2026, a stronger model re-examining the logged arguments fresh)
+**rejected the trim — current behavior stands**: `**Defined in:**`
+renders at class/module level and per-entry for every method, attribute,
+and constant, exactly as before. No template or fixture change; this
+entry logs the reasoning so the trim isn't re-proposed without new
+evidence.
+
+**Considerations the original discussion missed (both sides):**
+
+- **The "mirror human reference needs" design heuristic already answers
+  the default, and neither side cited it.** YARD's own HTML template
+  renders per-method source location on every method (`# File
+  'lib/x.rb', line 28` in the View Source toggle). The heuristic's
+  terseness clause licenses compressing *presentation* ("prefer compact
+  inline annotations over a human template's more elaborate treatment of
+  the same information"), not dropping information the human template
+  carries — and the one-line bullet already is the compact rendering.
+  Trimming needed an explicit divergence case; the discussion never made
+  one.
+- **The trim side's grep-recovery claim fails exactly where these docs
+  beat source: metaprogrammed members.** `grep "def perimeter"` works
+  for plain defs, but finds nothing for attributes (`attr_reader
+  :radius` — no `def radius` exists in source), `Data.define`/
+  `Struct`-synthesized members (`Vector#dx`/`#dy` — which the
+  agent-usefulness evaluation itself praised the format for surfacing as
+  existing "as no `def` in source"), or `@!method`-directive/
+  DSL-generated methods. Locating those definition sites requires
+  already knowing which metaprogramming idiom produced the member —
+  precisely the knowledge the docs exist to spare the agent — and in the
+  real gems the dogfood milestone targets (generated API clients,
+  DSL-heavy libraries), metaprogrammed members are common, not an edge
+  case. The informal convergence extended the trim to attributes and
+  constants "because the same reasoning applies"; attributes are in fact
+  where the grep-recovery reasoning is weakest.
+- **The fixture biases the debate toward "docs suffice."** `example/lib`
+  is ~100% richly documented, making "when would an agent need source?"
+  feel rare. Real gems invert this: for a member whose entire docstring
+  is YARD's "Returns the value of attribute radius" boilerplate, the
+  pointer is the entry's main payload, not an escape hatch. And the
+  evaluation's own measurement (docs currently ~37% *larger* than
+  source) means near-term consumers will plausibly interleave doc reads
+  with source reads, raising, not lowering, pointer usage.
+- **Neither side measured the cost.** Measured during this review: the
+  per-entry lines are 66 lines / 3,543 bytes of the 41,422-byte
+  `example/doc` corpus — **8.6%**, materially worse than the keep side's
+  "isn't a meaningful contributor to verbosity" claim, and probably the
+  format's largest uniform per-entry overhead. On real gems the fraction
+  should shrink (real prose and method bodies dilute it) while
+  individual lines grow (deeply nested `lib/...` paths). This is the
+  trim side's strongest argument, and the reason this question gets a
+  dogfood re-check (below) rather than being closed outright.
+- **Line numbers are the brittle part, not the pointer itself.** Under
+  docs/source version skew (stale vendored docs, docs generated from a
+  different gem version), a `:line` suffix is silently, confidently
+  wrong — worse than absent — while a bare file path degrades
+  gracefully. Not acted on, since the intended deployment generates docs
+  from the exact shipped source; logged so that if skewed deployments
+  ever become real, the fix is dropping `:line`, not the pointer.
+
+**Considered and rejected:**
+
+- **Trim to class-level only** (the informal convergence) — rejected per
+  the metaprogrammed-member and design-heuristic arguments above. The
+  keep-side arguments it was originally weighed against remain valid
+  too: the per-entry line is line-precise where class-level is
+  file-only, and it resolves which file of a reopened class
+  (`Geometry::Rectangle`) actually defines a given member.
+- **Conditional rendering** — emit the per-entry line only where it adds
+  information over class-level (multi-file classes, or metaprogrammed
+  members). Kills most of the cost, but rejected on the project's own
+  uniformity precedent (the Member Summary threshold rejection: "uniform,
+  predictable structure is worth more than the handful of tokens"), and
+  a sometimes-present field would break the navigation preamble's
+  ability to state a simple invariant about where source locations live.
+- **Drop `:line`, keep the path** — negligible token savings; loses the
+  one-hop line precision; only worth revisiting as a staleness measure
+  (see above), not a token measure.
+- **Terser label** (e.g. `**Source:**` instead of `**Defined in:**`) —
+  not worth format churn now; noted as the first, cheaper lever to pull
+  if the dogfood measurement stays high.
+
+**Disposition:** keep as-is. Two companion questions attached to the
+dogfood milestone (see "Prioritization and roadmap"): re-measure the
+per-entry overhead percentage on a real gem, and look for evidence of
+whether agents actually exercise the pointers in practice. Revisit with
+that data if the overhead stays high *and* the pointers go unused — not
+before.
 
 ## Implementation
 
