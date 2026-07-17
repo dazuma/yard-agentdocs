@@ -23,7 +23,7 @@
 Segment.new(start_point, end_point) → Segment
 ```
 
-- **Defined in:** `example/lib/geometry/segment.rb:5`
+* **Defined in:** `example/lib/geometry/segment.rb:5`
 
 ## Instance Methods
 
@@ -33,4 +33,4 @@ Segment.new(start_point, end_point) → Segment
 segment.length()
 ```
 
-- **Defined in:** `example/lib/geometry/segment.rb:10`
+* **Defined in:** `example/lib/geometry/segment.rb:10`

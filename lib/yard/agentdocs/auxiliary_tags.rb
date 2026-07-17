@@ -58,7 +58,7 @@ module YARD
       def annotation_lines(object)
         annotation = private_api_annotation(object)
         [
-          annotation && "- **#{annotation}**",
+          annotation && "* **#{annotation}**",
           deprecated_line(object),
           abstract_line(object),
           note_line(object),
@@ -108,7 +108,7 @@ module YARD
         tag = object.tag(:since)
         return nil unless tag
 
-        "- **Since:** #{indent_continuation(markdownify(tag.text))}"
+        "* **Since:** #{indent_continuation(markdownify(tag.text))}"
       end
 
       ##
@@ -119,7 +119,7 @@ module YARD
         tag = object.tag(:version)
         return nil unless tag
 
-        "- **Version:** #{indent_continuation(markdownify(tag.text))}"
+        "* **Version:** #{indent_continuation(markdownify(tag.text))}"
       end
 
       ##
@@ -134,7 +134,7 @@ module YARD
         return nil if tags.empty?
 
         text = tags.map { |tag| markdownify(tag.text) }.join(", ")
-        "- **Author:** #{indent_continuation(text)}"
+        "* **Author:** #{indent_continuation(text)}"
       end
 
       private
@@ -143,28 +143,28 @@ module YARD
         return nil unless object.has_tag?(:deprecated)
 
         text = markdownify(object.tag(:deprecated).text)
-        text.empty? ? "- **Deprecated.**" : "- **Deprecated.** #{indent_continuation(text)}"
+        text.empty? ? "* **Deprecated.**" : "* **Deprecated.** #{indent_continuation(text)}"
       end
 
       def note_line(object)
         return nil unless object.has_tag?(:note)
 
         text = markdownify(object.tag(:note).text)
-        text.empty? ? "- **Note:**" : "- **Note:** #{indent_continuation(text)}"
+        text.empty? ? "* **Note:**" : "* **Note:** #{indent_continuation(text)}"
       end
 
       def abstract_line(object)
         return nil unless object.has_tag?(:abstract)
 
         text = markdownify(object.tag(:abstract).text)
-        text.empty? ? "- **Abstract.**" : "- **Abstract.** #{indent_continuation(text)}"
+        text.empty? ? "* **Abstract.**" : "* **Abstract.** #{indent_continuation(text)}"
       end
 
       def todo_line(object)
         return nil unless object.has_tag?(:todo)
 
         text = markdownify(object.tag(:todo).text)
-        text.empty? ? "- **Todo:**" : "- **Todo:** #{indent_continuation(text)}"
+        text.empty? ? "* **Todo:**" : "* **Todo:** #{indent_continuation(text)}"
       end
     end
   end

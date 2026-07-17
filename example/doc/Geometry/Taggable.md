@@ -29,4 +29,4 @@ A short tag for the shape, derived from its label.
 
 - `String` — the label wrapped in brackets, e.g. `"[circle]"`
 
-- **Defined in:** `example/lib/geometry/taggable.rb:18`
+* **Defined in:** `example/lib/geometry/taggable.rb:18`

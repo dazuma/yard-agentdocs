@@ -40,4 +40,4 @@ Greets `name`, wrapping it in *emphasis*.
 
 - `String` — the greeting, with `name` emphasized
 
-- **Defined in:** `example/rdoc/lib/greeter.rb:25`
+* **Defined in:** `example/rdoc/lib/greeter.rb:25`

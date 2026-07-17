@@ -108,6 +108,7 @@ module Geometry
     #   copies.size
     #   #=> 3
     # @since 1.1.0
+    # @version 1.2.0
     #
     def self.of(*args)
       first, second = args

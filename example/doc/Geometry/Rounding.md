@@ -34,4 +34,4 @@ Rounds a value to the given number of decimal places.
 
 - `Float` — the rounded value
 
-- **Defined in:** `example/lib/geometry/rounding.rb:22`
+* **Defined in:** `example/lib/geometry/rounding.rb:22`

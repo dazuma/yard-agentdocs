@@ -31,4 +31,4 @@ Upper-cases the prepending class's own `#describe` result.
 
 - `String` — the class's own description, upper-cased
 
-- **Defined in:** `example/lib/geometry/loud.rb:20`
+* **Defined in:** `example/lib/geometry/loud.rb:20`

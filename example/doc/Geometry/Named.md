@@ -30,4 +30,4 @@ The shape's kind, derived from the extending class's own name.
 
 - `Symbol` — the class's short name, downcased — e.g. `:triangle`
 
-- **Defined in:** `example/lib/geometry/named.rb:19`
+* **Defined in:** `example/lib/geometry/named.rb:19`

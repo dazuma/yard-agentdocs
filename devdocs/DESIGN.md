@@ -716,6 +716,77 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   discard data the output format wants, revisit the principle once,
   deliberately — rather than accumulating "permanent gap" decisions one at
   a time.
+- **Should per-entry `Defined in:` (method/attribute/constant) exist at
+  all?** Raised in a (July 2026) session while fixing the trailing-bullet
+  list-merging bug (see "Trailing-bullet list merging" under "Decisions") —
+  that fix is implemented and doesn't depend on this question, but working
+  through it surfaced a deeper, unresolved disagreement about whether the
+  feature belongs at all. Flagged here, unresolved and unimplemented,
+  specifically for a higher-level model/session to review — this write-up
+  is a summary of the discussion's arguments, not a decision. **Current
+  behavior is unchanged**: `Defined in:` still renders at class/module
+  level (in the leading metadata block) and per-entry for every method,
+  attribute, and constant (as a trailing `* **Defined in:** path:line`
+  line), exactly as before this discussion.
+
+  - **The question, precisely:** the July 2026 agent-usefulness evaluation
+    (see "Decisions") praised per-entry `**Defined in:**` as "an escape
+    hatch back to the implementation... no changes recommended." A later
+    session, prompted by a human pushing back on the assumption underneath
+    that praise, questioned whether an agent using this format for its
+    *stated* purpose would actually want it — and, if not for all entries,
+    whether it should be trimmed to class/module level only (dropping the
+    per-method/attribute/constant lines) rather than removed outright or
+    kept as-is everywhere.
+  - **Case for removing it (or trimming to class-level only):** the
+    project's own purpose statement frames the target scenario as an agent
+    *consuming* a dependency ("fetch exactly the reference info it needs...
+    without multi-step exploration through source files"), and the dogfood
+    milestone plan is explicitly "run the template against a real, mid-size
+    gem" — i.e. someone else's library, not the agent's own codebase. For
+    that consuming agent, needing to open the gem's own implementation is
+    close to the exact failure mode this project exists to eliminate, not a
+    feature it's likely to want for routine lookups. Class-level `**Defined
+    in:**` (kept regardless, cheap — paid once per file) already gives the
+    minimum information needed to make "go to source if truly warranted" a
+    single cheap `grep def method_name` rather than a blind search, so
+    dropping the *per-entry* line wouldn't reintroduce the multi-step
+    exploration problem — it would just stop paying a repeated cost (one
+    line on every single method/attribute/constant) for precision that's
+    rarely exercised for this persona. Side benefit, though not the
+    primary argument: most methods carry no `@since`/`@deprecated`/etc., so
+    dropping their `**Defined in:**` line would leave most method entries
+    with no trailing block at all, shrinking exposure to the
+    list-merging issue class fixed elsewhere in this same session.
+  - **Case for keeping it as-is (all levels, current behavior):** even a
+    pure dependency-consuming agent sometimes needs to verify observed
+    behavior against actual implementation — documented behavior turning
+    out to be incomplete, or a suspected bug in the dependency itself — and
+    that's a real, recurring need, not a rare maintainer-only scenario.
+    When it does arise, the method-level pointer is strictly more useful
+    than the class-level one: it's line-precise (class-level is
+    file-only), and it correctly resolves the case where a class is
+    reopened across multiple files (`Geometry::Rectangle`, split across
+    `rectangle.rb`/`rectangle_perimeter.rb` — the class-level line lists
+    both files comma-joined and can't tell you which one a given method is
+    actually in; `#perimeter`'s own line resolves this exactly). The
+    absolute cost is also small — one line per entry — and isn't a
+    meaningful contributor to this format's known verbosity (per the July
+    2026 evaluation, that's dominated by rich docstrings/examples over toy
+    method bodies, not single-line metadata).
+  - **Where the discussion converged, informally, before being paused for
+    review:** trim to class-level only — drop the per-entry line for
+    methods, attributes, *and* constants (not just methods; the same
+    numerous/granular/narrow-individual-value reasoning applies to all
+    three), keep it in the class/module metadata block. Reasoning: the
+    debugging/verification need is real but doesn't require per-entry
+    precision to be served — given the class-level file(s), finding one
+    method's exact line is a single cheap grep, so keeping *only* the
+    class-level pointer preserves the "one cheap step, not a search"
+    property this project cares about while dropping the repeated
+    per-entry cost. This was **not** acted on — logged here as the
+    discussion's tentative direction, for a fresh, higher-level review to
+    confirm, reject, or complicate before any implementation happens.
 
 ## Decisions
 
@@ -2856,6 +2927,109 @@ the way `@note`/`@deprecated`/`@abstract` are.
   decision above) and `Geometry::Vector` (`@since`/`@version`/`@author`, now
   trailing instead of top-of-page, plus the newly-visible transitive
   `@since` on its methods).
+
+### Trailing-bullet list merging: `*` for flag/trailing/per-entry-`Defined in:` lines, joined tight
+
+Follow-up to "Bulleted-list rendering for metadata/flag lines" above — that
+decision made every bare `**Label:** value` line a `- ` bullet to fix
+reflow/embedded-newline corruption, but never checked what happens when one
+of those bullets lands directly after an *unrelated* bulleted block with
+only a blank line between them. Human review of the `Point.of` work
+noticed `**Returns:**`'s list visually swallowing the `**Since:**`/
+`**Defined in:**` lines after it. Verified with `commonmarker` (a real
+CommonMark parser, not reasoning from the spec alone) that this is a
+genuine, spec-conformant behavior — a blank line between two `- `-bulleted
+blocks doesn't end the list, only makes it "loose"; ending a list requires
+different block content (a paragraph, a heading, or a different bullet
+character) — and then scripted the same check across every `example/doc`/
+`example/rdoc/doc` file to find the real scope: nearly every file shipped
+with at least one such merge (any content list — `**Returns:**`/
+`**Raises:**`/`**Yields:**`/etc. — immediately followed by trailing
+`**Since:**`/`**Defined in:**` bullets; also class-level `**Superclass:**`/
+`**Includes:**`/`**Defined in:**` metadata merging with `**Deprecated.**`/
+`**Abstract.**`/`**Note:**` flags right after it, since flags come before
+prose with nothing but a blank line between).
+
+**The fix:** every bullet that isn't part of the "content" of an entry —
+`@deprecated`/`@abstract`/`@note`/private-API (`annotation_lines`),
+also-known-as/overrides, `@todo`/`@since`/`@version`/`@author`
+(`trailing_annotation_lines`), the alias branch's `**Alias for:**`, and
+every *per-entry* `**Defined in:**` (method/attribute/constant) — switches
+from `- ` to `* `. CommonMark treats a bullet-character change as starting
+a new list, unconditionally, so this reliably splits these from whatever
+`- `-bulleted content list precedes them, with no new visible syntax (a
+human skimmer barely notices one character differs). Left as `-`: the
+class-level metadata block itself (`**Superclass:**`/`**Includes:**`/
+`**Extends:**`/`**Defined in:**`, only ever adjacent to each other, meant
+to render as one block — same as before) and every content-shape list
+(`**Params:**`/`**Options:**`/`**Returns:**`/`**Yields:**`/`**Yield
+Params:**`/`**Yield Returns:**`/`**Raises:**`, plus attribute/constant
+`**Type:**`/`**Value:**`/`**Read-only.**`). Two markers were enough because
+the two families never both use `*` while directly touching each other
+without an intervening paragraph/heading — verified by checking every
+adjacency, not just the ones already failing.
+
+**Considered and rejected:**
+- **`<!-- -->` HTML-comment separator** — also verified with `commonmarker`
+  to split the lists, but depends on the renderer supporting raw HTML
+  blocks; under a renderer with HTML disabled/escaped it degrades to
+  visible literal `<!-- -->` text, which is bad for a format that's meant
+  to still be human-legible (see "Output format" above).
+- **Thematic break (`---`)** — also verified to work (renders a real
+  `<hr>`), but would add a visible divider line to nearly every entry in
+  the corpus (any content list followed by `**Defined in:**`, i.e. almost
+  all of them) — a much bigger visual footprint than a one-character marker
+  swap.
+
+**Implementation:** `AuxiliaryTags#annotation_lines`/`#trailing_annotation_lines`
+(and their private `#deprecated_line`/`#note_line`/`#abstract_line`/
+`#todo_line`/`#since_line`/`#version_line`/`#author_line`) switched their
+leading `- ` to `* `; ditto `MethodSignature#also_known_as_line`/
+`#overrides_line`; ditto the literal `**Alias for:**`/`**Defined in:**`
+lines in `method_entry.erb`, `attribute_entry.erb`, and
+`constant_entry.erb`. `setup.rb#defined_in_line`/`#mixin_line` and
+`class/agentdocs/setup.rb#superclass_line` (the class-level metadata block)
+were deliberately left untouched. Applied uniformly, not just where a
+merge was empirically observed in the current fixtures — same "one simple
+rule, not dependent on incidental adjacency" reasoning as the original
+bulleted-list-rendering decision.
+
+**Regression coverage:** since this is a purely mechanical rendering fix
+(no content changes), every `example/doc`/`example/rdoc/doc` fixture was
+regenerated directly from the updated template rather than hand-edited,
+then diffed against the previous fixtures to confirm the *only* change on
+every line was `- ` → `* ` (verified file-by-file before committing to the
+regenerated set) — consistent with "prove format correctness" instead of
+arguing the change was probably safe. Re-ran the `commonmarker` merge-scan
+against the regenerated corpus afterward and confirmed zero remaining
+blank-line-separated same-marker bullet adjacencies anywhere in either
+fixture tree.
+
+**Follow-up: join the trailing block to `**Defined in:**` tight, not
+loose.** The marker swap alone still left a blank line between
+`trailing_annotation_lines`'s output and the method's own
+`**Defined in:**` — both `* `, so CommonMark keeps them one list, but the
+blank line makes it a *loose* list (`<li><p>...</p></li>`, extra vertical
+space per item), and it's just as easy to keep it tight. Verified with
+`commonmarker` that a bullet-character change alone (no blank line needed
+at all) reliably starts a new list even directly against a `- `-bulleted
+block, and that a list also correctly interrupts a plain paragraph with no
+blank line — so `method_entry.erb` now only inserts a blank line before
+`**Defined in:**` when `trailing_annotation_lines` is empty (nothing
+tight to join it to); when non-empty, `**Defined in:**` follows the
+trailing lines' last line directly. Exercised by adding `@version` to
+`Point.of` alongside its existing `@since`, specifically to prove multiple
+trailing fields plus `**Defined in:**` stack tight as one list, not just a
+single field.
+
+**Spotted but deliberately not touched in this pass** (same underlying
+"two `* ` bullets, blank line between" pattern, confirmed still present):
+the alias branch's `**Alias for:**` directly followed by `**Defined in:**`
+when the alias has no own prose (e.g. `Stopwatch#restart`), and a
+constant's `since_line` directly followed by `**Defined in:**`
+(`constant_entry.erb`). Flagging rather than folding in, since the
+requested fix was scoped to the method-level trailing-tags case — worth a
+deliberate follow-up rather than silently expanding this pass's scope.
 
 ### Agent-usefulness evaluation (July 2026)
 

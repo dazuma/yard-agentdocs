@@ -37,4 +37,4 @@ Triangle.new() → Triangle
 
 Creates a triangle, with sides fixed to 3.
 
-- **Defined in:** `example/lib/geometry/triangle.rb:21`
+* **Defined in:** `example/lib/geometry/triangle.rb:21`

@@ -22,6 +22,12 @@
   For the actual docs behind any of those names, follow the
   `**Superclass:**`, `**Includes:**`, or `**Extends:**` link near the top
   of the file to that type's own file.
+- **Trailing metadata uses `*`, not `-`.** A member's own content bullets
+  (`**Params:**`, `**Returns:**`, `**Raises:**`, etc.) always use `- `.
+  Deprecation/note/abstract flags, aliasing, and trailing `**Since:**`/
+  `**Version:**`/`**Author:**`/`**Defined in:**` lines always use `* `
+  instead, and stack with no blank line between them — a deliberate marker
+  change so they never render as part of the preceding content list.
 
 ## Classes & modules
 
