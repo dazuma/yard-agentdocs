@@ -456,10 +456,12 @@ whether agents actually exercise those pointers.
       "`attr_accessor`/`attr_writer` with doc comments" under "Decisions",
       which also closes out the undocumented-attribute boilerplate revisit
       this item was carrying
-- [ ] (mech) Manually-defined reader/writer pair documented via
+- [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
-      `attr_*` — escalate to (design) if YARD doesn't merge the pair into
-      one attribute cleanly
+      `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
+      the tag/method merge surfaced a real quirk — see "`@attr`/
+      `@attr_reader`/`@attr_writer` tags on a manual reader/writer pair"
+      under "Decisions"
 - [x] Simple constant (numeric/string literal) with a doc comment —
       `Point::DIMENSIONS`
 - [x] (design) Structured constant (`Hash`, `Array`, `Regexp` literal) — a
@@ -3437,6 +3439,57 @@ generated string is fragile and indistinguishable from a legitimately terse
 human docstring), so the policy stands: render the boilerplate, don't
 suppress it. Closes the revisit; not expected to be reopened without new
 evidence.
+
+### `@attr`/`@attr_reader`/`@attr_writer` tags on a manual reader/writer pair: accept YARD's own `Defined in:` quirk, no workaround
+
+Settles the "Manually-defined reader/writer pair documented via `@attr`/
+`@attr_reader`/`@attr_writer` tags" checklist item under "Attributes &
+constants". Exercised by `Waypoint#label` (paired `@attr_reader`/
+`@attr_writer` tags) and `Waypoint#order` (the combined `@attr` tag) —
+real, hand-written `def label`/`def label=`/`def order`/`def order=`
+methods, none with their own doc comment, documented entirely through
+class-level tags instead.
+
+**Probed directly against the parser (not inferred from source) before
+writing the fixture, since the checklist item explicitly flagged "escalate
+to (design) if YARD doesn't merge the pair into one attribute cleanly":**
+`Handlers::Ruby::ClassHandler#process` calls `create_attributes` (from the
+`@deprecated`-labeled `StructHandlerMethods`, originally written for
+`Struct.new`) for *every* plain class, using whatever names
+`members_from_tags` finds in `@attr`/`@attr_reader`/`@attr_writer` tags —
+before the class body is parsed. This eagerly registers a synthetic
+placeholder `MethodObject` per reader/writer. When the real `def label` is
+parsed moments later, YARD's registry reuses that *same* object (methods
+are memoized by path), so the pair does merge into one `namespace.attributes`
+entry — the type/docstring end up correct, reflecting the real method's own
+doc comment when it has one, and the class tag's text/type otherwise
+(confirmed both paths directly). **`attribute_file`/`attribute_line` do
+not merge correctly, though:** `CodeObjects::Base#add_file` only lets the
+*first* registration carrying a non-blank comment claim the "primary"
+file/line (`#file`/`#line`); since the class's own docstring (carrying the
+tags) is non-blank, the synthetic pre-body registration wins that slot
+permanently. The real `def`'s own file/line registration is appended, never
+promoted — verified this holds even when the real method has its own doc
+comment. Net effect: `Waypoint#label`/`#order` both render `` * **Defined
+in:** `example/lib/geometry/waypoint.rb:21` `` — the `class Waypoint` line
+— never their real lines (33/37/41/45).
+
+**Decision: accept it, no template workaround.** This is a real case of
+`**Defined in:**` being confidently *wrong* rather than merely absent — the
+kind of outcome the "per-entry `Defined in:` retained at all levels" review
+called worse than an absent pointer. A workaround was considered (e.g.
+preferring `object.files.last` over `object.file`/`.line` when more than one
+file-registration exists) and rejected: it leans on "synthetic registration
+is always first, real one is always last, exactly two entries," which isn't
+guaranteed (reopened classes, multiple `@attr` blocks) — exactly the kind of
+speculative robustness this project defers until the dogfood milestone
+shows it's actually needed. Both `@attr`-family tags are themselves
+YARD-deprecated in favor of `@!attribute` (a separate, not-yet-built
+checklist item, worth checking later whether it shares this flaw — the
+mechanism is a directive, not a docstring tag, so likely not), which further
+lowers the expected real-world prevalence of this exact gap. Not expected to
+be reopened without dogfood evidence that this combination is common enough
+to matter.
 
 ## Implementation
 

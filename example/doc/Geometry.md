@@ -52,3 +52,4 @@ reserves, so it renders unchanged.
 - [`ThreeD`](Geometry/ThreeD.md)
 - [`Triangle`](Geometry/Triangle.md) — A triangle: a polygon with exactly three sides.
 - [`Vector`](Geometry/Vector.md) — An immutable 2D displacement vector.
+- [`Waypoint`](Geometry/Waypoint.md) — A labeled stop along a route, documented the way YARD supported before `attr_*` gained its own doc-comment convention: `@attr`/`@attr_reader`/ `@attr_writer` tags on the class docstring, rather than a comment above each reader/writer method.
