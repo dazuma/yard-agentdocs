@@ -187,9 +187,25 @@ first).
       `attribute.rb`, `test/test_text_layout.rb`. Residual nit for
       Package 2: `test/test_attribute_info.rb`'s helper is still named
       `attr_hash` though it now returns an `Attribute`.)*
-- [ ] **Package 2** — Findings 5 + 7 + 8: shared test holder-builder, fill
-      unit-test gaps. *(Depends on Package 1 landing first. Also rename
-      `attr_hash` in test_attribute_info.rb, see Package 1 note.)*
+- [x] **Package 2** — Findings 5 + 7 + 8: shared test holder-builder, fill
+      unit-test gaps. *(Implemented by a Sonnet 5 subagent 2026-07-17,
+      reviewed and verified by Fable; uncommitted, awaiting human review.
+      `agentdocs_holder(*mixins, source:, at:, markup:)` added to
+      test/helper.rb and adopted by all prior holder-based test files;
+      new test files for AuxiliaryTags, ExampleTags, VisibilityInfo,
+      MemberRoster, ErbWithTrimMode; MethodSignature gaps filled;
+      `attr_hash` renamed to `attribute_for`. 173 runs / 226 assertions,
+      up from 105/145. Residual nits surfaced, deferred: (a)
+      lib/yard/agentdocs/erb_with_trim_mode.rb uses `::ERB` without
+      `require "erb"` — works in real renders only because YARD's
+      Template requires it first; add the require in a later package.
+      (b) In tests where a holder and a parsed object are built by
+      separate `agentdocs_holder` calls (test_auxiliary_tags.rb), the
+      holder's later registry-clear empties the registry after the object
+      was fetched, so tag text containing resolvable `{...}` references
+      would silently not resolve — fine for current assertions, but a
+      trap for future tests; consider a builder variant returning both
+      holder and object from one registry.)*
 - [ ] **Package 3** — Findings 4 + 9 + 10 + 11: scanner dedup,
       `method_entry.erb` restructuring, `type_ref_for(tag)` helper,
       `summary_suffix` rename. *(Independent of Packages 1–2.)*

@@ -3,27 +3,8 @@
 require "helper"
 
 describe ::YARD::AgentDocs::MethodSignature do
-  let(:holder_class) do
-    Class.new do
-      include ::YARD::AgentDocs::MethodSignature
-
-      attr_accessor :object
-    end
-  end
-
-  # Parses +source+ (a class/module body) into a fresh registry and returns
-  # a holder whose +object+ is +namespace_path+, mirroring how a template
-  # sees the object currently being rendered.
-  def holder_for(source, namespace_path)
-    ::YARD::Registry.clear
-    ::YARD.parse_string(source)
-    holder = holder_class.new
-    holder.object = ::YARD::Registry.at(namespace_path)
-    holder
-  end
-
   let(:holder) do
-    holder_for(<<~RUBY, "Point")
+    source = <<~RUBY
       class Point
         # @param x [Integer]
         # @param y [Integer]
@@ -96,6 +77,9 @@ describe ::YARD::AgentDocs::MethodSignature do
         end
       end
     RUBY
+    agentdocs_holder(
+      ::YARD::AgentDocs::MethodSignature, ::YARD::AgentDocs::CrossReferencing, source: source, at: "Point"
+    )
   end
 
   def meth(name)
@@ -104,6 +88,13 @@ describe ::YARD::AgentDocs::MethodSignature do
 
   def overload(name, index)
     meth(name).tags(:overload)[index]
+  end
+
+  # Parses +source+ into a fresh registry and returns a holder whose
+  # +object+ is +path+ — for describe blocks that need their own,
+  # differently-shaped source rather than the shared Point fixture above.
+  def holder_for(source, path)
+    agentdocs_holder(::YARD::AgentDocs::MethodSignature, ::YARD::AgentDocs::CrossReferencing, source: source, at: path)
   end
 
   describe "#operator?" do
@@ -272,6 +263,257 @@ describe ::YARD::AgentDocs::MethodSignature do
 
     it "includes every @return tag when there is more than one" do
       assert_equal(["String", "nil"], holder.method_return_tags(meth(:multi_return)).map { |t| t.types.first })
+    end
+  end
+
+  describe "#signature_return_type_for" do
+    it "uses the given overload's own @return type" do
+      assert_equal("Point", holder.signature_return_type_for(meth(:of), overload(:of, 0)))
+      assert_equal("Array<Point>", holder.signature_return_type_for(meth(:of), overload(:of, 1)))
+    end
+
+    it "falls back to #signature_return_type when no overload is given" do
+      assert_equal("Float", holder.signature_return_type_for(meth(:distance_to), nil))
+    end
+  end
+
+  describe "alias handling" do
+    let(:holder) do
+      holder_for(<<~RUBY, "Greeter")
+        class Greeter
+          # Says hello.
+          def greet
+          end
+          alias hi greet
+
+          # Extra alias commentary.
+          alias_method :hey, :greet
+
+          def unaliased
+          end
+        end
+      RUBY
+    end
+
+    describe "#alias_original" do
+      it "is nil for a non-alias method" do
+        assert_nil(holder.alias_original(meth(:greet)))
+      end
+
+      it "resolves an `alias` keyword target" do
+        assert_equal(meth(:greet), holder.alias_original(meth(:hi)))
+      end
+
+      it "resolves an `alias_method` target" do
+        assert_equal(meth(:greet), holder.alias_original(meth(:hey)))
+      end
+    end
+
+    describe "#alias_own_prose" do
+      it "is nil for a non-alias method" do
+        assert_nil(holder.alias_own_prose(meth(:greet)))
+      end
+
+      it "is nil when the alias adds no text of its own" do
+        assert_nil(holder.alias_own_prose(meth(:hi)))
+      end
+
+      it "is just the alias's own added prose, with the original's prose stripped as a prefix" do
+        assert_equal("Extra alias commentary.", holder.alias_own_prose(meth(:hey)))
+      end
+    end
+
+    describe "#also_known_as_line" do
+      it "is nil when the method has no aliases" do
+        assert_nil(holder.also_known_as_line(meth(:unaliased)))
+      end
+
+      it "comma-joins every alias" do
+        assert_equal("* **Also known as:** `#hi`, `#hey`", holder.also_known_as_line(meth(:greet)))
+      end
+    end
+  end
+
+  describe "#overridden_method and #overrides_line" do
+    let(:source) do
+      <<~RUBY
+        class Shape
+          # The shape's label.
+          def label
+          end
+        end
+
+        class Rect < Shape
+          def label
+          end
+        end
+
+        class Polygon < Shape
+        end
+
+        class Triangle < Polygon
+          def label
+          end
+        end
+
+        class Square < Shape
+          # Square's own label.
+          def label
+          end
+        end
+
+        class UndocBase
+        end
+
+        class UndocSub < UndocBase
+          def label
+          end
+        end
+      RUBY
+    end
+
+    def label_meth(holder)
+      holder.object.meths(inherited: false).find { |m| m.name.to_s == "label" }
+    end
+
+    it "finds the ancestor across one superclass hop" do
+      holder = holder_for(source, "Rect")
+      meth = label_meth(holder)
+      ancestor = holder.overridden_method(meth)
+      assert_equal("Shape", ancestor.namespace.name.to_s)
+      assert_equal("* **Overrides:** [`Shape#label`](Shape.md)", holder.overrides_line(meth))
+    end
+
+    it "finds the ancestor across two superclass hops" do
+      holder = holder_for(source, "Triangle")
+      meth = label_meth(holder)
+      ancestor = holder.overridden_method(meth)
+      assert_equal("Shape", ancestor.namespace.name.to_s)
+      assert_equal("* **Overrides:** [`Shape#label`](Shape.md)", holder.overrides_line(meth))
+    end
+
+    it "is nil when the method documents itself" do
+      holder = holder_for(source, "Square")
+      meth = label_meth(holder)
+      assert_nil(holder.overridden_method(meth))
+      assert_nil(holder.overrides_line(meth))
+    end
+
+    it "is nil when no ancestor documents the method" do
+      holder = holder_for(source, "UndocSub")
+      meth = label_meth(holder)
+      assert_nil(holder.overridden_method(meth))
+      assert_nil(holder.overrides_line(meth))
+    end
+  end
+
+  describe "block-taking methods" do
+    let(:holder) do
+      holder_for(<<~RUBY, "Runner")
+        class Runner
+          # @yield [item] one call per item
+          def each_bare
+          end
+
+          # @yield [ignored] use yieldparam name instead
+          # @yieldparam item [String] each item
+          def each_typed
+          end
+
+          # @yield [x] called for each
+          def each_captured(&block)
+          end
+
+          def no_block
+          end
+        end
+      RUBY
+    end
+
+    describe "#implicit_block?" do
+      it "is true for a bare @yield with bracketed names" do
+        assert(holder.implicit_block?(meth(:each_bare)))
+      end
+
+      it "is true when @yieldparam tags are present" do
+        assert(holder.implicit_block?(meth(:each_typed)))
+      end
+
+      it "is false when the block is captured as a named &block param" do
+        refute(holder.implicit_block?(meth(:each_captured)))
+      end
+
+      it "is false for a method with no block at all" do
+        refute(holder.implicit_block?(meth(:no_block)))
+      end
+    end
+
+    describe "#block_param_names" do
+      it "reads @yield's own bracketed name list when there's no @yieldparam" do
+        assert_equal(["item"], holder.block_param_names(meth(:each_bare)))
+      end
+
+      it "prefers @yieldparam names over @yield's own bracket list" do
+        assert_equal(["item"], holder.block_param_names(meth(:each_typed)))
+      end
+    end
+
+    describe "#block_literal" do
+      it "renders a block literal with the yielded param names for an implicit block" do
+        assert_equal("{ |item| ... }", holder.block_literal(meth(:each_bare)))
+      end
+
+      it "is nil when the block is captured as a named &block param" do
+        assert_nil(holder.block_literal(meth(:each_captured)))
+      end
+
+      it "is nil for a method with no block at all" do
+        assert_nil(holder.block_literal(meth(:no_block)))
+      end
+    end
+  end
+
+  describe "#ordered_param_tags" do
+    it "reorders tags to match the real, signature parameter order regardless of docstring order" do
+      holder = holder_for(<<~RUBY, "Foo")
+        class Foo
+          # @param y [Integer]
+          # @param x [Integer]
+          def reordered(x, y)
+          end
+        end
+      RUBY
+      meth = holder.object.meths(inherited: false).find { |m| m.name.to_s == "reordered" }
+      ordered = holder.ordered_param_tags(meth, meth.tags(:param))
+      assert_equal(["x", "y"], ordered.map(&:name))
+    end
+
+    it "normalizes splat/double-splat sigils when matching tag names to real param names" do
+      holder = holder_for(<<~RUBY, "Foo")
+        class Foo
+          # @param opts [Hash]
+          # @param values [Array]
+          def variadic(*values, **opts)
+          end
+        end
+      RUBY
+      meth = holder.object.meths(inherited: false).find { |m| m.name.to_s == "variadic" }
+      ordered = holder.ordered_param_tags(meth, meth.tags(:param))
+      assert_equal(["values", "opts"], ordered.map(&:name))
+    end
+
+    it "normalizes a trailing keyword-argument colon when matching tag names to real param names" do
+      holder = holder_for(<<~RUBY, "Foo")
+        class Foo
+          # @param b [String]
+          # @param a [Integer]
+          def kw_reordered(a:, b:)
+          end
+        end
+      RUBY
+      meth = holder.object.meths(inherited: false).find { |m| m.name.to_s == "kw_reordered" }
+      ordered = holder.ordered_param_tags(meth, meth.tags(:param))
+      assert_equal(["a", "b"], ordered.map(&:name))
     end
   end
 end

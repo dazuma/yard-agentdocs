@@ -3,23 +3,11 @@
 require "helper"
 
 describe ::YARD::AgentDocs::CrossReferencing do
-  let(:holder_class) do
-    Class.new do
-      include ::YARD::AgentDocs::CrossReferencing
-
-      attr_accessor :object
-    end
-  end
-
   # Parses +source+ into a fresh registry and returns a holder whose
   # +object+ is the code object at +current_path+, mirroring how a template
   # sees the object currently being rendered.
   def holder_for(source, current_path)
-    ::YARD::Registry.clear
-    ::YARD.parse_string(source)
-    holder = holder_class.new
-    holder.object = ::YARD::Registry.at(current_path)
-    holder
+    agentdocs_holder(::YARD::AgentDocs::CrossReferencing, source: source, at: current_path)
   end
 
   describe "#type_ref" do

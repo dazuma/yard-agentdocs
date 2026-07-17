@@ -1,35 +1,24 @@
 # frozen_string_literal: true
 
 require "helper"
+require "stringio"
 
 describe ::YARD::AgentDocs::Markdownify do
-  let(:holder_class) do
-    Class.new do
-      include ::YARD::AgentDocs::CrossReferencing
-      include ::YARD::AgentDocs::Markdownify
-
-      attr_accessor :options, :object
-    end
-  end
-
   # No source parsed, no object set: fine for any test whose input has no
   # (unescaped) `{...}` for #resolve_references — markdownify's final step
   # — to stumble over.
   def holder_for(markup)
-    ::YARD::Registry.clear
-    holder_class.new.tap { |h| h.options = ::Struct.new(:markup).new(markup) }
+    agentdocs_holder(::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::Markdownify, markup: markup)
   end
 
   # Parses +source+ into a fresh registry and returns a holder whose
   # +object+ is +current_path+, for tests that exercise inline
   # cross-reference resolution end to end.
   def holder_with_object(markup, source, current_path)
-    ::YARD::Registry.clear
-    ::YARD.parse_string(source)
-    holder_class.new.tap do |h|
-      h.options = ::Struct.new(:markup).new(markup)
-      h.object = ::YARD::Registry.at(current_path)
-    end
+    agentdocs_holder(
+      ::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::Markdownify,
+      source: source, at: current_path, markup: markup
+    )
   end
 
   describe ":markdown dialect" do
@@ -110,7 +99,18 @@ describe ::YARD::AgentDocs::Markdownify do
     let(:holder) { holder_for(:textile) }
 
     it "logs an error and passes the raw text through unconverted" do
-      assert_equal("Some *textile* text.", holder.markdownify("Some *textile* text."))
+      logger = ::YARD::Logger.instance
+      original_io = logger.io
+      captured = ::StringIO.new
+      logger.io = captured
+      begin
+        result = holder.markdownify("Some *textile* text.")
+      ensure
+        logger.io = original_io
+      end
+
+      assert_equal("Some *textile* text.", result)
+      assert_match(/unsupported markup type `:textile`/, captured.string)
     end
   end
 end

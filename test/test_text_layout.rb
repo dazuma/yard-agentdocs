@@ -3,18 +3,11 @@
 require "helper"
 
 describe ::YARD::AgentDocs::TextLayout do
-  let(:holder_class) do
-    Class.new do
-      include ::YARD::AgentDocs::TextLayout
-      include ::YARD::AgentDocs::CrossReferencing
-      include ::YARD::AgentDocs::Markdownify
-
-      attr_accessor :options, :object
-    end
-  end
-
   let(:holder) do
-    holder_class.new.tap { |h| h.options = ::Struct.new(:markup).new(:markdown) }
+    agentdocs_holder(
+      ::YARD::AgentDocs::TextLayout, ::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::Markdownify,
+      markup: :markdown
+    )
   end
 
   describe "#indent_continuation" do

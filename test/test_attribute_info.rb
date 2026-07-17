@@ -3,33 +3,25 @@
 require "helper"
 
 describe ::YARD::AgentDocs::AttributeInfo do
-  let(:holder_class) do
-    Class.new do
-      include ::YARD::AgentDocs::AttributeInfo
-      include ::YARD::AgentDocs::CrossReferencing
-      include ::YARD::AgentDocs::Markdownify
-
-      attr_accessor :options, :object
-    end
-  end
-
   let(:holder) do
-    holder_class.new.tap { |h| h.options = ::Struct.new(:markup).new(:markdown) }
+    agentdocs_holder(
+      ::YARD::AgentDocs::AttributeInfo, ::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::Markdownify,
+      markup: :markdown
+    )
   end
 
   # Parses +source+ and returns the {::YARD::AgentDocs::Attribute} for
   # +name+ on +namespace_path+, the same value
   # {::YARD::AgentDocs::MemberListing#attribute_objects} builds.
-  def attr_hash(source, namespace_path, name)
-    ::YARD::Registry.clear
-    ::YARD.parse_string(source)
-    rw = ::YARD::Registry.at(namespace_path).attributes[:instance][name.to_sym]
+  def attribute_for(source, namespace_path, name)
+    namespace = agentdocs_holder(source: source, at: namespace_path).object
+    rw = namespace.attributes[:instance][name.to_sym]
     ::YARD::AgentDocs::Attribute.new(name: name.to_s, read: rw[:read], write: rw[:write])
   end
 
   describe "read-only attribute (attr_reader)" do
     let(:attr) do
-      attr_hash(<<~RUBY, "Point", :x)
+      attribute_for(<<~RUBY, "Point", :x)
         class Point
           # The x-coordinate.
           #
@@ -62,7 +54,7 @@ describe ::YARD::AgentDocs::AttributeInfo do
 
   describe "write-only attribute (attr_writer)" do
     let(:attr) do
-      attr_hash(<<~RUBY, "Point", :x)
+      attribute_for(<<~RUBY, "Point", :x)
         class Point
           # @return [Numeric]
           attr_writer :x
@@ -85,7 +77,7 @@ describe ::YARD::AgentDocs::AttributeInfo do
 
   describe "read-write attribute (attr_accessor)" do
     let(:attr) do
-      attr_hash(<<~RUBY, "Point", :x)
+      attribute_for(<<~RUBY, "Point", :x)
         class Point
           # @return [Numeric]
           attr_accessor :x
@@ -104,7 +96,7 @@ describe ::YARD::AgentDocs::AttributeInfo do
 
   describe "#attribute_docstring" do
     it "returns the full (stripped) docstring, not just the summary" do
-      attr = attr_hash(<<~RUBY, "Point", :x)
+      attr = attribute_for(<<~RUBY, "Point", :x)
         class Point
           # The x-coordinate.
           #
@@ -120,7 +112,7 @@ describe ::YARD::AgentDocs::AttributeInfo do
 
   describe "#attribute_file and #attribute_line" do
     it "return the backing method's source location" do
-      attr = attr_hash(<<~RUBY, "Point", :x)
+      attr = attribute_for(<<~RUBY, "Point", :x)
         class Point
           # @return [Numeric]
           attr_reader :x
