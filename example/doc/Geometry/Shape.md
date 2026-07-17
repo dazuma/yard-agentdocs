@@ -25,6 +25,10 @@ own file).
 - `#area` (abstract) — The shape's area.
 - `#label` (abstract) — A short label identifying the kind of shape.
 
+**Inherited & Mixed-in Members**
+
+- **Included from [`Taggable`](Taggable.md):** `#tag`
+
 ## Instance Methods
 
 ### #area

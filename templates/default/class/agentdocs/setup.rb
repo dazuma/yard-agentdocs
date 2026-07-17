@@ -2,8 +2,8 @@
 
 include T("default/module/agentdocs")
 
-def class_method_objects
-  ctor = object.meths(inherited: false, included: false).find(&:constructor?)
+def class_method_objects(namespace = object)
+  ctor = namespace.meths(inherited: false, included: false).find(&:constructor?)
   list = super
   list += [ctor] if ctor
   list.sort_by { |m| member_name(m) }

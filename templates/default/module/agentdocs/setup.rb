@@ -6,6 +6,7 @@ include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::ExampleTags
 include ::YARD::AgentDocs::Markdownify
+include ::YARD::AgentDocs::MemberRoster
 include ::YARD::AgentDocs::MethodSignature
 include ::YARD::AgentDocs::VisibilityInfo
 
@@ -24,21 +25,21 @@ def nested_objects
   run_verifier(list).sort_by { |o| o.name.to_s }
 end
 
-def constant_objects
-  list = object.constants(inherited: false, included: false)
+def constant_objects(namespace = object)
+  list = namespace.constants(inherited: false, included: false)
   run_verifier(list).sort_by { |o| o.name.to_s }
 end
 
-def attribute_objects
-  entries = object.attributes[:instance].map do |name, rw|
+def attribute_objects(namespace = object)
+  entries = namespace.attributes[:instance].map do |name, rw|
     { name: name.to_s, read: rw[:read], write: rw[:write] }
   end
   entries = entries.select { |a| run_verifier([attribute_source_method(a)]).any? }
   entries.sort_by { |a| a[:name] }
 end
 
-def class_method_objects
-  list = object.meths(inherited: false, included: false).select { |m| m.scope == :class }
+def class_method_objects(namespace = object)
+  list = namespace.meths(inherited: false, included: false).select { |m| m.scope == :class }
   run_verifier(list).sort_by { |m| member_name(m) }
 end
 
@@ -49,8 +50,12 @@ end
 # content strategy" decision in devdocs/DESIGN.md. `:inherited` is a no-op
 # for modules (they have no superclass) but real for classes, since
 # `ClassObject#meths` overrides the base `NamespaceObject#meths` to add it.
-def instance_method_objects
-  list = object.meths(inherited: false, included: false).select do |m|
+#
+# +namespace+ (default: the object currently being rendered) lets
+# {MemberRoster} reuse this same filtering logic against an ancestor/mixin's
+# own members.
+def instance_method_objects(namespace = object)
+  list = namespace.meths(inherited: false, included: false).select do |m|
     m.scope == :instance && !m.is_attribute? && !m.constructor?
   end
   run_verifier(list).sort_by { |m| member_name(m) }
@@ -61,7 +66,7 @@ def any_member_sections?
 end
 
 def any_members?
-  nested_objects.any? || any_member_sections?
+  nested_objects.any? || any_member_sections? || member_roster_lines.any?
 end
 
 # @group Ancestry (superclass_line overridden for classes; modules have no

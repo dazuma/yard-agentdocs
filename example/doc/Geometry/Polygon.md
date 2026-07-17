@@ -38,6 +38,10 @@ undocumented.
 - `#each_side` — Calls the block once for each side of the polygon, in order.
 - `#label` (overrides `Shape#label`)
 
+**Inherited & Mixed-in Members**
+
+- **Inherited from [`Shape`](Shape.md):** `#area`
+
 ## Attributes
 
 ### #sides

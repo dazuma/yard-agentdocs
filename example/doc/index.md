@@ -13,11 +13,15 @@
   methods. `grep -n '^### '` in one file lists every member there with its
   exact line number; e.g. `grep -rn '^### #each' .` finds the `#each` method
   across the whole tree without knowing which class it belongs to.
-- **Inherited and mixed-in members are not duplicated.** A class/module's
-  file only documents members defined in its own source. For members
-  contributed by a superclass or mixin, follow the `**Superclass:**`,
-  `**Includes:**`, or `**Extends:**` link near the top of the file to that
-  type's own file, where they're fully documented.
+- **Inherited and mixed-in members aren't duplicated in full.** A
+  class/module's file documents only members defined in its own source,
+  plus a names-only **Inherited & Mixed-in Members** list in `## Member
+  Summary` naming what its immediate superclass and directly-`include`d/
+  `extend`ed modules each contribute — one hop only, not the full ancestry
+  chain, and not anything from outside this project's own parsed source.
+  For the actual docs behind any of those names, follow the
+  `**Superclass:**`, `**Includes:**`, or `**Extends:**` link near the top
+  of the file to that type's own file.
 
 ## Classes & modules
 

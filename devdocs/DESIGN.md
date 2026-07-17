@@ -221,7 +221,7 @@ implementation bodies dominate, rather than assuming.
 - [x] A `Struct.new`-based class — `Geometry::Circle`
 - [x] A `Data.define`-based class (Ruby 3.2+ value object, relevant given the
       gem's `>= 3.4` floor) — `Geometry::Vector`
-- [ ] (design) Names-only inherited/mixin member roster in `## Member
+- [x] (design) Names-only inherited/mixin member roster in `## Member
       Summary` — one line per ancestor/mixin listing member *names* only,
       no descriptions (e.g. ``**Inherited from `Polygon`:** `#describe`,
       `#each_side`, `#label`, `#sides` ``). Deliberately revisits the
@@ -233,11 +233,9 @@ implementation bodies dominate, rather than assuming.
       heuristic favors it. Today `Triangle.md` shows only `.new`; assembling
       a Triangle's full API surface takes four further file reads
       (`Polygon`, `Shape`, `Taggable`, `Named`). Raised by the July 2026
-      agent-usefulness evaluation (see "Decisions"). **Reminder:** if this
-      lands, revisit the "How to navigate these docs" preamble's
-      "inherited and mixed-in members are not duplicated" bullet
-      (`example/doc/index.md`) — a names-only roster changes what "not
-      duplicated" means and the preamble should describe it accurately
+      agent-usefulness evaluation (see "Decisions"). See "Names-only
+      inherited/mixin member roster" under "Decisions" for the settled
+      shape, scope, and dedup rule
 
 ### Mixins
 
@@ -2966,10 +2964,126 @@ path derivation, and reworded the `#each` grep example with an explicit
 "e.g." so it reads as an illustration of the recipe rather than a claim
 that the gem being documented has that method.
 
-**Reminder left on a future item:** the "Names-only inherited/mixin member
-roster" checklist item (above, under "Module/class structure") notes that
-landing it should revisit this preamble's "not duplicated" bullet, since a
-names-only roster changes what "not duplicated" means.
+**Reminder resolved:** the "not duplicated" bullet has been rewritten (see
+"Names-only inherited/mixin member roster" below) now that the roster
+itself has landed and changed what "not duplicated" means.
+
+### Names-only inherited/mixin member roster: one hop, dedup by name, no H3 stubs
+
+Settles the checklist item under "Module/class structure". A new `## Member
+Summary` subgroup, **Inherited & Mixed-in Members**, appended after the
+existing subgroups: one bullet per contributing ancestor/mixin, names-only
+(no descriptions), the ancestor/mixin name linked the same way
+`**Superclass:**`/`**Includes:**`/`**Extends:**` already link. Verb per
+source: `` **Inherited from `Polygon`:** `` (superclass), `` **Included
+from `Taggable`:** `` (`include`), `` **Extended from `Named`:** ``
+(`extend`) — parallel to the metadata field names. Exercised via `Shape`
+(`Included from Taggable: #tag`), `Polygon` (`Inherited from Shape:
+#area`), and `Triangle` (`Inherited from Polygon: #describe, #each_side,
+#label, #sides`; `Extended from Named: .kind`).
+
+**Scope: one hop only**, mirroring `superclass_line`'s already-settled
+reasoning — a more distant ancestor may live outside the parsed source, so
+only the immediate superclass and each directly-`include`d/`extend`ed
+module are queried, never walked further. An agent wanting `Shape`'s
+`#area` from `Triangle` (two hops: `Triangle` → `Polygon` → `Shape`) hops
+through `Polygon`'s own page, which carries its own bucket. This is a real,
+permanent gap — the roster can never reflect `Enumerable`, `Object`, or any
+other unparsed ancestor — but not a new *kind* of gap: reading the raw
+source has the identical blind spot, and it's the same honesty policy
+`**Superclass:**` already committed to (one reliable hop beats a chain
+that's silently incomplete). The preamble's "not duplicated" bullet (see
+above) now says so explicitly, so an agent doesn't over-trust the roster as
+exhaustive.
+
+**Dedup rule: exclude any name already present among the object's own
+members**, regardless of whether it's a plain shadow or a
+`**Overrides:**`-flagged override. This is what makes `Polygon`'s roster
+render *nothing* for `Loud` even though `` **Includes:** [`Loud`](Loud.md)
+`` is real metadata on that page: `Loud` prepends and contributes only
+`#describe`, but `Polygon` already lists its own `#describe` (full
+docs, own file) — without dedup the roster would repeat that name for zero
+new information, right next to the exact prepend-precedence subtlety
+`Polygon`'s prose already calls out. With dedup, `Loud`'s bucket has zero
+surviving names and is omitted entirely (same "absence means empty"
+convention used everywhere else in Member Summary) — this is also what
+correctly skips `Polygon`'s own `.new` from `Triangle`'s "Inherited from
+Polygon" bucket, with no ctor-specific special case needed.
+
+**Sigil semantics differ by mixin kind, and matter for correctness, not
+just style:**
+- **Superclass** contributes constants/attributes/class methods/instance
+  methods unchanged (a subclass truly inherits all of them, same calling
+  form), so natural sigils throughout.
+- **`include`** contributes constants (reachable via Ruby's constant
+  lookup), attributes, and instance methods — but *not* the module's own
+  class methods (`def self.foo` on a module stays solely on the module;
+  `include` never brings those along).
+- **`extend`** contributes attributes and instance methods only, sigil
+  built as `.name` by hand rather than via
+  {MethodSignature#member_heading} — reflecting `extends_line`'s
+  already-established semantics that an extended module's instance methods
+  "become singleton/class methods" on the extender. No constants (`extend`
+  doesn't affect constant lookup) and no class methods (same reasoning as
+  `include`).
+
+**`extend self` is excluded from the roster, not just skipped for lack of
+content — probed directly, not assumed.** Querying
+`meths(scope: :class, included: true)` for an extend target (whether
+self-extension or a normal cross-class `extend`) does *not* return a
+distinct, trustworthy class-scope `MethodObject` — it returns the exact
+same object as the plain instance-scope query (`equal?` true, confirmed via
+scratch probe against `Geometry::Triangle`/`Geometry::Named` and
+`Geometry::Angles`), with `#scope` only transiently reporting `:class` at
+that call site. This generalizes the "`extend self` / `module_function`"
+decision's "corrupted proxy... not something a signature renderer should
+trust" finding beyond the self-extension case it was originally written
+for. The roster implementation never hits this at all — it only ever calls
+the ordinary `inherited: false, included: false` queries already used
+everywhere else, and builds the `.name` sigil for `extend` by hand — but
+`extend self` still needs an explicit `self_reference?` guard skipping it
+outright (rather than relying on the querying to naturally come up empty),
+matching the existing decision that `extend self` gets no fabricated
+second listing anywhere, metadata-only.
+
+**Considered and rejected: giving each roster name its own H3 stub entry**,
+mirroring how an alias gets a minimal pointer entry (`**Alias for:**
+#original`). The alias precedent doesn't transfer: an alias is a name with
+no heading anywhere else in the corpus, so without one, the sanctioned
+`grep -n '^### '` lookup mechanism genuinely fails for it. An
+inherited/mixed-in method already has a real H3 heading — on the ancestor's
+own page — findable today by the exact whole-tree grep recipe the
+preamble itself documents (`grep -rn '^### #each' .`). There's no
+lookup-mechanism gap to close. Stub entries would also reintroduce, per
+subclass, the exact combinatorial duplication the whole "link out, don't
+duplicate" family exists to prevent, for zero completeness gain beyond what
+the one-hop bullet already gives (a stub would be one-hop too, to stay
+honest about ancestry depth — same ceiling, much higher cost).
+
+**Considered and rejected: a real docstring summary per roster name**, the
+way own-member Member Summary bullets get one. Same reasoning already
+established for aliases (`` `#restart` — **Alias for:** `#reset` ``, not a
+copied summary): "keep the actually expensive content in exactly one
+place." A summary here would mean copying the ancestor's own docstring onto
+every subclass/includer — the same duplication cost the July 2026
+evaluation already measured as making these docs 37% bigger than source on
+this toy fixture, for a fixture that doesn't even exercise deep hierarchies
+or widely-shared mixins yet.
+
+**Implementation:** new `lib/yard/agentdocs/member_roster.rb`
+(`MemberRoster` module, mixed into `module/agentdocs/setup.rb`, so it's
+available to `class/agentdocs` too via that template's existing
+`include T("default/module/agentdocs")`). `constant_objects`/
+`attribute_objects`/`class_method_objects`/`instance_method_objects` (and
+the class template's `class_method_objects` override, which adds the
+synthetic `.new` entry) all gained an optional `namespace = object`
+argument, so the roster reuses their exact filtering/visibility logic
+(including `run_verifier`) against an ancestor's or mixin's own members
+instead of duplicating it. `any_members?` now also checks
+`member_roster_lines.any?`, so `## Member Summary` still renders for an
+object with zero own members but a non-empty roster (not exercised by any
+current fixture, but a real case once dogfooding hits a documentation-only
+subclass).
 
 ## Implementation
 

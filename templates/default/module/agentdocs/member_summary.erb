@@ -39,3 +39,12 @@
 <%= method_summary_line(meth) %>
 <%- end -%>
 <%- end -%>
+<%- roster = member_roster_lines -%>
+<%- if roster.any? -%>
+
+**Inherited & Mixed-in Members**
+
+<%- roster.each do |line| -%>
+<%= line %>
+<%- end -%>
+<%- end -%>

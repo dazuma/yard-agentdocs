@@ -20,6 +20,11 @@ derived.
 
 - `.new` — Creates a triangle, with sides fixed to 3.
 
+**Inherited & Mixed-in Members**
+
+- **Inherited from [`Polygon`](Polygon.md):** `#describe`, `#each_side`, `#label`, `#sides`
+- **Extended from [`Named`](Named.md):** `.kind`
+
 ## Class Methods
 
 ### .new
