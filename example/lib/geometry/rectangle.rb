@@ -21,6 +21,22 @@ module Geometry
     end
 
     ##
+    # The rectangle's width. Reassigning it resizes the rectangle in place.
+    #
+    # @return [Float]
+    #
+    attr_accessor :width
+
+    ##
+    # Reassigns the rectangle's height, resizing it in place. Deliberately
+    # has no reader — unlike `#width`'s ordinary read-write pair — so this
+    # fixture also exercises a write-only attribute.
+    #
+    # @return [Float]
+    #
+    attr_writer :height
+
+    ##
     # Computes the area of the rectangle.
     #
     # @return [Float] the area

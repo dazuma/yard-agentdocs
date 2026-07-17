@@ -450,14 +450,12 @@ whether agents actually exercise those pointers.
 
 ### Attributes & constants
 
-- [ ] (mech) `attr_reader`, `attr_writer`, `attr_accessor` with doc comments
-      (only `attr_reader` exercised so far, via `Point#x`/`#y`) — also the
-      trigger for revisiting the undocumented-attribute boilerplate policy
-      noted under the `Struct`/`Data` decision; the July 2026
-      agent-usefulness evaluation (see "Decisions") independently flagged
-      that boilerplate (`` **Type:** `Object` `` plus "Returns the value of
-      attribute …") as rendered noise indistinguishable from real
-      documentation, strengthening the case for that revisit
+- [x] `attr_reader`, `attr_writer`, `attr_accessor` with doc comments —
+      `attr_reader` via `Point#x`/`#y`, `attr_accessor`/`attr_writer` via
+      `Rectangle#width`/`#height`; zero template changes needed — see
+      "`attr_accessor`/`attr_writer` with doc comments" under "Decisions",
+      which also closes out the undocumented-attribute boilerplate revisit
+      this item was carrying
 - [ ] (mech) Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — escalate to (design) if YARD doesn't merge the pair into
@@ -3400,6 +3398,45 @@ loop and the single-signature case). Scoped to `@param` only: it's the only
 tag family with a canonical declaration order to align with (`@raise` and
 friends have no such order, and nothing here mixes own/ref tags for them)
 — not extended speculatively.
+
+### `attr_accessor`/`attr_writer` with doc comments: zero template changes; undocumented-attribute boilerplate stays as-is
+
+Settles the `attr_reader`/`attr_writer`/`attr_accessor` checklist item under
+"Attributes & constants". `Point#x`/`#y` already exercised documented
+`attr_reader`; added `Rectangle#width` (documented `attr_accessor`, the
+first *documented* read-write attribute — `Circle#radius` was read-write but
+undocumented) and `Rectangle#height` (documented `attr_writer`, write-only).
+
+**Zero template changes were needed**, confirmed by tracing
+`YARD::Handlers::Ruby::AttributeHandler` before writing the fixture: a
+single `attr_accessor`/`attr_writer` statement registers its reader and/or
+writer as separate `MethodObject`s, but both are built from the *same*
+statement, so they share the exact same source line and — critically — the
+handler attaches the *same* docstring/comment to both (`register_docstring`
+is called with `statement.comments`, identical across the loop's read/write
+iterations). `AttributeInfo`'s helpers (`attribute_type`,
+`attribute_docstring`, `attribute_file`, `attribute_line`) all resolve via
+`attribute_source_method`, which prefers the reader but falls back to the
+writer when there's no reader (the write-only case) — already correct for
+every `read`/`write`/`read-write` combination without modification.
+`attribute_annotation`/`attribute_annotation_short` (the `**Write-only.**`
+flag line and `(write-only)` Member Summary suffix) were likewise already
+implemented, exercised for the first time by `Rectangle#height`.
+
+**Undocumented-attribute boilerplate policy: reaffirmed as-is, no new
+fixture.** This item was also flagged as the trigger to revisit the
+`Struct`/`Data` decision's "kept as-is rather than filtered" call on YARD's
+fallback attribute docstring (`` **Type:** `Object` ``, "Returns the value
+of attribute `name`"). `Circle#radius` and `Vector#dx`/`#dy` already
+exercise that exact fallback end-to-end — YARD's `Struct`/`Data` handlers
+and `AttributeHandler` generate the same boilerplate text through the same
+`AttributeInfo` rendering path, so a bare, comment-less plain `attr_reader`/
+`writer`/`accessor` fixture would add no new coverage. No new evidence
+surfaced against the original reasoning (filtering by matching YARD's exact
+generated string is fragile and indistinguishable from a legitimately terse
+human docstring), so the policy stands: render the boilerplate, don't
+suppress it. Closes the revisit; not expected to be reopened without new
+evidence.
 
 ## Implementation
 

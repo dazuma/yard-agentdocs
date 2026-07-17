@@ -11,6 +11,11 @@ methods might be split by concern across files in a real codebase.
 
 ## Member Summary
 
+**Attributes**
+
+- `#height` (write-only) — Reassigns the rectangle's height, resizing it in place.
+- `#width` — The rectangle's width.
+
 **Class Methods**
 
 - `.new` — Creates a rectangle from its width and height.
@@ -19,6 +24,27 @@ methods might be split by concern across files in a real codebase.
 
 - `#area` — Computes the area of the rectangle.
 - `#perimeter` — Computes the perimeter of the rectangle.
+
+## Attributes
+
+### #height
+
+- **Type:** `Float`
+- **Write-only.**
+
+Reassigns the rectangle's height, resizing it in place. Deliberately
+has no reader — unlike `#width`'s ordinary read-write pair — so this
+fixture also exercises a write-only attribute.
+
+* **Defined in:** `example/lib/geometry/rectangle.rb:37`
+
+### #width
+
+- **Type:** `Float`
+
+The rectangle's width. Reassigning it resizes the rectangle in place.
+
+* **Defined in:** `example/lib/geometry/rectangle.rb:28`
 
 ## Class Methods
 
@@ -53,7 +79,7 @@ Computes the area of the rectangle.
 
 - `Float` — the area
 
-* **Defined in:** `example/lib/geometry/rectangle.rb:28`
+* **Defined in:** `example/lib/geometry/rectangle.rb:44`
 
 ### #perimeter
 
