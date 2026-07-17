@@ -20,12 +20,18 @@
 <%- end -%>
 <%- overloads = @method.tags(:overload) -%>
 <%- if overloads.size >= 2 -%>
+```ruby
+<%- overloads.each do |ov| -%>
+<%= signature_text(@method, overload: ov) %>
+<%- end -%>
+```
 <%- lines = annotation_lines(@method) + [also_known_as_line(@method), overrides_line(@method)].compact -%>
 <%- unless lines.empty? -%>
-<%= lines.join("\n") %>
 
+<%= lines.join("\n") %>
 <%- end -%>
 <%- unless @method.docstring.empty? -%>
+
 <%= markdownify(@method.docstring) %>
 <%- end -%>
 <%- examples = examples_block(@method) -%>
@@ -35,9 +41,7 @@
 <%- end -%>
 <%- overloads.each do |ov| -%>
 
-```ruby
-<%= signature_text(@method, overload: ov) %>
-```
+**`<%= signature_text(@method, overload: ov) %>`**
 <%- unless ov.tags(:param).empty? -%>
 
 **Params:**
@@ -53,11 +57,6 @@
 
 - <%= dash_join(type_ref(ov_return.types && ov_return.types.first), ov_return.text) %>
 <%- end -%>
-<%- end -%>
-<%- trailing = trailing_annotation_lines(@method) -%>
-<%- unless trailing.empty? -%>
-
-<%= trailing.join("\n") %>
 <%- end -%>
 <%- else -%>
 <%- primary = overloads.first -%>

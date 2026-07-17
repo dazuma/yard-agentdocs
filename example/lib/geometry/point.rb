@@ -88,6 +88,9 @@ module Geometry
     # Builds a point from `x, y` coordinates, or several independent copies
     # of an existing point at once.
     #
+    # @note The two call shapes are disambiguated only by argument count and
+    #   type — passing a `Point` as the first argument always selects the
+    #   copying form, never the coordinate form.
     # @overload of(x, y)
     #   @param x [Numeric] the x-coordinate
     #   @param y [Numeric] the y-coordinate
@@ -104,6 +107,7 @@ module Geometry
     #   copies = Point.of(original, 3)
     #   copies.size
     #   #=> 3
+    # @since 1.1.0
     #
     def self.of(*args)
       first, second = args

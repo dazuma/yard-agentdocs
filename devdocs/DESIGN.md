@@ -322,18 +322,14 @@ implementation bodies dominate, rather than assuming.
       signature over an awkward real one" idiom); settled both the
       single-overload and two-or-more-overload rendering shapes — see
       "`@overload`" under "Decisions"
-- [ ] (design) Settle prose-vs-signature ordering as one uniform rule — the
-      2+-overload shape leads with the shared docstring and `@example`s
-      (`Point.of`'s two examples render before *any* signature, so a
-      top-down reader sees usage before learning the method's arity), while
-      every other entry kind leads with its signature/type block. Formerly
-      described under "Open questions"; the July 2026 agent-usefulness
-      evaluation (see "Decisions") recommends signature-first everywhere —
-      stack each overload's own signature/params/returns block first,
-      shared prose and examples after — restoring one uniform rule without
-      costing the common single-signature case its quick-lookup line.
-      Trade-off history is in "Overload order" within the "`@overload`"
-      decision write-up; only the `overloads.size >= 2` branch would change
+- [x] (design) Settle prose-vs-signature ordering as one uniform rule — the
+      2+-overload shape led with the shared docstring and `@example`s
+      (`Point.of`'s two examples rendered before *any* signature), while
+      every other entry kind led with its signature/type block. Landed
+      shape: one leading fenced block listing every overload's
+      natural-call-syntax line, then flags/prose/`@example`s (shared), then
+      one bold-inline-code-labeled `**Params:**`/`**Returns:**` group per
+      overload — see "Prose-vs-signature ordering" under "Decisions"
 - [x] A method that returns early with multiple distinct return shapes
       (documented return type is a union, e.g. `String, nil`); also cover
       `@return [self]` (chainable methods — a type token that's neither
@@ -720,12 +716,6 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   discard data the output format wants, revisit the principle once,
   deliberately — rather than accumulating "permanent gap" decisions one at
   a time.
-- **Prose-vs-signature ordering isn't settled as a single rule.** Now
-  tracked as a (design) checklist item under "Methods — shapes &
-  signatures" rather than re-described here, with a concrete
-  recommendation (signature-first everywhere) from the July 2026
-  agent-usefulness evaluation. The full trade-off history remains in
-  "Overload order" within the "`@overload`" decision write-up.
 
 ## Decisions
 
@@ -2136,15 +2126,17 @@ implementation).
   since every case worth exercising here writes real prose on the method
   itself; revisit only if a case with a blank main docstring surfaces.
 - **Two or more `@overload` tags** — the "one Ruby signature doesn't tell
-  the full story" idiom. Renders as: the shared method docstring (prose)
-  first — there's no single natural signature line to lead with, so this
-  is a deliberate divergence from every other entry's code-block-first
-  order — then one repeated group per overload, each its own fenced
-  signature block, `**Params:**`, and `**Returns:**` back to back, sourced
-  entirely from that overload's own tag data. `**Yields:**`/`**Yield
-  Params:**`/`**Yield Returns:**`/`**Raises:**`/`**See also:**` stay
-  method-level and shared (rendered once, not per overload) — not
-  exercised varying per overload by either fixture.
+  the full story" idiom. Renders as: one leading fenced signature block
+  listing every overload's natural-call-syntax line, one per line; then the
+  shared method docstring (prose) and `@example`s; then one repeated group
+  per overload — a bold inline-code label (that overload's own
+  natural-call-syntax line again) followed by its own `**Params:**` and
+  `**Returns:**`, sourced entirely from that overload's own tag data.
+  `**Yields:**`/`**Yield Params:**`/`**Yield Returns:**`/`**Raises:**`/
+  `**See also:**` stay method-level and shared (rendered once, not per
+  overload) — not exercised varying per overload by either fixture. See
+  "Prose-vs-signature ordering" below for why this shape (not the original
+  prose-first one) is current.
 - **Implementation:** `MethodSignature#param_names`/`#signature_text`
   (`lib/yard/agentdocs/method_signature.rb`) both grew an `overload:`
   keyword (default `nil`, preserving every prior call site/test
@@ -2164,6 +2156,62 @@ implementation).
   complete params/return story); per-overload `@yield`/`@raise`/`@see`; and
   an aliased/inherited method's overloads as seen from another class's
   page (not raised by either fixture).
+
+### Prose-vs-signature ordering: one leading multi-line signature block, bold inline-code labels per overload group
+
+Settles the "Settle prose-vs-signature ordering as one uniform rule"
+checklist item — the 2+-overload shape was the one entry kind that led with
+prose instead of a signature. The July 2026 agent-usefulness evaluation's
+initial recommendation ("stack each overload's own signature/params/returns
+block first, shared prose and examples after") put the shared docstring
+*after* every overload's params/returns. Human review of the `Point.of`
+fixture rejected that: description prose gives the context params/returns
+need to be read *against* (same reason the non-overload entry order is
+signature → prose → params/returns, not signature → params/returns →
+prose), so burying it after every overload's specifics was worse, not
+better, than the original problem.
+
+Landed shape (matches every other entry's signature → flags → prose →
+`@example`s → specifics order, generalized to N call shapes):
+
+1. One fenced `` ```ruby `` block right after the heading, listing every
+   overload's natural-call-syntax line, one per line — the multi-arity
+   analogue of the single signature line every other entry leads with.
+2. Flags (`@deprecated`/`@abstract`/`@note`, also-known-as, overrides) —
+   same position as any other entry, right after the signature block. This
+   incidentally resolves a question the original recommendation left open
+   (where flags land when there's no single leading signature to hang them
+   off of): with exactly one leading block regardless of overload count,
+   there's exactly one answer.
+3. The shared docstring (prose) and `@example`s.
+4. One repeated group per overload: a bold inline-code label restating
+   that overload's natural-call-syntax line, then its own `**Params:**`/
+   `**Returns:**`.
+5. Shared `**Yields:**`/etc., then trailing tags (`@since`/etc.), then
+   `**Defined in:**` — unchanged from before.
+
+**Considered and rejected: re-fencing each overload's signature a second
+time** (i.e. a full ` ```ruby ` block per overload group in step 4, not
+just a bold label) — the human's first sketch of this shape, explicitly
+flagged as having a duplication cost worth solving rather than accepting.
+Rejected in favor of the bold inline-code label because: it avoids
+duplicating the full fenced block (cost scales with overload count); it
+reuses an existing idiom instead of inventing one (`` **Options (`param`):**
+`` already labels a nested block this way); and a heading (`` #### ``)
+was considered and rejected for the same label, since `` #### ``/`` ##### ``
+are already claimed by "demote user's own docstring headings below the
+structural range" (below) — reusing them structurally here would make an
+agent unable to tell a demoted docstring heading from a structural overload
+marker.
+
+**Implementation:** also fixed a latent bug the original recommendation's
+shape had never surfaced: `trailing_annotation_lines` (`@since`/`@todo`/
+`@version`/`@author`) was called once inside the 2+-overloads branch and
+again in the shared tail after the branch, so a 2+-overload method with
+e.g. `@since` would have rendered it twice. No fixture combined 2+
+overloads with a trailing tag until this item added `@note`/`@since` to
+`Point.of` specifically to catch it. Fixed by deleting the in-branch call;
+the shared tail's call is now the only one, for both branches.
 
 ### Auxiliary one-line tags: `@deprecated`/`@note` as flag lines, `@since` as trailing metadata
 
@@ -2859,7 +2907,9 @@ TDD loop, none acted on yet):
    signatures", replacing the former "Open questions" entry. The concrete
    new evidence is `Point.of`: its `@example`s render before any
    signature, so a top-down reader sees usage before learning the method
-   has two arities. Recommendation: signature-first everywhere.
+   has two arities. Recommendation: signature-first everywhere. Landed
+   shape ended up refined from this recommendation after human review — see
+   "Prose-vs-signature ordering" under "Decisions".
 4. **Undocumented-attribute boilerplate** — already tracked by the
    existing `attr_*` item under "Attributes & constants"; that item's
    wording now records this evaluation's independent finding that the
