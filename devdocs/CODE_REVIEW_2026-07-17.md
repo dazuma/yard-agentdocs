@@ -229,7 +229,7 @@ first).
       deferred: `VisibilityInfo` still uses the same shadowing
       `object`-parameter pattern `AuxiliaryTags` just dropped — rename for
       consistency in a later pass.)*
-- [ ] Findings 12 + 13: add to DESIGN.md checklist (union types in
-      `@param`/`@option`/`@yieldparam`/`@raise` and overload arrows;
-      `ordered_param_tags` stability fixture).
-- [ ] Finding 14: add class-level attributes to the DESIGN.md checklist.
+- [x] Findings 12 + 13: added to DESIGN.md's checklist 2026-07-17, under
+      "YARD tags" — both (mech), citing this review.
+- [x] Finding 14: added to DESIGN.md's checklist 2026-07-17, under
+      "Attributes & constants" — (design), citing this review.

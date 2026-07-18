@@ -462,6 +462,17 @@ whether agents actually exercise those pointers.
       the tag/method merge surfaced a real quirk — see "`@attr`/
       `@attr_reader`/`@attr_writer` tags on a manual reader/writer pair"
       under "Decisions"
+- [ ] (design) Class-level attributes (`class << self` +
+      `attr_accessor`, the idiomatic gem-configuration pattern) —
+      `MemberListing#attribute_objects` reads only
+      `attributes[:instance]`, so a class-level attribute is silently
+      invisible today: no entry, no Member Summary line, no roster
+      mention (`MemberRoster` reuses the same query). Needs a format
+      decision: its own section vs. folding into `## Attributes` with a
+      `.name` sigil mirroring the existing class/instance method split.
+      Related to (but distinct from) the `@!attribute` directive item
+      under "YARD directives". Flagged by the 2026-07-17 code review
+      (Finding 14)
 - [x] Simple constant (numeric/string literal) with a doc comment —
       `Point::DIMENSIONS`
 - [x] (design) Structured constant (`Hash`, `Array`, `Regexp` literal) — a
@@ -491,6 +502,26 @@ whether agents actually exercise those pointers.
       typing itself not exercised, but the tag is otherwise thorough
 - [x] `@return` (including `void` and multi-type unions) — `void`/unions not
       exercised, but the tag is otherwise thorough
+- [ ] (mech) Union types on the remaining first-type-only tag sites —
+      `@param x [String, Symbol]`, `@option`, `@yieldparam`, `@raise
+      [KeyError, IndexError]`, and a 2+-`@overload` method's signature
+      arrow (`MethodSignature#signature_return_type_for`) all still render
+      only the tag's *first* type, unlike the Returns/Yield
+      Returns/signature-arrow sites the "Multiple return types" decision
+      already fixed — extending that settled comma-join policy to these
+      sites should be mechanical. The bullet-list sites all funnel through
+      `CrossReferencing#type_ref_first` now, so the change is that one
+      helper plus the overload arrow. Flagged by the 2026-07-17 code
+      review (Finding 12; see devdocs/CODE_REVIEW_2026-07-17.md)
+- [ ] (mech) `@param` naming a nonexistent parameter (typo'd, or stale
+      after a signature change — real gems have these) — today
+      `MethodSignature#ordered_param_tags` sorts any unmatched tag to the
+      end via a bare `sort_by`, which isn't stable in Ruby, so *two*
+      unmatched tags can reorder nondeterministically between runs — a
+      latent byte-for-byte fixture flake. The fixture should pin
+      "unmatched tags render last, in written order", backed by the
+      one-line `sort_by.with_index` stabilization. Flagged by the
+      2026-07-17 code review (Finding 13)
 - [x] (design) `@option` (documenting keys of an options hash/kwargs) —
       `Geometry::Point#translate`'s existing `deltas` param; settled a
       separate `**Options (`deltas`):**` block, one per documented hash
