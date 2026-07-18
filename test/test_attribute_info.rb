@@ -3,25 +3,26 @@
 require "helper"
 
 describe ::YARD::AgentDocs::AttributeInfo do
-  let(:holder) do
-    agentdocs_holder(
-      ::YARD::AgentDocs::AttributeInfo, ::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::Markdownify,
-      markup: :markdown
-    )
-  end
-
-  # Parses +source+ and returns the {::YARD::AgentDocs::Attribute} for
-  # +name+ on +namespace_path+, the same value
+  # Parses +source+ into a fresh registry, builds a holder (with
+  # {::YARD::AgentDocs::AttributeInfo}, {::YARD::AgentDocs::CrossReferencing},
+  # {::YARD::AgentDocs::Markdownify} mixed in) whose +object+ is
+  # +namespace_path+, and returns the holder alongside the
+  # {::YARD::AgentDocs::Attribute} for +name+ built from that same
+  # still-populated registry — the same value
   # {::YARD::AgentDocs::MemberListing#attribute_objects} builds.
-  def attribute_for(source, namespace_path, name)
-    namespace = agentdocs_holder(source: source, at: namespace_path).object
-    rw = namespace.attributes[:instance][name.to_sym]
-    ::YARD::AgentDocs::Attribute.new(name: name.to_s, read: rw[:read], write: rw[:write])
+  def build_holder_and_attr(source, namespace_path, name)
+    holder = agentdocs_holder(
+      ::YARD::AgentDocs::AttributeInfo, ::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::Markdownify,
+      source: source, at: namespace_path, markup: :markdown
+    )
+    rw = holder.object.attributes[:instance][name.to_sym]
+    attr = ::YARD::AgentDocs::Attribute.new(name: name.to_s, read: rw[:read], write: rw[:write])
+    [holder, attr]
   end
 
   describe "read-only attribute (attr_reader)" do
-    let(:attr) do
-      attribute_for(<<~RUBY, "Point", :x)
+    let(:holder_and_attr) do
+      build_holder_and_attr(<<~RUBY, "Point", :x)
         class Point
           # The x-coordinate.
           #
@@ -30,6 +31,8 @@ describe ::YARD::AgentDocs::AttributeInfo do
         end
       RUBY
     end
+    let(:holder) { holder_and_attr[0] }
+    let(:attr) { holder_and_attr[1] }
 
     it "#source_method returns the reader" do
       assert_equal(:x, attr.source_method.name)
@@ -53,14 +56,16 @@ describe ::YARD::AgentDocs::AttributeInfo do
   end
 
   describe "write-only attribute (attr_writer)" do
-    let(:attr) do
-      attribute_for(<<~RUBY, "Point", :x)
+    let(:holder_and_attr) do
+      build_holder_and_attr(<<~RUBY, "Point", :x)
         class Point
           # @return [Numeric]
           attr_writer :x
         end
       RUBY
     end
+    let(:holder) { holder_and_attr[0] }
+    let(:attr) { holder_and_attr[1] }
 
     it "#source_method returns the writer" do
       assert_equal(:x=, attr.source_method.name)
@@ -76,14 +81,16 @@ describe ::YARD::AgentDocs::AttributeInfo do
   end
 
   describe "read-write attribute (attr_accessor)" do
-    let(:attr) do
-      attribute_for(<<~RUBY, "Point", :x)
+    let(:holder_and_attr) do
+      build_holder_and_attr(<<~RUBY, "Point", :x)
         class Point
           # @return [Numeric]
           attr_accessor :x
         end
       RUBY
     end
+    let(:holder) { holder_and_attr[0] }
+    let(:attr) { holder_and_attr[1] }
 
     it "#attribute_annotation is nil" do
       assert_nil(holder.attribute_annotation(attr))
@@ -96,7 +103,7 @@ describe ::YARD::AgentDocs::AttributeInfo do
 
   describe "#attribute_docstring" do
     it "returns the full (stripped) docstring, not just the summary" do
-      attr = attribute_for(<<~RUBY, "Point", :x)
+      holder, attr = build_holder_and_attr(<<~RUBY, "Point", :x)
         class Point
           # The x-coordinate.
           #
@@ -112,7 +119,7 @@ describe ::YARD::AgentDocs::AttributeInfo do
 
   describe "#attribute_file and #attribute_line" do
     it "return the backing method's source location" do
-      attr = attribute_for(<<~RUBY, "Point", :x)
+      holder, attr = build_holder_and_attr(<<~RUBY, "Point", :x)
         class Point
           # @return [Numeric]
           attr_reader :x

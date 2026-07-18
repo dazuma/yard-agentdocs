@@ -16,6 +16,14 @@ module AgentdocsTestHelper
   # test previously started (whether or not it parsed anything of its own),
   # so tests never see leftover state from another example.
   #
+  # Every call clears the registry, even when +source+ is omitted — so a
+  # code object fetched from a *previous* call's registry must never be held
+  # across a later call (its resolvable `{...}` references would silently
+  # stop resolving once that later call's clear empties the registry under
+  # it). When a test needs both a holder and a parsed object together, get
+  # both from the same call (pass +source+/+at+ and use the holder's own
+  # +object+), not from two separate calls.
+  #
   # @param mixins [Array<Module>] modules to include into the holder class
   # @param source [String, nil] a class/module body to parse into the fresh
   #   registry before building the holder (typically used together with
