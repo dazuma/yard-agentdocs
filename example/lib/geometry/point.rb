@@ -98,7 +98,7 @@ module Geometry
     # @overload of(point, count)
     #   @param point [Point] the point to copy
     #   @param count [Integer] how many independent copies to build
-    #   @return [Array<Point>] `count` copies of `point`
+    #   @return [Array<Point>, Point] `count` copies of `point`, or a single copy when `count` is `1`
     # @example Building from coordinates
     #   Point.of(3, 4).x
     #   #=> 3
@@ -112,7 +112,11 @@ module Geometry
     #
     def self.of(*args)
       first, second = args
-      return ::Array.new(second) { new(first.x, first.y) } if first.is_a?(Point)
+      if first.is_a?(Point)
+        return new(first.x, first.y) if second == 1
+
+        return ::Array.new(second) { new(first.x, first.y) }
+      end
 
       new(first, second)
     end
@@ -173,7 +177,7 @@ module Geometry
     #
     # @param deltas [Hash{Symbol => Numeric}] `:x` and/or `:y` offsets to add
     # @option deltas [Numeric] :x (0) the x offset to add
-    # @option deltas [Numeric] :y (0) the y offset to add
+    # @option deltas [Integer, Float] :y (0) the y offset to add
     # @return [Point] a new point shifted by the given deltas
     #
     def translate(**deltas)

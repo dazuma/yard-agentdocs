@@ -77,22 +77,24 @@ module YARD
       end
 
       ##
-      # {#type_ref} for a tag's *first* declared type only — the repeated
-      # `tag.types && tag.types.first` dig, in one place. Deliberately
-      # first-type-only, matching every current call site's existing
-      # behavior: a tag with more than one type (`@param x [String, Symbol]`)
-      # still only renders its first here. That's a known gap (see the
-      # "Multiple return types" decision in devdocs/DESIGN.md and the
-      # tracked follow-up for `@param`/`@option`/`@yieldparam`/`@raise`), not
-      # something to silently "fix" by joining every type — that change goes
-      # through the TDD coverage loop with its own fixture, not this helper.
+      # {#type_ref} for every type a tag declares, comma-joined — the
+      # repeated `tag.types && tag.types.join(", ")` dig, in one place. Same
+      # "a same-tag union and multiple tags of the same kind are both just
+      # 'more than one type token'" policy the "Multiple return types"
+      # decision in devdocs/DESIGN.md settled for Returns/Yield Returns/the
+      # signature arrow, extended here to every remaining bullet-list site
+      # that funnels through this helper (`@param`, `@option`, `@yieldparam`,
+      # `@raise`) — see "Union types on the remaining first-type-only tag
+      # sites" under "Decisions". Despite the name, kept as-is rather than
+      # renamed: it's still "the tag's type(s), rendered," and every call
+      # site already reads naturally with it.
       #
       # @param tag [::YARD::Tags::Tag, nil]
       # @return [String] markdown, possibly empty (for a `nil` tag, or one
       #   with no declared types)
       #
       def type_ref_first(tag)
-        type_ref(tag && tag.types && tag.types.first)
+        type_ref(tag && tag.types && tag.types.join(", "))
       end
 
       ##

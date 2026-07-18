@@ -28,7 +28,7 @@ module Geometry
     ##
     # Normalizes an angle in degrees to the `[0, 360)` range.
     #
-    # @param degrees [Float] the angle to normalize
+    # @param degrees [Float, Integer] the angle to normalize
     # @return [Float] the equivalent angle in `[0, 360)`
     #
     def normalize(degrees)

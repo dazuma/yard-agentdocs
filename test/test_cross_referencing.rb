@@ -103,7 +103,7 @@ describe ::YARD::AgentDocs::CrossReferencing do
       assert_equal("", holder.type_ref_first(tag))
     end
 
-    it "renders only the first type of a tag declaring multiple types" do
+    it "renders every type of a tag declaring multiple types, comma-joined" do
       holder = holder_for(<<~RUBY, "Foo::Bar")
         module Foo
           class Baz; end
@@ -114,7 +114,7 @@ describe ::YARD::AgentDocs::CrossReferencing do
         end
       RUBY
       tag = holder.object.meths.find { |m| m.name == :qux }.tag(:return)
-      assert_equal("[`Baz`](Baz.md)", holder.type_ref_first(tag))
+      assert_equal("[`Baz`](Baz.md)`, String`", holder.type_ref_first(tag))
     end
   end
 

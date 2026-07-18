@@ -30,7 +30,7 @@ from `attr_reader`/`attr_writer`/`attr_accessor`, see [`Rectangle`](Rectangle.md
 
 ### #label
 
-- **Type:** `String`
+- **Type:** `String, Symbol`
 
 The waypoint's display label.
 

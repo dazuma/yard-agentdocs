@@ -32,9 +32,10 @@ Computes the centroid (average position) of one or more points.
 
 **Raises:**
 
-- `ArgumentError` — if `points` is empty
+- `ArgumentError, NoMethodError` — if `points` is empty, or if an
+  element doesn't respond to `#x`/`#y`
 
-* **Defined in:** `example/lib/geometry/computations.rb:28`
+* **Defined in:** `example/lib/geometry/computations.rb:29`
 
 ### .distance
 
@@ -79,4 +80,4 @@ Yields each of the given points in turn.
 
 - `Integer` — the number of points yielded
 
-* **Defined in:** `example/lib/geometry/computations.rb:41`
+* **Defined in:** `example/lib/geometry/computations.rb:42`

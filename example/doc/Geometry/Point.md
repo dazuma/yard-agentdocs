@@ -122,7 +122,7 @@ Creates a point from its coordinates.
 
 ```ruby
 Point.of(x, y) → Point
-Point.of(point, count) → Array<Point>
+Point.of(point, count) → Array<Point>, Point
 ```
 
 * **Note:** The two call shapes are disambiguated only by argument count and
@@ -161,7 +161,7 @@ copies.size
 
 - `Point` — a single point built from the coordinates
 
-**`Point.of(point, count) → Array<Point>`**
+**`Point.of(point, count) → Array<Point>, Point`**
 
 **Params:**
 
@@ -170,7 +170,7 @@ copies.size
 
 **Returns:**
 
-- `Array<Point>` — `count` copies of `point`
+- `Array<Point>, Point` — `count` copies of `point`, or a single copy when `count` is `1`
 
 * **Since:** 1.1.0
 * **Version:** 1.2.0
@@ -224,7 +224,7 @@ Adds this point to another, component-wise.
 
 - `Point` — a new point whose coordinates are the sum of the two
 
-* **Defined in:** `example/lib/geometry/point.rb:126`
+* **Defined in:** `example/lib/geometry/point.rb:130`
 
 ### #[]
 
@@ -246,7 +246,7 @@ Returns the coordinate at the given index: `0` for `#x`, `1` for `#y`.
 
 - `ArgumentError` — if `index` isn't `0` or `1`
 
-* **Defined in:** `example/lib/geometry/point.rb:190`
+* **Defined in:** `example/lib/geometry/point.rb:194`
 
 ### #[]=
 
@@ -268,7 +268,7 @@ than modify the receiver, `#[]=` mutates this point in place.
 
 - `ArgumentError` — if `index` isn't `0` or `1`
 
-* **Defined in:** `example/lib/geometry/point.rb:208`
+* **Defined in:** `example/lib/geometry/point.rb:212`
 
 ### #distance_to
 
@@ -293,7 +293,7 @@ Point.new(0, 0).distance_to(Point.new(3, 4))
 
 - `Float` — the distance between the two points
 
-* **Defined in:** `example/lib/geometry/point.rb:139`
+* **Defined in:** `example/lib/geometry/point.rb:143`
 
 ### #label
 
@@ -313,7 +313,7 @@ Returns a short label for this point, formatted `"x,y"` by default
 
 - `String` — the formatted label
 
-* **Defined in:** `example/lib/geometry/point.rb:152`
+* **Defined in:** `example/lib/geometry/point.rb:156`
 
 ### #round
 
@@ -335,7 +335,7 @@ Rounds this point's coordinates to the given decimal precision.
 
 - `Point` — a new point with rounded coordinates
 
-* **Defined in:** `example/lib/geometry/point.rb:166`
+* **Defined in:** `example/lib/geometry/point.rb:170`
 
 ### #translate
 
@@ -353,13 +353,13 @@ given defaults to no change.
 **Options (`deltas`):**
 
 - `:x` (`Numeric`, default `0`) — the x offset to add
-- `:y` (`Numeric`, default `0`) — the y offset to add
+- `:y` (`Integer, Float`, default `0`) — the y offset to add
 
 **Returns:**
 
 - `Point` — a new point shifted by the given deltas
 
-* **Defined in:** `example/lib/geometry/point.rb:179`
+* **Defined in:** `example/lib/geometry/point.rb:183`
 
 ### #zero?
 
@@ -371,4 +371,4 @@ point.zero?() → Boolean
 
 - `Boolean`
 
-* **Defined in:** `example/lib/geometry/point.rb:216`
+* **Defined in:** `example/lib/geometry/point.rb:220`

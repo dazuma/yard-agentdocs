@@ -20,11 +20,15 @@ module YARD
 
       ##
       # @param attr [Attribute]
-      # @return [String, nil] the attribute's declared `@return` type
+      # @return [String, nil] every type the attribute's declared `@return`
+      #   tag lists, comma-joined — same union policy as
+      #   {MethodSignature#signature_return_type}, extended here since this
+      #   helper doesn't funnel through {CrossReferencing#type_ref_first}
+      #   (see "Union types on the remaining first-type-only tag sites"
+      #   under "Decisions" in devdocs/DESIGN.md)
       #
       def attribute_type(attr)
-        tag = attr.source_method.tag(:return)
-        tag&.types&.first
+        attr.source_method.tag(:return)&.types&.join(", ")
       end
 
       ##

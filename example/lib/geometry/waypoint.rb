@@ -14,7 +14,7 @@ module Geometry
   # tags, exercising YARD's *other* attribute-registration path (distinct
   # from `attr_reader`/`attr_writer`/`attr_accessor`, see {Rectangle}).
   #
-  # @attr_reader label [String] The waypoint's display label.
+  # @attr_reader label [String, Symbol] The waypoint's display label.
   # @attr_writer label [String] Reassigns the waypoint's display label.
   # @attr order [Integer] The waypoint's 1-based position in the route.
   #

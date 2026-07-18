@@ -54,7 +54,7 @@ Normalizes an angle in degrees to the `[0, 360)` range.
 
 **Params:**
 
-- `degrees` (`Float`) — the angle to normalize
+- `degrees` (`Float, Integer`) — the angle to normalize
 
 **Returns:**
 

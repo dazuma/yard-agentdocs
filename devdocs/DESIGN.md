@@ -522,21 +522,21 @@ whether agents actually exercise those pointers.
       typing itself not exercised, but the tag is otherwise thorough
 - [x] `@return` (including `void` and multi-type unions) — `void`/unions not
       exercised, but the tag is otherwise thorough
-- [ ] (mech, pre-dogfood) Union types on the remaining first-type-only tag sites —
-      `@param x [String, Symbol]`, `@option`, `@yieldparam`, `@raise
-      [KeyError, IndexError]`, a 2+-`@overload` method's signature arrow
-      (`MethodSignature#signature_return_type_for`), and the attribute
-      `**Type:**` line (`AttributeInfo#attribute_type`, which does
-      `tag&.types&.first`) all still render only the tag's *first* type,
-      unlike the Returns/Yield Returns/signature-arrow sites the "Multiple
-      return types" decision already fixed — extending that settled
-      comma-join policy to these sites should be mechanical. The
-      bullet-list sites all funnel through `CrossReferencing#type_ref_first`
-      now, so the change is that one helper plus the overload arrow;
-      `attribute_type` doesn't funnel through it at all — it returns a raw
-      string that the attribute_entry template passes to `type_ref` — so
-      it needs its own, separate fix. Flagged by the 2026-07-17 code
-      review
+- [x] (mech, pre-dogfood) Union types on the remaining first-type-only tag sites —
+      `@param`/`@option`/`@yieldparam`/`@raise` (all via
+      `Geometry::Angles.normalize`'s `degrees` param, `Point#translate`'s
+      `:y` option, and `Computations.centroid`'s two-type `@raise`), a
+      2+-`@overload` method's signature arrow (`Point.of`'s `(point, count)`
+      overload), and the attribute `**Type:**` line (`Waypoint#label`).
+      Confirmed mechanical as expected: `CrossReferencing#type_ref_first`
+      now joins every type instead of taking `.first`, which fixes every
+      bullet-list site (plus, as an unrequested but harmless side effect,
+      the 2+-`@overload` branch's own per-overload Returns bullet and the
+      constant `**Type:**` line, both of which happen to funnel through the
+      same helper); `MethodSignature#signature_return_type_for` and
+      `AttributeInfo#attribute_type` each got the identical one-line fix
+      directly, since neither funnels through `type_ref_first`. See "Union
+      types on the remaining first-type-only tag sites" under "Decisions"
 - [x] (design) `@param` naming a nonexistent parameter (typo'd, or stale after
       a signature change — real gems have these) — settled on dropping the
       tag entirely rather than rendering it (which would also have sorted
@@ -2601,8 +2601,62 @@ fixed by the same change. Exercised via five new `Geometry::Path` methods:
   real usage (the dogfood milestone) surfaces a genuine case.
 - **Left deliberately unchanged, out of scope:** the 2+-`@overload` branch's
   per-overload Returns bullet (`ov.tag(:return)`) still takes only the
-  first tag/type — no fixture combines `@overload` with a union or multiple
-  `@return` tags, so extending that branch would be unverified generality.
+  first *tag* — no fixture combines `@overload` with multiple `@return`
+  tags, so extending that would be unverified generality. (Its single
+  tag's own union type did get fixed, but only as a side effect of the
+  later "Union types on the remaining first-type-only tag sites" decision
+  fixing `type_ref_first` generally, not by any change here.)
+
+### Union types on the remaining first-type-only tag sites: extend the comma-join policy via `type_ref_first`, plus two direct fixes
+
+Settles the "Union types on the remaining first-type-only tag sites"
+checklist item under "YARD tags" — the follow-up the "Multiple return
+types" decision above flagged but didn't do: `@param`, `@option`,
+`@yieldparam`, `@raise`, a 2+-`@overload` method's signature arrow, and
+the attribute `**Type:**` line all still rendered only a tag's first
+declared type.
+
+- **`CrossReferencing#type_ref_first` now joins every type instead of
+  taking `.first`** (kept its name — misleading in isolation, but every
+  call site still reads naturally, e.g. `type_ref_first(p)` for a param).
+  Since every bullet-list site (`@param`, `@yieldparam`, `@raise`, and
+  `@option` via `option_line`) already funneled through this one helper,
+  fixing it there fixed all four simultaneously, with zero `.erb` changes
+  — exactly the "should be mechanical" case the checklist predicted.
+  Exercised via `Geometry::Angles.normalize`'s `degrees` param (`@param
+  degrees [Float, Integer]`), `Point#translate`'s `:y` option (`@option
+  deltas [Integer, Float] :y`), and `Computations.centroid`'s `@raise
+  [ArgumentError, NoMethodError]` (a real, previously-undocumented failure
+  mode: passing a non-`Point` element genuinely raises `NoMethodError`
+  today, not just `ArgumentError` for an empty array) — deliberately *not*
+  exercised via a dedicated `@yieldparam` fixture, since it's the exact
+  same `type_ref_first(p)` call as `@param`, just a different tag array;
+  a redundant fixture would prove nothing the `@param` one doesn't already.
+- **Two side effects of fixing the shared helper, neither requested by the
+  checklist item but both free and correct:** the 2+-`@overload` branch's
+  own per-overload Returns bullet (`type_ref_first(ov_return)`) now also
+  joins a same-tag union (though not multiple `@return` *tags* on one
+  overload — see the amended note under "Multiple return types" above,
+  still out of scope); and a constant's `**Type:**` line
+  (`constant_entry.erb`'s `type_ref_first(@constant.tag(:return))`) now
+  does too, though no fixture was added to prove it — no example
+  constant declares a union `@return` type, and inventing one purely to
+  exercise an incidental fix would be unverified generality the same way a
+  dedicated `@yieldparam` fixture would have been.
+- **`MethodSignature#signature_return_type_for` and
+  `AttributeInfo#attribute_type` each needed their own one-line fix**,
+  since neither funnels through `type_ref_first` (confirmed while tracing
+  the code, matching what the checklist item already suspected): both now
+  do `tag&.types&.join(", ")` instead of `&.first`. Exercised via
+  `Point.of`'s `(point, count)` overload (`Point.of(point, count) →
+  Array<Point>, Point`) and `Waypoint#label` (`**Type:** String, Symbol`).
+- **`Point.of`'s fixture required a real behavior change, not just a doc
+  edit**, to keep the union type honest: no existing overload branch
+  naturally returned more than one type, so `(point, count)` now returns a
+  bare `Point` (not a 1-element array) when `count` is `1`, documented as
+  `@return [Array<Point>, Point]`. Chosen over a documentation-only union
+  (which would have been fiction relative to the actual code) or
+  inventing a new class purely to exercise this arrow.
 
 ### `@option`: a separate `**Options (`param`):**` bulleted block, one per documented hash param
 
