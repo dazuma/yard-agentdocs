@@ -33,7 +33,9 @@
 
 - [`Geometry`](Geometry.md) — A small toy geometry namespace, used as a worked example and test case for the `yard-agentdocs` output format.
 - [`Geometry::Angles`](Geometry/Angles.md) — Angle-related helpers.
+- [`Geometry::BoundingBox`](Geometry/BoundingBox.md) — An axis-aligned bounding box, whose four numeric edges are declared through a small class-level DSL (`.edge`) instead of individual `attr_reader`s.
 - [`Geometry::Circle`](Geometry/Circle.md) — A circle, defined by its radius.
+- [`Geometry::CompassRose`](Geometry/CompassRose.md) — Compass-bearing lookups, one instance method per cardinal direction.
 - [`Geometry::Computations`](Geometry/Computations.md) — Utility computations on `Point` values.
 - [`Geometry::Loud`](Geometry/Loud.md) — Prepended onto a class to upper-case whatever its own `#describe` method returns, without needing to know that method's implementation.
 - [`Geometry::Named`](Geometry/Named.md) — Mixed into shape classes via `extend` (not `include`) to add a `.kind` class method, derived from the extending class's own name.

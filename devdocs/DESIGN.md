@@ -618,15 +618,24 @@ whether agents actually exercise those pointers.
 
 - [ ] (mech, pre-dogfood) `@!attribute` (documenting an attribute defined through
       metaprogramming rather than `attr_*`)
-- [ ] (mech, pre-dogfood) `@!method` (documenting a method defined via `define_method` in
-      a loop, or via a class-level DSL macro — common in real-world gems)
+- [x] (mech, pre-dogfood) `@!method` (documenting a method defined via `define_method` in
+      a loop, or via a class-level DSL macro — common in real-world gems) —
+      `Geometry::CompassRose` (loop variant, four bare `@!method` directives
+      stacked above one shared `each_key` call site); the DSL-macro variant
+      is `Geometry::BoundingBox` under `@!macro` just below. Confirmed
+      purely mechanical, zero template changes — see "`@!method` (no
+      macro): zero template changes; multiple stacked directives share one
+      `Defined in:` line" under "Decisions"
 - [ ] (stretch) `@!group` / `@!endgroup` (method grouping) — only include if
       we decide the output format should reflect YARD groups
-- [ ] (design, pre-dogfood) `@!macro` — attach-mode macros on class-level DSL methods
+- [x] (design, pre-dogfood) `@!macro` — attach-mode macros on class-level DSL methods
       are the workhorse of DSL-heavy and generated codebases, so the
       dogfood run will hit them. YARD expands macros at parse time, so
       rendering *may* be free — probe rather than assume. Flagged by the
-      July 2026 coverage review
+      July 2026 coverage review. Confirmed free: `Geometry::BoundingBox`'s
+      `.edge` DSL method, zero template changes — see "`@!macro` (attach
+      mode): zero template changes; expands only at call sites, `Defined
+      in:` follows the call" under "Decisions"
 - [ ] (stretch) `@!parse` / `@!scope` / `@!visibility` — the remaining
       directives; mainly matter for C-extension gems documenting via stub
       files. Wait for real-usage evidence. Flagged by the July 2026
@@ -3683,6 +3692,69 @@ already implied: `include`/`extend` only ever bring across a mixin's
 still holds), so both stay `instance_attribute_objects`-only; `extend`'s
 own-hand-built `.name` sigil is unchanged, now visibly correct rather than
 coincidentally so.
+
+### `@!macro` (attach mode): zero template changes; expands only at call sites, `Defined in:` follows the call
+
+Settles the `@!macro` checklist item under "YARD directives" (`design`,
+`pre-dogfood`). `Geometry::BoundingBox` declares a class-level DSL method,
+`.edge`, carrying an attach-mode `@!macro [attach] edge` whose body is a
+nested `@!method $1` directive; four `edge :name` calls (`:left`, `:top`,
+`:right`, `:bottom`) each expand into their own real, documented instance
+method (`#left`, `#top`, `#right`, `#bottom`).
+
+**Zero template changes were needed**, confirmed by probing YARD's
+macro/directive machinery (`YARD::CodeObjects::MacroObject`,
+`YARD::Tags::Directives::MacroDirective`/`MethodDirective`) directly before
+writing the fixture, per this item's own "probe rather than assume" note.
+An attach-mode macro's `expand` returns `nil` at its own definition site
+(`MacroDirective#expand`: `return if attach? && class_method?`), so
+`.edge`'s own docstring carries no `@return` — the macro only expands at
+each subsequent call site, where `MethodDirective#create_object` registers
+a brand-new `MethodObject` with a synthesized docstring and attributes it
+(via `handler.register_file_info`/`register_source`) to *that* call site's
+line, not `.edge`'s definition line. The synthesized method renders through
+the exact same attribute/param/return machinery every other method entry
+already uses; nothing agentdocs-specific needed to change.
+
+**One indentation subtlety surfaced while probing, not a template bug:**
+nested tags on the interpolated method (e.g. `@return`) must be indented
+*one level deeper* than the `@!method $1` line itself, so YARD's own
+directive parser (`MethodDirective#use_indented_text`) picks them up as
+part of the synthesized method's docstring rather than as stray tags on the
+macro invocation's (nonexistent) target — a sibling-indented `@return` is
+silently dropped. This is YARD's own parsing rule, not something agentdocs
+renders differently; recorded here so a future macro fixture doesn't
+rediscover it.
+
+### `@!method` (no macro): zero template changes; multiple stacked directives share one `Defined in:` line
+
+Settles the `@!method` checklist item under "YARD directives" (`mech`,
+`pre-dogfood`). `Geometry::CompassRose` defines four instance methods
+(`#north`/`#east`/`#south`/`#west`) via a single `.each_key` loop over
+`Angles::NAMED_ANGLES`'s keys, documented by stacking one bare `@!method
+NAME` directive per generated method directly above the loop — YARD's own
+documented "attaching multiple methods to the same source" pattern, used
+because there's no per-iteration call site (unlike the `@!macro` case
+above) for a directive to attach to individually.
+
+**Zero template changes were needed**, for the same reason as `@!macro`:
+each `@!method` directive registers an ordinary `MethodObject` via
+`MethodDirective#create_object`, indistinguishable at the template layer
+from a `def`-declared method. The one distinguishing rendering trait,
+confirmed end to end: all four methods share the exact same `**Defined
+in:**` line, since every directive's comment block is attributed to the
+same underlying statement (the `each_key` call) — proving the two
+directive fixtures exercise genuinely different code paths (per-call-site
+macro expansion vs. one-shared-site directive stacking) despite rendering
+through identical template code.
+
+**Side discovery, left open:** an early draft of `CompassRose`'s class
+docstring put an inline `{Angles::NAMED_ANGLES}` cross-reference in its
+first sentence, which reproduced the still-open "`index.md`'s per-entry
+summary doesn't go through `markdownify`" checklist item live — resolved
+correctly on `Geometry.md`'s nested summary, literal unresolved braces on
+`index.md`. Reworded to keep this fixture scoped to `@!method` only; the
+bug itself remains open for that item's own fixture.
 
 ## Implementation
 
