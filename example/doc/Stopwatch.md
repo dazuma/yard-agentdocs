@@ -26,8 +26,13 @@ Call the reset method to start over.
 
 - `DEFAULT_ELAPSED` — The elapsed time a newly created stopwatch starts at, and the default value `#reset` resets to.
 
+**Class Attributes**
+
+- `.verbose` — Whether class-level operations should log diagnostic output to `$stderr`.
+
 **Class Methods**
 
+- `.clock_resolution` — The clock's reported resolution, in seconds — how precise `#measure`'s timing can actually be.
 - `.new` — Creates a stopwatch with no elapsed time yet recorded.
 
 **Instance Methods**
@@ -53,7 +58,36 @@ value `#reset` resets to.
 
 * **Defined in:** `example/lib/stopwatch.rb:27`
 
+## Class Attributes
+
+### .verbose
+
+- **Type:** `Boolean`
+
+Whether class-level operations should log diagnostic output to
+`$stderr`. A `class << self`-defined attribute — should behave and
+render the same as an instance-level `attr_accessor`, just at class
+scope.
+
+* **Defined in:** `example/lib/stopwatch.rb:53`
+
 ## Class Methods
+
+### .clock_resolution
+
+```ruby
+Stopwatch.clock_resolution() → Float
+```
+
+The clock's reported resolution, in seconds — how precise
+`#measure`'s timing can actually be. A `class << self`-defined
+method — should render identically to `def self.foo`.
+
+**Returns:**
+
+- `Float`
+
+* **Defined in:** `example/lib/stopwatch.rb:62`
 
 ### .new
 
@@ -88,7 +122,7 @@ makes the same choice).
 
 - `Integer` — -1, 0, or 1
 
-* **Defined in:** `example/lib/stopwatch.rb:144`
+* **Defined in:** `example/lib/stopwatch.rb:168`
 
 ### #accrue
 
@@ -105,7 +139,7 @@ Older name for `#add`, from an earlier version of this API.
 Prefer `#add` in new code. `#accrue` is kept only so callers written
 against the 1.x API keep working.
 
-* **Defined in:** `example/lib/stopwatch.rb:62`
+* **Defined in:** `example/lib/stopwatch.rb:86`
 
 ### #add
 
@@ -125,7 +159,7 @@ Adds to the elapsed time.
 
 - `Float` — the new total elapsed time
 
-* **Defined in:** `example/lib/stopwatch.rb:50`
+* **Defined in:** `example/lib/stopwatch.rb:74`
 
 ### #describe
 
@@ -154,7 +188,7 @@ formatting API.
 
 - `String` — the assembled label
 
-* **Defined in:** `example/lib/stopwatch.rb:116`
+* **Defined in:** `example/lib/stopwatch.rb:140`
 
 ### #measure
 
@@ -177,7 +211,7 @@ elapsed time.
 
 - `Object` — the block's return value
 
-* **Defined in:** `example/lib/stopwatch.rb:92`
+* **Defined in:** `example/lib/stopwatch.rb:116`
 
 ### #raw_elapsed_s
 
@@ -195,7 +229,7 @@ part of the stable public API.
 
 - `String` — the elapsed time, in seconds, as a plain string
 
-* **Defined in:** `example/lib/stopwatch.rb:131`
+* **Defined in:** `example/lib/stopwatch.rb:155`
 
 ### #reset
 
@@ -217,7 +251,7 @@ Resets the elapsed time.
 
 - `Float` — the new elapsed time
 
-* **Defined in:** `example/lib/stopwatch.rb:79`
+* **Defined in:** `example/lib/stopwatch.rb:103`
 
 ### #restart
 
@@ -227,4 +261,4 @@ stopwatch.restart(to = DEFAULT_ELAPSED) → Float
 
 * **Alias for:** `#reset`
 
-* **Defined in:** `example/lib/stopwatch.rb:82`
+* **Defined in:** `example/lib/stopwatch.rb:106`

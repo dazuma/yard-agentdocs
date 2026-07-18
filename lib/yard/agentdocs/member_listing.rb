@@ -18,6 +18,11 @@ module YARD
     # to sort method listings) and {MemberRoster#member_roster_lines} (used
     # by {#any_members?}).
     #
+    # Class-level and instance-level attributes are queried separately
+    # ({#class_attribute_objects}/{#instance_attribute_objects}), the same
+    # split {#class_method_objects}/{#instance_method_objects} already use —
+    # see "Class-level attributes" in devdocs/DESIGN.md.
+    #
     module MemberListing
       ##
       # @return [Array<::YARD::CodeObjects::Base>] this object's own nested
@@ -40,24 +45,32 @@ module YARD
 
       ##
       # @param namespace [::YARD::CodeObjects::NamespaceObject]
-      # @return [Array<Attribute>] +namespace+'s own attributes, sorted by
-      #   name
+      # @return [Array<Attribute>] +namespace+'s own class-level attributes
+      #   (declared inside `class << self`), sorted by name
       #
-      def attribute_objects(namespace = object)
-        entries = namespace.attributes[:instance].map do |name, rw|
-          Attribute.new(name: name.to_s, read: rw[:read], write: rw[:write])
-        end
-        entries = entries.select { |a| run_verifier([a.source_method]).any? }
-        entries.sort_by(&:name)
+      def class_attribute_objects(namespace = object)
+        attribute_objects_for(namespace, :class)
+      end
+
+      ##
+      # @param namespace [::YARD::CodeObjects::NamespaceObject]
+      # @return [Array<Attribute>] +namespace+'s own instance-level
+      #   attributes, sorted by name
+      #
+      def instance_attribute_objects(namespace = object)
+        attribute_objects_for(namespace, :instance)
       end
 
       ##
       # @param namespace [::YARD::CodeObjects::NamespaceObject]
       # @return [Array<::YARD::CodeObjects::MethodObject>] +namespace+'s own
-      #   class methods, sorted by {MethodSignature#member_name}
+      #   class methods (excluding attribute readers/writers), sorted by
+      #   {MethodSignature#member_name}
       #
       def class_method_objects(namespace = object)
-        list = namespace.meths(inherited: false, included: false).select { |m| m.scope == :class }
+        list = namespace.meths(inherited: false, included: false).select do |m|
+          m.scope == :class && !m.is_attribute?
+        end
         run_verifier(list).sort_by { |m| member_name(m) }
       end
 
@@ -91,7 +104,8 @@ module YARD
       #   class methods, or instance methods of its own to render
       #
       def any_member_sections?
-        constant_objects.any? || attribute_objects.any? || class_method_objects.any? || instance_method_objects.any?
+        constant_objects.any? || class_attribute_objects.any? || instance_attribute_objects.any? ||
+          class_method_objects.any? || instance_method_objects.any?
       end
 
       ##
@@ -102,6 +116,17 @@ module YARD
       #
       def any_members?
         nested_objects.any? || any_member_sections? || member_roster_lines.any?
+      end
+
+      private
+
+      # Shared by {#class_attribute_objects}/{#instance_attribute_objects}.
+      def attribute_objects_for(namespace, scope)
+        entries = namespace.attributes[scope].map do |name, rw|
+          Attribute.new(name: name.to_s, read: rw[:read], write: rw[:write])
+        end
+        entries = entries.select { |a| run_verifier([a.source_method]).any? }
+        entries.sort_by(&:name)
       end
     end
   end

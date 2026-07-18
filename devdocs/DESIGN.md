@@ -401,11 +401,16 @@ whether agents actually exercise those pointers.
       its own comment" under "Decisions"
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
-- [ ] (mech, pre-dogfood) Class methods defined via `class << self` — should render
+- [x] (mech, pre-dogfood) Class methods defined via `class << self` — should render
       identically to `def self.foo`; also cover *attributes* defined on the
       singleton (`class << self; attr_reader :config; end`, the standard
       module-level configuration pattern), which exercise `AttributeInfo`
-      down a different path than instance attributes
+      down a different path than instance attributes — `Stopwatch.clock_resolution`
+      (a `class << self`-defined method, renders identically to a `def self.foo`
+      one) and `Stopwatch.verbose` (a `class << self`-defined `attr_accessor`);
+      settled alongside the class-level-attributes design item below, since
+      both were exercised by the same fixture — see "Class-level attributes"
+      under "Decisions"
 - [x] (mech) A private class method — `Geometry::Computations.average`
       (`private_class_method`-marked, backing `.centroid`'s x/y averaging);
       confirmed omitted with zero template changes, same policy as instance
@@ -476,16 +481,18 @@ whether agents actually exercise those pointers.
       the tag/method merge surfaced a real quirk — see "`@attr`/
       `@attr_reader`/`@attr_writer` tags on a manual reader/writer pair"
       under "Decisions"
-- [ ] (design, pre-dogfood) Class-level attributes (`class << self` +
+- [x] (design, pre-dogfood) Class-level attributes (`class << self` +
       `attr_accessor`, the idiomatic gem-configuration pattern) —
-      `MemberListing#attribute_objects` reads only
-      `attributes[:instance]`, so a class-level attribute is silently
-      invisible today: no entry, no Member Summary line, no roster
-      mention (`MemberRoster` reuses the same query). Needs a format
-      decision: its own section vs. folding into `## Attributes` with a
-      `.name` sigil mirroring the existing class/instance method split.
-      Related to (but distinct from) the `@!attribute` directive item
-      under "YARD directives". Flagged by the 2026-07-17 code review
+      `MemberListing#attribute_objects` read only
+      `attributes[:instance]`, so a class-level attribute was silently
+      invisible: no entry, no Member Summary line, no roster
+      mention (`MemberRoster` reused the same query). `Stopwatch.verbose`;
+      settled that class-level attributes get their own `## Class
+      Attributes`/`**Class Attributes**` section, split from instance-level
+      ones the same way Class Methods/Instance Methods already split — see
+      "Class-level attributes" under "Decisions". Related to (but distinct
+      from) the `@!attribute` directive item under "YARD directives".
+      Flagged by the 2026-07-17 code review
 - [x] Simple constant (numeric/string literal) with a doc comment —
       `Point::DIMENSIONS`
 - [x] (design) Structured constant (`Hash`, `Array`, `Regexp` literal) — a
@@ -3607,6 +3614,75 @@ mechanism is a directive, not a docstring tag, so likely not), which further
 lowers the expected real-world prevalence of this exact gap. Not expected to
 be reopened without dogfood evidence that this combination is common enough
 to matter.
+
+### Class-level attributes: split into `## Class Attributes`/`## Instance Attributes`, mirroring the Class/Instance Methods split
+
+Settles the "Class methods defined via `class << self`" and "Class-level
+attributes" checklist items under "Methods — visibility & special forms"
+and "Attributes & constants" respectively (both `pre-dogfood`) — closed
+together since one fixture exercises both: `Stopwatch` gained a `class <<
+self` block defining `clock_resolution` (a plain method, proving it renders
+identically to `def self.foo`) and `verbose` (an `attr_accessor`, the
+gap this decision actually settles).
+
+**The gap:** `MemberListing#attribute_objects` read only
+`namespace.attributes[:instance]`, so a `class << self`-declared attribute
+was invisible — no Member Summary line, no full entry, no roster mention.
+The `.`/`#` sigil was also hardcoded wrong in every attribute rendering
+site for when this got fixed (`attribute_summary_line`,
+`attribute_entry.erb`'s heading, and three of `MemberRoster`'s four heading
+builders all assumed `#`).
+
+**Two ways to render it, once visible:** fold class- and instance-level
+attributes into one `## Attributes` section using the `.`/`#` sigil to
+distinguish them (the only precedent: `MemberRoster#extend_headings`'s
+already-hand-built `.name` sigil for an extended module's attributes
+surfacing as the extending class's class-level members); or split into
+`## Class Attributes`/`## Instance Attributes`, mirroring this template's
+existing `## Class Methods`/`## Instance Methods` split.
+
+**Decided to split**, checking YARD's own default HTML template first (the
+mirror-human-docs default — see "Navigation guidance" and elsewhere): it
+splits attributes exactly the way it splits methods —
+`templates/default/module/html/attribute_summary.erb` calls
+`groups(attr_listing, "Attribute")`, producing "Class Attribute Summary"/
+"Instance Attribute Summary" headers, and `attribute_details.erb` renders
+`<h2><%= scope.to_s.capitalize %> Attribute Details</h2>`. Section order in
+YARD's own `module/setup.rb` is `attribute_summary` before `method_summary`,
+class before instance within each — carried over here as `## Constants` →
+`## Class Attributes` → `## Instance Attributes` → `## Class Methods` →
+`## Instance Methods`, both in `## Member Summary` and in the full-entry
+sections. This precedent outweighs the one narrow roster-line sigil
+precedent for folding. Each attribute entry keeps its `.`/`#` heading sigil
+too (`AttributeInfo#attribute_heading`, mirroring
+`MethodSignature#member_heading`), even though the section header alone
+would disambiguate — consistent with the grep-based navigation convention
+the preamble documents.
+
+**A latent bug surfaced during implementation, unrelated to the format
+decision itself:** `MemberListing#class_method_objects` never excluded
+`is_attribute?` methods (unlike `instance_method_objects`, which always
+has), so a class-level attribute's synthesized reader/writer
+`MethodObject`s would have double-rendered — once under the new `## Class
+Attributes`, once under `## Class Methods` — until now, no class-level
+attribute existed anywhere in the example to expose it. Fixed alongside
+this change; zero effect on any other existing fixture.
+
+**Mechanical fallout:** every existing class with instance-level attributes
+(`Rectangle`, `Vector`, `Point`, `Waypoint`, `Circle`, `Polygon`) had its
+`Attributes` header renamed to `Instance Attributes`, since the split
+applies even when a class has no class-level attributes of its own — no
+content changes beyond the heading text.
+
+`MemberRoster`'s four heading builders (`own_member_headings`,
+`superclass_headings`, `include_headings`, `extend_headings`) were updated
+to call `class_attribute_objects`/`instance_attribute_objects` instead of
+the retired `attribute_objects`, each keeping the sigil its semantics
+already implied: `include`/`extend` only ever bring across a mixin's
+*instance*-scope members (documented reasoning predates this change and
+still holds), so both stay `instance_attribute_objects`-only; `extend`'s
+own-hand-built `.name` sigil is unchanged, now visibly correct rather than
+coincidentally so.
 
 ## Implementation
 

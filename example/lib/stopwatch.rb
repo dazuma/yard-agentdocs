@@ -41,6 +41,30 @@ class Stopwatch
     @elapsed = DEFAULT_ELAPSED
   end
 
+  class << self
+    ##
+    # Whether class-level operations should log diagnostic output to
+    # `$stderr`. A `class << self`-defined attribute — should behave and
+    # render the same as an instance-level `attr_accessor`, just at class
+    # scope.
+    #
+    # @return [Boolean]
+    #
+    attr_accessor :verbose
+
+    ##
+    # The clock's reported resolution, in seconds — how precise
+    # {#measure}'s timing can actually be. A `class << self`-defined
+    # method — should render identically to `def self.foo`.
+    #
+    # @return [Float]
+    #
+    def clock_resolution
+      ::Process.clock_getres(CLOCK)
+    end
+  end
+  self.verbose = false
+
   ##
   # Adds to the elapsed time.
   #

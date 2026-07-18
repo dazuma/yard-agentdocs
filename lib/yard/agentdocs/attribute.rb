@@ -7,7 +7,9 @@ module YARD
     # attribute, paired with whichever of its backing reader/writer
     # `YARD::CodeObjects::MethodObject`s actually exist — a reader/writer
     # pair doesn't otherwise have one YARD object of its own.
-    # {MemberListing#attribute_objects} is the sole construction site.
+    # {MemberListing#class_attribute_objects}/
+    # {MemberListing#instance_attribute_objects} are the sole construction
+    # sites.
     #
     # @!attribute [r] name
     #   @return [String] the attribute's name, without a leading `#`
@@ -25,6 +27,16 @@ module YARD
       #
       def source_method
         read || write
+      end
+
+      ##
+      # Whether this attribute is class-level (declared inside `class <<
+      # self`) rather than instance-level.
+      #
+      # @return [Boolean]
+      #
+      def class_level?
+        source_method.scope == :class
       end
     end
   end

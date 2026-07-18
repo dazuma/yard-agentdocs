@@ -17,7 +17,7 @@ from `attr_reader`/`attr_writer`/`attr_accessor`, see [`Rectangle`](Rectangle.md
 
 ## Member Summary
 
-**Attributes**
+**Instance Attributes**
 
 - `#label` — The waypoint's display label.
 - `#order` — The waypoint's 1-based position in the route.
@@ -26,7 +26,7 @@ from `attr_reader`/`attr_writer`/`attr_accessor`, see [`Rectangle`](Rectangle.md
 
 - `.new` — Creates a waypoint with the given label and position.
 
-## Attributes
+## Instance Attributes
 
 ### #label
 

@@ -15,11 +15,19 @@
 <%= constant_summary_line(const) %>
 <%- end -%>
 <%- end -%>
-<%- if attribute_objects.any? -%>
+<%- if class_attribute_objects.any? -%>
 
-**Attributes**
+**Class Attributes**
 
-<%- attribute_objects.each do |attr| -%>
+<%- class_attribute_objects.each do |attr| -%>
+<%= attribute_summary_line(attr) %>
+<%- end -%>
+<%- end -%>
+<%- if instance_attribute_objects.any? -%>
+
+**Instance Attributes**
+
+<%- instance_attribute_objects.each do |attr| -%>
 <%= attribute_summary_line(attr) %>
 <%- end -%>
 <%- end -%>

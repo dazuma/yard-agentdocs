@@ -5,10 +5,19 @@ module YARD
     ##
     # Attribute-data helpers shared by the `module`/`class` `agentdocs`
     # templates, operating on the {Attribute} value
-    # {MemberListing#attribute_objects} builds for each `attr_reader`/
-    # `attr_writer`/`attr_accessor` declaration.
+    # {MemberListing#class_attribute_objects}/{MemberListing#instance_attribute_objects}
+    # build for each `attr_reader`/`attr_writer`/`attr_accessor` declaration.
     #
     module AttributeInfo
+      ##
+      # @param attr [Attribute]
+      # @return [String] e.g. `.verbose` or `#width` — `.` for a class-level
+      #   attribute ({Attribute#class_level?}), `#` for an instance-level one
+      #
+      def attribute_heading(attr)
+        "#{attr.class_level? ? '.' : '#'}#{attr.name}"
+      end
+
       ##
       # @param attr [Attribute]
       # @return [String, nil] the attribute's declared `@return` type

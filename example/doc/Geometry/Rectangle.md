@@ -11,7 +11,7 @@ methods might be split by concern across files in a real codebase.
 
 ## Member Summary
 
-**Attributes**
+**Instance Attributes**
 
 - `#height` (write-only) — Reassigns the rectangle's height, resizing it in place.
 - `#width` — The rectangle's width.
@@ -25,7 +25,7 @@ methods might be split by concern across files in a real codebase.
 - `#area` — Computes the area of the rectangle.
 - `#perimeter` — Computes the perimeter of the rectangle.
 
-## Attributes
+## Instance Attributes
 
 ### #height
 

@@ -151,7 +151,7 @@ end
 
 def attribute_summary_line(attr)
   suffix = attribute_annotation_short(attr)
-  "- `##{attr.name}`#{" (#{suffix})" if suffix}#{summary_suffix(attribute_docstring_summary(attr))}"
+  "- `#{attribute_heading(attr)}`#{" (#{suffix})" if suffix}#{summary_suffix(attribute_docstring_summary(attr))}"
 end
 
 def method_summary_line(meth)

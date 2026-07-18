@@ -11,7 +11,7 @@ An immutable 2D displacement vector.
 
 ## Member Summary
 
-**Attributes**
+**Instance Attributes**
 
 - `#dx` (read-only) — Returns the value of attribute dx.
 - `#dy` (read-only) — Returns the value of attribute dy.
@@ -24,7 +24,7 @@ An immutable 2D displacement vector.
 - `#eql?` — Whether this vector has the same components as another.
 - `#magnitude` — Computes the magnitude (length) of the vector.
 
-## Attributes
+## Instance Attributes
 
 ### #dx
 

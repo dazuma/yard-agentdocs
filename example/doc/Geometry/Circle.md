@@ -20,7 +20,7 @@ Circle.new(2).area.round(2)
 
 ## Member Summary
 
-**Attributes**
+**Instance Attributes**
 
 - `#radius` — Returns the value of attribute radius.
 
@@ -28,7 +28,7 @@ Circle.new(2).area.round(2)
 
 - `#area` — Computes the area of the circle.
 
-## Attributes
+## Instance Attributes
 
 ### #radius
 

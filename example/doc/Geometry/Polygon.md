@@ -24,7 +24,7 @@ undocumented.
 
 ## Member Summary
 
-**Attributes**
+**Instance Attributes**
 
 - `#sides` (read-only) — The number of sides the polygon has.
 
@@ -42,7 +42,7 @@ undocumented.
 
 - **Inherited from [`Shape`](Shape.md):** `#area`
 
-## Attributes
+## Instance Attributes
 
 ### #sides
 

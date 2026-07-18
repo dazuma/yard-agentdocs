@@ -15,7 +15,7 @@ comparable with `<=>`.
 - `DIMENSIONS` — The number of coordinates a point has.
 - `ORIGIN` — The point at the origin, `(0, 0)`.
 
-**Attributes**
+**Instance Attributes**
 
 - `#x` (read-only) — The x-coordinate.
 - `#y` (read-only) — The y-coordinate.
@@ -60,7 +60,7 @@ The point at the origin, `(0, 0)`.
 
 * **Defined in:** `example/lib/geometry/point.rb:49`
 
-## Attributes
+## Instance Attributes
 
 ### #x
 
