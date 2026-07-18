@@ -108,24 +108,38 @@ module YARD
       ##
       # Reorders +param_tags+ (typically `meth.tags(:param)`, or an
       # overload's) to match +meth+'s real parameter order, rather than
-      # trusting the tags' own order. Needed because a resolved `(see ...)`
-      # reference tag always sorts after a method's own tags of the same
-      # name (`Docstring#tags` appends resolved reference tags to the end
-      # before its stable sort — see "Reference tags" in
-      # devdocs/DESIGN.md), so a method mixing an own `@param` with a
-      # referenced one would otherwise list its `**Params:**` bullets out
-      # of signature order.
+      # trusting the tags' own order, and drops any tag whose name doesn't
+      # match a real parameter.
+      #
+      # Reordering is needed because a resolved `(see ...)` reference tag
+      # always sorts after a method's own tags of the same name
+      # (`Docstring#tags` appends resolved reference tags to the end before
+      # its stable sort — see "Reference tags" in devdocs/DESIGN.md), so a
+      # method mixing an own `@param` with a referenced one would otherwise
+      # list its `**Params:**` bullets out of signature order.
+      #
+      # Dropping unmatched tags (typo'd, or stale after a signature change)
+      # is deliberate: unlike YARD's own default template, which renders
+      # every `@param` tag verbatim regardless of whether it names a real
+      # parameter, this format is meant to be a trustworthy call surface for
+      # an agent working from a single doc read rather than the source —
+      # rendering a tag for a parameter that doesn't exist risks an agent
+      # passing an argument that doesn't exist. See "`@param` naming a
+      # nonexistent parameter" under "Decisions" in devdocs/DESIGN.md.
       #
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @param param_tags [Array<::YARD::Tags::Tag>]
       # @param overload [::YARD::Tags::OverloadTag, nil] see {#param_names}
-      # @return [Array<::YARD::Tags::Tag>] +param_tags+, reordered
+      # @return [Array<::YARD::Tags::Tag>] +param_tags+, reordered, with any
+      #   tag naming a nonexistent parameter dropped
       #
       def ordered_param_tags(meth, param_tags, overload: nil)
         real_names = (overload || alias_original(meth) || meth).parameters.map do |name, _default|
           name.sub(/\A[*&]+/, "").chomp(":")
         end
-        param_tags.sort_by { |p| real_names.index(p.name.to_s) || real_names.length }
+        param_tags
+          .select { |p| real_names.include?(p.name.to_s) }
+          .sort_by { |p| real_names.index(p.name.to_s) }
       end
 
       ##

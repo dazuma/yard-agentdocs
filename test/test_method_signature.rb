@@ -488,6 +488,21 @@ describe ::YARD::AgentDocs::MethodSignature do
       assert_equal(["x", "y"], ordered.map(&:name))
     end
 
+    it "drops tags naming a nonexistent parameter, keeping real ones in signature order" do
+      holder = holder_for(<<~RUBY, "Foo")
+        class Foo
+          # @param to [Integer]
+          # @param seconds [Integer]
+          # @param millis [Integer]
+          def reset(to)
+          end
+        end
+      RUBY
+      meth = holder.object.meths(inherited: false).find { |m| m.name.to_s == "reset" }
+      ordered = holder.ordered_param_tags(meth, meth.tags(:param))
+      assert_equal(["to"], ordered.map(&:name))
+    end
+
     it "normalizes splat/double-splat sigils when matching tag names to real param names" do
       holder = holder_for(<<~RUBY, "Foo")
         class Foo

@@ -530,15 +530,14 @@ whether agents actually exercise those pointers.
       string that the attribute_entry template passes to `type_ref` — so
       it needs its own, separate fix. Flagged by the 2026-07-17 code
       review
-- [ ] (mech, pre-dogfood) `@param` naming a nonexistent parameter (typo'd, or stale
-      after a signature change — real gems have these) — today
-      `MethodSignature#ordered_param_tags` sorts any unmatched tag to the
-      end via a bare `sort_by`, which isn't stable in Ruby, so *two*
-      unmatched tags can reorder nondeterministically between runs — a
-      latent byte-for-byte fixture flake. The fixture should pin
-      "unmatched tags render last, in written order", backed by the
-      one-line `sort_by.with_index` stabilization. Flagged by the
-      2026-07-17 code review
+- [x] (design) `@param` naming a nonexistent parameter (typo'd, or stale after
+      a signature change — real gems have these) — settled on dropping the
+      tag entirely rather than rendering it (which would also have sorted
+      unmatched tags nondeterministically, since Ruby's `sort_by` isn't
+      stable); `Stopwatch#reset`'s stale `seconds`/`millis` tags exercise
+      it — see "`@param` naming a nonexistent parameter" under "Decisions".
+      Originally flagged (as a determinism bug, not yet this design
+      question) by the 2026-07-17 code review
 - [x] (design) `@option` (documenting keys of an options hash/kwargs) —
       `Geometry::Point#translate`'s existing `deltas` param; settled a
       separate `**Options (`deltas`):**` block, one per documented hash
@@ -3461,6 +3460,63 @@ loop and the single-signature case). Scoped to `@param` only: it's the only
 tag family with a canonical declaration order to align with (`@raise` and
 friends have no such order, and nothing here mixes own/ref tags for them)
 — not extended speculatively.
+
+### `@param` naming a nonexistent parameter: dropped, not rendered
+
+Settles the "`@param` naming a nonexistent parameter" checklist item under
+"YARD tags" (2026-07-17 review). A `@param` tag whose name doesn't match any
+of the method's (or overload's) real parameters — typo'd, or stale after a
+signature change, which real gems have — is now dropped from
+`MethodSignature#ordered_param_tags` entirely, rather than rendered.
+
+The original framing of this item, from the code review that flagged it, was
+narrower: `ordered_param_tags` sorted every unmatched tag to a shared
+tie-break key (`real_names.length`) via a bare `sort_by`, which Ruby doesn't
+guarantee stable, so two-or-more unmatched tags could silently reorder
+between runs — a latent byte-for-byte fixture flake. Investigating that
+determinism bug raised the actual design question: *should* an unmatched
+tag render at all?
+
+Checked YARD's own default HTML template first (`templates/default/tags/
+html/tag.erb` in the installed `yard` gem) rather than assuming: it renders
+every `@param` tag in raw docstring order with no cross-check against
+`object.parameters` at all — an unmatched name renders exactly like a
+matched one. So there's no YARD precedent to mirror either way; a human
+reader supplies the skepticism a generated doc can't.
+
+Decided to diverge from that (render-everything) default and drop unmatched
+tags, for reasons specific to this project's audience:
+
+- `ordered_param_tags` already diverges from YARD's docstring-order default
+  once, deliberately, to reorder tags into the method's *real* signature
+  order (see "Reference tags" above) — established that signature accuracy
+  beats docstring-verbatim fidelity when they conflict. An unmatched-name
+  tag is a stronger case for the same principle, not a weaker one: it isn't
+  merely out of order, it describes a parameter that doesn't exist at all.
+- This format exists so an agent can trust a method's `**Params:**` list as
+  its actual call surface from a single doc read, without cross-checking
+  the source. Rendering a tag for a nonexistent parameter risks an agent
+  passing an argument that isn't real, producing an `ArgumentError` — the
+  exact failure mode the format exists to prevent.
+- Distinguished from the "flag, don't drop" precedent set for `@api
+  private`/`@private` methods (see "Visibility policy" above): those flag
+  something *real* — a method that exists, with restricted visibility —
+  where showing it with a caveat is informative. An unmatched `@param` tag
+  describes something that isn't real; there's no accurate way to flag it
+  that isn't just a longer-winded way of saying "ignore this."
+- YARD itself already surfaces the mistake to the docstring's *author* at
+  parse time (`[warn]: @param tag has unknown parameter name: ...`); the
+  generated reference doc, read by an agent rather than the author, doesn't
+  need to re-surface it.
+
+Implementation: `real_names.include?(...)` filters `param_tags` before the
+existing `sort_by`, both scoped to `real_names.index(...)` (now never `nil`
+past the filter). This also fully resolves the original determinism
+complaint — nothing sorts on a shared tie-break key anymore, since unmatched
+tags never reach the sort. Exercised by `Stopwatch#reset`'s stale `seconds`/
+`millis` tags (kept in the docstring, dropped from the rendered
+`**Params:**`), simulating a `seconds`/`millis` pair collapsed into a single
+`to` argument without cleaning up the old tags.
 
 ### `attr_accessor`/`attr_writer` with doc comments: zero template changes; undocumented-attribute boilerplate stays as-is
 

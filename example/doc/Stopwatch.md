@@ -88,7 +88,7 @@ makes the same choice).
 
 - `Integer` — -1, 0, or 1
 
-* **Defined in:** `example/lib/stopwatch.rb:137`
+* **Defined in:** `example/lib/stopwatch.rb:144`
 
 ### #accrue
 
@@ -154,7 +154,7 @@ formatting API.
 
 - `String` — the assembled label
 
-* **Defined in:** `example/lib/stopwatch.rb:109`
+* **Defined in:** `example/lib/stopwatch.rb:116`
 
 ### #measure
 
@@ -177,7 +177,7 @@ elapsed time.
 
 - `Object` — the block's return value
 
-* **Defined in:** `example/lib/stopwatch.rb:85`
+* **Defined in:** `example/lib/stopwatch.rb:92`
 
 ### #raw_elapsed_s
 
@@ -195,7 +195,7 @@ part of the stable public API.
 
 - `String` — the elapsed time, in seconds, as a plain string
 
-* **Defined in:** `example/lib/stopwatch.rb:124`
+* **Defined in:** `example/lib/stopwatch.rb:131`
 
 ### #reset
 
@@ -217,7 +217,7 @@ Resets the elapsed time.
 
 - `Float` — the new elapsed time
 
-* **Defined in:** `example/lib/stopwatch.rb:72`
+* **Defined in:** `example/lib/stopwatch.rb:79`
 
 ### #restart
 
@@ -227,4 +227,4 @@ stopwatch.restart(to = DEFAULT_ELAPSED) → Float
 
 * **Alias for:** `#reset`
 
-* **Defined in:** `example/lib/stopwatch.rb:75`
+* **Defined in:** `example/lib/stopwatch.rb:82`

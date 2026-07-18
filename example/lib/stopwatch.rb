@@ -67,6 +67,13 @@ class Stopwatch
   # @param to [Float] the elapsed time to reset to; defaults to
   #   `DEFAULT_ELAPSED`, which returns the stopwatch to its just-created,
   #   zeroed state
+  # @param seconds [Float] stale: this method used to take a `seconds`/
+  #   `millis` pair, since collapsed into the single `to` argument, but
+  #   the old tags were never removed. Exercises a docstring that's fallen
+  #   out of sync with its signature — an unmatched-name tag like this one
+  #   should be dropped entirely rather than rendered, since it doesn't
+  #   correspond to any real parameter
+  # @param millis [Integer] stale; see `seconds`
   # @return [Float] the new elapsed time
   #
   def reset(to = DEFAULT_ELAPSED)
