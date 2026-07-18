@@ -42,6 +42,7 @@
 - [`Geometry::ParseError`](Geometry/ParseError.md) — Raised when a string can't be parsed as a point.
 - [`Geometry::Path`](Geometry/Path.md) — An ordered sequence of points.
 - [`Geometry::Point`](Geometry/Point.md) — A point in two-dimensional space.
+- [`Geometry::PointCloud`](Geometry/PointCloud.md) — A fixed collection of points.
 - [`Geometry::Polygon`](Geometry/Polygon.md) — A polygon: a shape with a fixed number of straight sides.
 - [`Geometry::Rectangle`](Geometry/Rectangle.md) — An axis-aligned rectangle, defined by its width and height.
 - [`Geometry::Rounding`](Geometry/Rounding.md) — Rounding helpers.

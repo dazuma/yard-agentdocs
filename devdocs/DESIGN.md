@@ -616,8 +616,12 @@ whether agents actually exercise those pointers.
 
 ### YARD directives (for dynamically-defined methods/attrs)
 
-- [ ] (mech, pre-dogfood) `@!attribute` (documenting an attribute defined through
-      metaprogramming rather than `attr_*`)
+- [x] (mech, pre-dogfood) `@!attribute` (documenting an attribute defined through
+      metaprogramming rather than `attr_*`) — `Geometry::PointCloud#size`
+      (`define_method`-defined, no `attr_reader`/`@attr` tags). Confirmed
+      purely mechanical, zero template changes — see "`@!attribute`: zero
+      template changes; same indentation subtlety as `@!method`/`@!macro`"
+      under "Decisions"
 - [x] (mech, pre-dogfood) `@!method` (documenting a method defined via `define_method` in
       a loop, or via a class-level DSL macro — common in real-world gems) —
       `Geometry::CompassRose` (loop variant, four bare `@!method` directives
@@ -3755,6 +3759,35 @@ summary doesn't go through `markdownify`" checklist item live — resolved
 correctly on `Geometry.md`'s nested summary, literal unresolved braces on
 `index.md`. Reworded to keep this fixture scoped to `@!method` only; the
 bug itself remains open for that item's own fixture.
+
+### `@!attribute`: zero template changes; same indentation subtlety as `@!method`/`@!macro`
+
+Settles the `@!attribute` checklist item under "YARD directives" (`mech`,
+`pre-dogfood`). `Geometry::PointCloud#size` is defined via a bare
+`define_method(:size) { @points.size }` — no `attr_reader`, no
+`@attr`/`@attr_reader`/`@attr_writer` tags (contrast `Waypoint`'s
+manual-pair fixture under the "`@attr`/`@attr_reader`/`@attr_writer` tags
+on a manual reader/writer pair" decision, where the tags decorate a real
+`def`) — documented via `@!attribute [r] size`.
+
+**Zero template changes were needed**: `AttributeDirective#create_attribute_data`
+registers the synthesized reader into `object.namespace.attributes[scope]`,
+the exact same structure `attr_reader`/`attr_accessor`, `Struct.new`/
+`Data.define`, and `class << self` attributes all populate — already
+rendered correctly end to end since the "Class-level attributes" fix made
+`MemberListing#attribute_objects` correct for both scopes. `#size` renders
+with the same `**Type:**`/`**Read-only.**`/`**Defined in:**` shape as any
+other read-only attribute, nothing agentdocs-specific to change.
+
+**Same indentation subtlety as `@!method`/`@!macro`, rediscovered here:**
+descriptive text has to be indented *under* the `@!attribute [r] size`
+line to become the attribute's own docstring. An initial draft put it as a
+sibling paragraph immediately *above* the directive (styled like an
+ordinary doc comment); that text attaches to nothing — `#size`'s Member
+Summary line and full entry both rendered with an empty description until
+the text was re-indented as part of the directive's own block. Three for
+three now across `@!macro`/`@!method`/`@!attribute`; worth remembering as
+a single shared rule rather than a per-directive quirk.
 
 ## Implementation
 
