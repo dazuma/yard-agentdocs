@@ -9,9 +9,11 @@ module YARD
     # `point.distance_to(other) → Float` or, for a binary operator,
     # `point + other → Point`.
     #
-    # Requires the including template to provide an `object` method
-    # returning the `YARD::CodeObjects::NamespaceObject` currently being
-    # rendered, as `YARD::Templates::Template` already does.
+    # Every method here derives everything it needs from its own +meth+
+    # argument (`meth.namespace`, where a receiver/owner name is needed),
+    # not from the including template's own `object` — so, unlike most of
+    # this gem's other shared modules, this one has no hidden dependency on
+    # the host template's state at all.
     #
     module MethodSignature
       ##
@@ -77,11 +79,12 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
-      # @return [String] the object's constant name for a class-level
-      #   member, or a lowercased receiver name for an instance-level one
+      # @return [String] +meth+'s owning namespace's constant name for a
+      #   class-level member, or a lowercased receiver name for an
+      #   instance-level one
       #
       def receiver_name(meth)
-        class_level?(meth) ? object.name.to_s : object.name.to_s.downcase
+        class_level?(meth) ? meth.namespace.name.to_s : meth.namespace.name.to_s.downcase
       end
 
       ##
@@ -200,7 +203,7 @@ module YARD
       #
       def overridden_method(meth)
         return nil unless meth.docstring.empty? && meth.tags.empty?
-        ancestor = object.is_a?(::YARD::CodeObjects::ClassObject) ? object.superclass : nil
+        ancestor = meth.namespace.is_a?(::YARD::CodeObjects::ClassObject) ? meth.namespace.superclass : nil
         while ancestor.is_a?(::YARD::CodeObjects::ClassObject)
           found = ancestor.meths(scope: meth.scope, inherited: false, included: false).find { |m| m.name == meth.name }
           return found if found && !found.docstring.empty?
@@ -236,14 +239,15 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
-      # @return [String, nil] the object's own name for the synthetic `.new`
-      #   entry (constructors have no real `@return` type of their own), or
-      #   every type from every declared `@return` tag, comma-joined (a
-      #   single tag's own union type and multiple `@return` tags render
-      #   identically here — both are just "more than one type token")
+      # @return [String, nil] +meth+'s owning class's own name for the
+      #   synthetic `.new` entry (constructors have no real `@return` type
+      #   of their own), or every type from every declared `@return` tag,
+      #   comma-joined (a single tag's own union type and multiple
+      #   `@return` tags render identically here — both are just "more than
+      #   one type token")
       #
       def signature_return_type(meth)
-        return object.name.to_s if meth.constructor?
+        return meth.namespace.name.to_s if meth.constructor?
         types = meth.tags(:return).flat_map { |tag| tag.types || [] }
         types.empty? ? nil : types.join(", ")
       end

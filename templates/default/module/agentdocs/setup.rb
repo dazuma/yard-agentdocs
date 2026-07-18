@@ -136,7 +136,7 @@ end
 def option_line(tag)
   pair = tag.pair
   default = pair.defaults&.first
-  type = type_ref(pair.types && pair.types.first)
+  type = type_ref_first(pair)
   type_part = default ? "#{type}, default `#{default}`" : type
   "- `#{pair.name}` (#{type_part})#{summary_suffix(pair.text)}"
 end

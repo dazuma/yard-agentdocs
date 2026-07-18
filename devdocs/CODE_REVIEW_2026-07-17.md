@@ -206,11 +206,29 @@ first).
       would silently not resolve — fine for current assertions, but a
       trap for future tests; consider a builder variant returning both
       holder and object from one registry.)*
-- [ ] **Package 3** — Findings 4 + 9 + 10 + 11: scanner dedup,
+- [x] **Package 3** — Findings 4 + 9 + 10 + 11: scanner dedup,
       `method_entry.erb` restructuring, `type_ref_for(tag)` helper,
-      `summary_suffix` rename. *(Independent of Packages 1–2.)*
-- [ ] **Package 4** — Finding 3: explicit-vs-implicit state cleanup in
-      `MethodSignature`; small, can ride along with a later package.
+      `summary_suffix` rename. *(Implemented by a Sonnet 5 subagent
+      2026-07-17, reviewed and verified by Fable; uncommitted, awaiting
+      human review. Scanner lives as private
+      `CrossReferencing#transform_outside_code_spans`; the tag helper is
+      `CrossReferencing#type_ref_first` (first-type-only behavior
+      preserved, Finding 12 stays gated — the helper's docstring says so);
+      shared prose block extracted to
+      `templates/default/module/agentdocs/method_prose.erb` with `primary`
+      hoisted above both branches; fulldoc rename to
+      `index_summary_suffix`. Also closed Package 2's nit (a): `require
+      "erb"` added to erb_with_trim_mode.rb. Fixture output byte-identical
+      throughout.)*
+- [x] **Package 4** — Finding 3: explicit-vs-implicit state cleanup in
+      `MethodSignature`. *(Same subagent session as Package 3. Took option
+      (a): `receiver_name`/`overridden_method`/`signature_return_type` now
+      derive from `meth.namespace`; `MethodSignature` no longer reads the
+      host's `object` at all and its docstring says so.
+      `AuxiliaryTags`' `object` params renamed to `obj`. New residual nit,
+      deferred: `VisibilityInfo` still uses the same shadowing
+      `object`-parameter pattern `AuxiliaryTags` just dropped — rename for
+      consistency in a later pass.)*
 - [ ] Findings 12 + 13: add to DESIGN.md checklist (union types in
       `@param`/`@option`/`@yieldparam`/`@raise` and overload arrows;
       `ordered_param_tags` stability fixture).

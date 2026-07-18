@@ -16,6 +16,12 @@ module YARD
     # returning the `YARD::CodeObjects::Base` currently being rendered, as
     # `YARD::Templates::Template` already does.
     #
+    # Also home to {#transform_outside_code_spans}, a private
+    # backtick-code-span-skipping scanner with no cross-reference logic of
+    # its own — it lives here (rather than in a third module) because
+    # {#resolve_references} is one of its two callers, and {Markdownify},
+    # its other caller, already requires this module to be mixed in.
+    #
     module CrossReferencing
       ##
       # A single token within a YARD type string: a namespace path
@@ -71,6 +77,25 @@ module YARD
       end
 
       ##
+      # {#type_ref} for a tag's *first* declared type only — the repeated
+      # `tag.types && tag.types.first` dig, in one place. Deliberately
+      # first-type-only, matching every current call site's existing
+      # behavior: a tag with more than one type (`@param x [String, Symbol]`)
+      # still only renders its first here. That's a known gap (see the
+      # "Multiple return types" decision in devdocs/DESIGN.md and the
+      # tracked follow-up for `@param`/`@option`/`@yieldparam`/`@raise`), not
+      # something to silently "fix" by joining every type — that change goes
+      # through the TDD coverage loop with its own fixture, not this helper.
+      #
+      # @param tag [::YARD::Tags::Tag, nil]
+      # @return [String] markdown, possibly empty (for a `nil` tag, or one
+      #   with no declared types)
+      #
+      def type_ref_first(tag)
+        type_ref(tag && tag.types && tag.types.first)
+      end
+
+      ##
       # Resolves a `@see` tag to either a plain backtick (unresolved, or
       # pointing back into the object currently being rendered) or a
       # markdown link to the target's own file.
@@ -114,19 +139,9 @@ module YARD
       #   as Markdown links
       #
       def resolve_references(text)
-        scanner = ::StringScanner.new(text)
-        result = +""
-        until scanner.eos?
-          if (run = scanner.scan(/`+/))
-            closing = /(?<!`)#{::Regexp.quote(run)}(?!`)/
-            span = scanner.scan_until(closing)
-            result << run << (span || scanner.rest)
-            scanner.terminate unless span
-          else
-            result << scanner.scan(/[^`]+/).gsub(REFERENCE) { render_reference(::Regexp.last_match) }
-          end
+        transform_outside_code_spans(text) do |segment|
+          segment.gsub(REFERENCE) { render_reference(::Regexp.last_match) }
         end
-        result
       end
 
       ##
@@ -143,6 +158,43 @@ module YARD
       end
 
       private
+
+      # Scans +text+ for backtick code spans (of any length, so this also
+      # covers a fenced ` ``` ` block) and yields every segment *outside*
+      # one of those spans to the block for rewriting, passing each code
+      # span itself through untouched. Shared by {#resolve_references}
+      # (which must never rewrite a `{...}` reference sitting inside a code
+      # span) and {Markdownify#demote_headings} (same requirement, for a
+      # `#` heading marker) — both need the same nontrivial
+      # backtick-run-skipping scan, so it lives here once; {Markdownify}'s
+      # own docstring notes it requires {CrossReferencing} to be mixed in
+      # for exactly this reason.
+      #
+      # @param text [String]
+      # @yieldparam segment [String] a run of +text+ containing no backtick
+      #   code span
+      # @yieldreturn [String] the segment, rewritten
+      # @return [String] +text+ with every non-code-span segment replaced by
+      #   the block's return value, and every code span left exactly as-is
+      #
+      def transform_outside_code_spans(text)
+        scanner = ::StringScanner.new(text)
+        result = +""
+        until scanner.eos?
+          if (run = scanner.scan(/`+/))
+            # A closing run of the same backtick length, not itself
+            # adjacent to another backtick (so ``` doesn't prematurely
+            # close on the first two backticks of a four-backtick run).
+            closing = /(?<!`)#{::Regexp.quote(run)}(?!`)/
+            span = scanner.scan_until(closing)
+            result << run << (span || scanner.rest)
+            scanner.terminate unless span
+          else
+            result << yield(scanner.scan(/[^`]+/))
+          end
+        end
+        result
+      end
 
       # Renders one REFERENCE match: the literal text, unchanged, for an
       # escape or an unresolved name; otherwise a resolved link (or, for a

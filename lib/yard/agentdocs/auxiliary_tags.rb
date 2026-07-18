@@ -49,17 +49,17 @@ module YARD
       # `@todo`/`@since`/`@version`/`@author`, rendered separately, after the
       # prose.
       #
-      # @param object [::YARD::CodeObjects::Base]
+      # @param obj [::YARD::CodeObjects::Base]
       # @return [::Array<String>] each already fully formatted, e.g.
       #   `"- **Deprecated.** Use `Foo#bar` instead."`
       #
-      def annotation_lines(object)
-        annotation = private_api_annotation(object)
+      def annotation_lines(obj)
+        annotation = private_api_annotation(obj)
         [
           annotation && "* **#{annotation}**",
-          deprecated_line(object),
-          abstract_line(object),
-          note_line(object),
+          deprecated_line(obj),
+          abstract_line(obj),
+          note_line(obj),
         ].compact
       end
 
@@ -70,16 +70,16 @@ module YARD
       # {#annotation_lines} for the higher-priority tags rendered before the
       # prose instead.
       #
-      # @param object [::YARD::CodeObjects::Base]
+      # @param obj [::YARD::CodeObjects::Base]
       # @return [::Array<String>] each already fully formatted, e.g.
       #   `"- **Since:** 1.0.0"`
       #
-      def trailing_annotation_lines(object)
+      def trailing_annotation_lines(obj)
         [
-          todo_line(object),
-          since_line(object),
-          version_line(object),
-          author_line(object),
+          todo_line(obj),
+          since_line(obj),
+          version_line(obj),
+          author_line(obj),
         ].compact
       end
 
@@ -87,48 +87,48 @@ module YARD
       # Short annotations for a Member Summary bullet, same order/subset as
       # {#annotation_lines}.
       #
-      # @param object [::YARD::CodeObjects::Base]
+      # @param obj [::YARD::CodeObjects::Base]
       # @return [::Array<String>]
       #
-      def annotation_lines_short(object)
+      def annotation_lines_short(obj)
         [
-          private_api_annotation_short(object),
-          ("deprecated" if object.has_tag?(:deprecated)),
-          ("abstract" if object.has_tag?(:abstract)),
+          private_api_annotation_short(obj),
+          ("deprecated" if obj.has_tag?(:deprecated)),
+          ("abstract" if obj.has_tag?(:abstract)),
         ].compact
       end
 
       ##
-      # @param object [::YARD::CodeObjects::Base]
+      # @param obj [::YARD::CodeObjects::Base]
       # @return [String, nil] `"- **Since:** 1.0.0"`, or `nil` if untagged
       #
-      def since_line(object)
-        tag = object.tag(:since)
+      def since_line(obj)
+        tag = obj.tag(:since)
         return nil unless tag
 
         "* **Since:** #{indent_continuation(markdownify(tag.text))}"
       end
 
       ##
-      # @param object [::YARD::CodeObjects::Base]
+      # @param obj [::YARD::CodeObjects::Base]
       # @return [String, nil] `"- **Version:** 1.2.0"`, or `nil` if untagged
       #
-      def version_line(object)
-        tag = object.tag(:version)
+      def version_line(obj)
+        tag = obj.tag(:version)
         return nil unless tag
 
         "* **Version:** #{indent_continuation(markdownify(tag.text))}"
       end
 
       ##
-      # @param object [::YARD::CodeObjects::Base]
+      # @param obj [::YARD::CodeObjects::Base]
       # @return [String, nil] `"- **Author:** Jane Doe"`, comma-joining every
       #   `@author` tag present (same "one label, join the values" policy
       #   this template's own `defined_in_line` helper already uses for
       #   multiple file paths), or `nil` if untagged
       #
-      def author_line(object)
-        tags = object.tags(:author)
+      def author_line(obj)
+        tags = obj.tags(:author)
         return nil if tags.empty?
 
         text = tags.map { |tag| markdownify(tag.text) }.join(", ")
@@ -137,31 +137,31 @@ module YARD
 
       private
 
-      def deprecated_line(object)
-        return nil unless object.has_tag?(:deprecated)
+      def deprecated_line(obj)
+        return nil unless obj.has_tag?(:deprecated)
 
-        text = markdownify(object.tag(:deprecated).text)
+        text = markdownify(obj.tag(:deprecated).text)
         text.empty? ? "* **Deprecated.**" : "* **Deprecated.** #{indent_continuation(text)}"
       end
 
-      def note_line(object)
-        return nil unless object.has_tag?(:note)
+      def note_line(obj)
+        return nil unless obj.has_tag?(:note)
 
-        text = markdownify(object.tag(:note).text)
+        text = markdownify(obj.tag(:note).text)
         text.empty? ? "* **Note:**" : "* **Note:** #{indent_continuation(text)}"
       end
 
-      def abstract_line(object)
-        return nil unless object.has_tag?(:abstract)
+      def abstract_line(obj)
+        return nil unless obj.has_tag?(:abstract)
 
-        text = markdownify(object.tag(:abstract).text)
+        text = markdownify(obj.tag(:abstract).text)
         text.empty? ? "* **Abstract.**" : "* **Abstract.** #{indent_continuation(text)}"
       end
 
-      def todo_line(object)
-        return nil unless object.has_tag?(:todo)
+      def todo_line(obj)
+        return nil unless obj.has_tag?(:todo)
 
-        text = markdownify(object.tag(:todo).text)
+        text = markdownify(obj.tag(:todo).text)
         text.empty? ? "* **Todo:**" : "* **Todo:** #{indent_continuation(text)}"
       end
     end

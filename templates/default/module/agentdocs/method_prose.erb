@@ -1,0 +1,14 @@
+<%- lines = annotation_lines(@method) + [also_known_as_line(@method), overrides_line(@method)].compact -%>
+<%- unless lines.empty? -%>
+
+<%= lines.join("\n") %>
+<%- end -%>
+<%- unless @method.docstring.empty? -%>
+
+<%= markdownify(@method.docstring) %>
+<%- end -%>
+<%- examples = examples_block(@method) -%>
+<%- if examples -%>
+
+<%= examples %>
+<%- end -%>

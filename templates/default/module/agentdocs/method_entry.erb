@@ -19,25 +19,27 @@
 
 <%- end -%>
 <%- overloads = @method.tags(:overload) -%>
+<%-
+  # +primary+ is @method's sole @overload tag when there are 0 or 1 (nil for
+  # 0, meaning "no overload tag at all — fall back to @method's own real
+  # params/return"); nil when there are 2+, since each overload then
+  # documents its own params/return inline instead of collapsing to one
+  # shared signature. Shared by both branches below and, further down, by
+  # the Returns section in the tail, which re-tests +overloads.size < 2+ to
+  # know whether +primary+ (as opposed to per-overload Returns already
+  # rendered above) applies.
+-%>
+<%- primary = overloads.size < 2 ? overloads.first : nil -%>
 <%- if overloads.size >= 2 -%>
 ```ruby
 <%- overloads.each do |ov| -%>
 <%= signature_text(@method, overload: ov) %>
 <%- end -%>
 ```
-<%- lines = annotation_lines(@method) + [also_known_as_line(@method), overrides_line(@method)].compact -%>
-<%- unless lines.empty? -%>
+<%- prose = erb(:method_prose).strip -%>
+<%- unless prose.empty? -%>
 
-<%= lines.join("\n") %>
-<%- end -%>
-<%- unless @method.docstring.empty? -%>
-
-<%= markdownify(@method.docstring) %>
-<%- end -%>
-<%- examples = examples_block(@method) -%>
-<%- if examples -%>
-
-<%= examples %>
+<%= prose %>
 <%- end -%>
 <%- overloads.each do |ov| -%>
 
@@ -48,7 +50,7 @@
 **Params:**
 
 <%- ov_param_tags.each do |p| -%>
-- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
+- `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
 <%- ov_return = ov.tag(:return) -%>
@@ -56,27 +58,17 @@
 
 **Returns:**
 
-- <%= dash_join(type_ref(ov_return.types && ov_return.types.first), ov_return.text) %>
+- <%= dash_join(type_ref_first(ov_return), ov_return.text) %>
 <%- end -%>
 <%- end -%>
 <%- else -%>
-<%- primary = overloads.first -%>
 ```ruby
 <%= signature_text(@method, overload: primary) %>
 ```
-<%- lines = annotation_lines(@method) + [also_known_as_line(@method), overrides_line(@method)].compact -%>
-<%- unless lines.empty? -%>
+<%- prose = erb(:method_prose).strip -%>
+<%- unless prose.empty? -%>
 
-<%= lines.join("\n") %>
-<%- end -%>
-<%- unless @method.docstring.empty? -%>
-
-<%= markdownify(@method.docstring) %>
-<%- end -%>
-<%- examples = examples_block(@method) -%>
-<%- if examples -%>
-
-<%= examples %>
+<%= prose %>
 <%- end -%>
 <%- param_tags = ordered_param_tags(@method, primary ? primary.tags(:param) : @method.tags(:param), overload: primary) -%>
 <%- unless param_tags.empty? -%>
@@ -84,7 +76,7 @@
 **Params:**
 
 <%- param_tags.each do |p| -%>
-- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
+- `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- option_tags = @method.tags(:option) -%>
 <%- param_tags.each do |p| -%>
@@ -112,7 +104,7 @@
 **Yield Params:**
 
 <%- @method.tags(:yieldparam).each do |p| -%>
-- `<%= p.name %>` (<%= type_ref(p.types && p.types.first) %>)<%= summary_suffix(p.text) %>
+- `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
 <%- yieldreturn_tags = @method.tags(:yieldreturn) -%>
@@ -124,8 +116,12 @@
 - <%= dash_join(type_ref(yrt.types && yrt.types.join(", ")), yrt.text) %>
 <%- end -%>
 <%- end -%>
-<%- if overloads.size < 2 -%>
-<%- return_tags = primary ? primary.tags(:return) : method_return_tags(@method) -%>
+<%-
+  # No top-level Returns section when overloads.size >= 2 (+primary+ is nil
+  # then): each overload already rendered its own Returns above, so there's
+  # nothing left for @method's own tags to contribute here.
+-%>
+<%- return_tags = overloads.size < 2 ? (primary ? primary.tags(:return) : method_return_tags(@method)) : [] -%>
 <%- unless return_tags.empty? -%>
 
 **Returns:**
@@ -134,13 +130,12 @@
 - <%= dash_join(type_ref(rt.types && rt.types.join(", ")), rt.text) %>
 <%- end -%>
 <%- end -%>
-<%- end -%>
 <%- unless @method.tags(:raise).empty? -%>
 
 **Raises:**
 
 <%- @method.tags(:raise).each do |r| -%>
-- <%= dash_join(type_ref(r.types && r.types.first), r.text) %>
+- <%= dash_join(type_ref_first(r), r.text) %>
 <%- end -%>
 <%- end -%>
 <%- unless @method.tags(:see).empty? -%>

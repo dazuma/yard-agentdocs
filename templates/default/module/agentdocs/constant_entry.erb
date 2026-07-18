@@ -1,6 +1,6 @@
 ### <%= @constant.name %>
 
-- **Type:** <%= type_ref(@constant.tag(:return) && @constant.tag(:return).types && @constant.tag(:return).types.first) %>
+- **Type:** <%= type_ref_first(@constant.tag(:return)) %>
 <%- if @constant.value.include?("\n") -%>
 
 **Value:**

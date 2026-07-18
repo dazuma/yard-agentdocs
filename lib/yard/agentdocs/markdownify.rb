@@ -2,7 +2,6 @@
 
 require "rdoc"
 require "rdoc/markup/to_markdown"
-require "strscan"
 
 module YARD
   module AgentDocs
@@ -62,23 +61,11 @@ module YARD
       # literal Markdown `#`/`##`/`###`) can never be mistaken for one of
       # this format's own structural headings — see "Prose-embedded
       # headings" in `devdocs/DESIGN.md`. Skips backtick-delimited spans (of
-      # any length, so this also covers a fenced ` ``` ` block) the same way
-      # {CrossReferencing#resolve_references} does, so a `#` comment line
-      # inside a fenced code sample is left alone.
+      # any length, so this also covers a fenced ` ``` ` block) via
+      # {CrossReferencing#transform_outside_code_spans}, so a `#` comment
+      # line inside a fenced code sample is left alone.
       def demote_headings(text)
-        scanner = ::StringScanner.new(text)
-        result = +""
-        until scanner.eos?
-          if (run = scanner.scan(/`+/))
-            closing = /(?<!`)#{::Regexp.quote(run)}(?!`)/
-            span = scanner.scan_until(closing)
-            result << run << (span || scanner.rest)
-            scanner.terminate unless span
-          else
-            result << scanner.scan(/[^`]+/).gsub(HEADING_MARKER, "####")
-          end
-        end
-        result
+        transform_outside_code_spans(text) { |segment| segment.gsub(HEADING_MARKER, "####") }
       end
     end
   end

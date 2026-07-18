@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 require "helper"
-# YARD only requires "erb" (in templates/template.rb) once
-# `YARD::Templates::Template` is actually autoloaded — true in a real
-# template-rendering run, but not guaranteed for this file alone.
-require "erb"
 
 describe ::YARD::AgentDocs::ErbWithTrimMode do
   let(:holder) { agentdocs_holder(::YARD::AgentDocs::ErbWithTrimMode) }

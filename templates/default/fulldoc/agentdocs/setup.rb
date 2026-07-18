@@ -21,8 +21,12 @@ end
 # No " — summary" suffix at all when the object has no doc comment — same
 # "absence means empty" convention `module/agentdocs`'s summary lines use
 # (see devdocs/DESIGN.md's "Intentionally undocumented objects" decision),
-# rather than a dangling trailing dash.
-def summary_suffix(object)
+# rather than a dangling trailing dash. Named distinctly from
+# `module/agentdocs`'s `TextLayout#summary_suffix(text)` (a same-named,
+# different-signature method in a sibling template) — this one takes the
+# raw code object and splices its summary unconverted, without
+# `markdownify`, unlike that one.
+def index_summary_suffix(object)
   summary = object.docstring.summary
   summary.empty? ? "" : " — #{summary}"
 end

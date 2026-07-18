@@ -86,6 +86,38 @@ describe ::YARD::AgentDocs::CrossReferencing do
     end
   end
 
+  describe "#type_ref_first" do
+    it "returns an empty string for a nil tag" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal("", holder.type_ref_first(nil))
+    end
+
+    it "returns an empty string for a tag with no declared types" do
+      holder = holder_for(<<~RUBY, "Foo")
+        class Foo
+          # @return
+          def bar; end
+        end
+      RUBY
+      tag = holder.object.meths.find { |m| m.name == :bar }.tag(:return)
+      assert_equal("", holder.type_ref_first(tag))
+    end
+
+    it "renders only the first type of a tag declaring multiple types" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar
+            # @return [Baz, String]
+            def qux; end
+          end
+        end
+      RUBY
+      tag = holder.object.meths.find { |m| m.name == :qux }.tag(:return)
+      assert_equal("[`Baz`](Baz.md)", holder.type_ref_first(tag))
+    end
+  end
+
   describe "#see_ref" do
     it "renders an unresolved @see target as a plain backtick" do
       holder = holder_for(<<~RUBY, "Foo")
