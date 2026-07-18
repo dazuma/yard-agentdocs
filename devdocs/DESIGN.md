@@ -143,7 +143,8 @@ unchecked rather than being marked as done.
 
 Each unchecked item carries a **(design)**/**(mech)**/**(stretch)** marker —
 see "Prioritization and roadmap" just below for what they mean and how to
-pick the next item.
+pick the next item. Some also carry a **pre-dogfood** annotation, defined in
+the same section.
 
 ### Prioritization and roadmap
 
@@ -163,13 +164,26 @@ much design latitude it involves:
   stop and review with the human rather than improvising a format.
 - **(stretch)** — don't tackle unless evidence from real usage demands it.
 
+Additionally, a **pre-dogfood** annotation (alongside the priority marker)
+means the item was judged (2026-07-17 review) worth completing *before* the
+dogfood milestone: the gap sits on a pattern real gems certainly use, and
+today's behavior is a silent drop, a pervasive rendering artifact, or —
+worst, for the `@param`-mismatch item — nondeterministic output, so leaving
+it open would pollute the dogfood diff-read with known noise (or, for the
+nondeterminism, undermine its reproducibility). As the dogfood milestone
+approaches, prefer pre-dogfood items over unannotated ones of the same
+marker; the `@param`-mismatch item comes first among them since it protects
+the reproducibility of every run after it.
+
 Suggested ordering: prefer (design) items early — each one settled reduces
 the risk of late format churn invalidating already-approved fixtures — and
 use (mech) items as filler between them. Every item, regardless of marker,
 still goes through the human-gated workflow above; the marker only
 calibrates how much iteration to expect.
 
-**Dogfood milestone:** once the checklist is substantially covered, run the
+**Dogfood milestone:** once the checklist is substantially covered — in
+particular, once the **pre-dogfood**-annotated items above are done (or
+consciously waived) — run the
 template against a real, mid-size gem (YARD itself is a fitting candidate)
 and diff-read the output. The hand-written example drives format decisions
 well, but it will systematically miss what real docstrings do — markup
@@ -387,7 +401,7 @@ whether agents actually exercise those pointers.
       its own comment" under "Decisions"
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
-- [ ] (mech) Class methods defined via `class << self` — should render
+- [ ] (mech, pre-dogfood) Class methods defined via `class << self` — should render
       identically to `def self.foo`; also cover *attributes* defined on the
       singleton (`class << self; attr_reader :config; end`, the standard
       module-level configuration pattern), which exercise `AttributeInfo`
@@ -434,14 +448,14 @@ whether agents actually exercise those pointers.
       unlike Ruby-scope privacy, these render but are flagged (`**Private
       API.**` full-entry line, `(private API)` Member Summary suffix) —
       see "Visibility policy" under "Decisions"
-- [ ] (mech) `@api` with non-private values (`@api public`, `@api
+- [ ] (mech, pre-dogfood) `@api` with non-private values (`@api public`, `@api
       internal`) — `VisibilityInfo` only special-cases `text == "private"`,
       so any other value vanishes entirely today; and `@api` is one of
       YARD's two transitive tags (see the `@since` discussion under
       "Splitting the flag block" in "Decisions"), so a class-level tag
       covers every method. Decide render-vs-drop. Flagged by the July 2026
       coverage review
-- [ ] (mech) Class-level `@private` (or `@api private`) on a class/module —
+- [ ] (mech, pre-dogfood) Class-level `@private` (or `@api private`) on a class/module —
       tag-based privacy was settled and exercised on methods only; whether
       a `@private`-tagged class gets a file, gets flagged on its own page,
       and gets flagged (or filtered) in `index.md` is unverified. Escalate
@@ -462,7 +476,7 @@ whether agents actually exercise those pointers.
       the tag/method merge surfaced a real quirk — see "`@attr`/
       `@attr_reader`/`@attr_writer` tags on a manual reader/writer pair"
       under "Decisions"
-- [ ] (design) Class-level attributes (`class << self` +
+- [ ] (design, pre-dogfood) Class-level attributes (`class << self` +
       `attr_accessor`, the idiomatic gem-configuration pattern) —
       `MemberListing#attribute_objects` reads only
       `attributes[:instance]`, so a class-level attribute is silently
@@ -501,7 +515,7 @@ whether agents actually exercise those pointers.
       typing itself not exercised, but the tag is otherwise thorough
 - [x] `@return` (including `void` and multi-type unions) — `void`/unions not
       exercised, but the tag is otherwise thorough
-- [ ] (mech) Union types on the remaining first-type-only tag sites —
+- [ ] (mech, pre-dogfood) Union types on the remaining first-type-only tag sites —
       `@param x [String, Symbol]`, `@option`, `@yieldparam`, `@raise
       [KeyError, IndexError]`, a 2+-`@overload` method's signature arrow
       (`MethodSignature#signature_return_type_for`), and the attribute
@@ -516,7 +530,7 @@ whether agents actually exercise those pointers.
       string that the attribute_entry template passes to `type_ref` — so
       it needs its own, separate fix. Flagged by the 2026-07-17 code
       review
-- [ ] (mech) `@param` naming a nonexistent parameter (typo'd, or stale
+- [ ] (mech, pre-dogfood) `@param` naming a nonexistent parameter (typo'd, or stale
       after a signature change — real gems have these) — today
       `MethodSignature#ordered_param_tags` sorts any unmatched tag to the
       end via a bare `sort_by`, which isn't stable in Ruby, so *two*
@@ -596,13 +610,13 @@ whether agents actually exercise those pointers.
 
 ### YARD directives (for dynamically-defined methods/attrs)
 
-- [ ] (mech) `@!attribute` (documenting an attribute defined through
+- [ ] (mech, pre-dogfood) `@!attribute` (documenting an attribute defined through
       metaprogramming rather than `attr_*`)
-- [ ] (mech) `@!method` (documenting a method defined via `define_method` in
+- [ ] (mech, pre-dogfood) `@!method` (documenting a method defined via `define_method` in
       a loop, or via a class-level DSL macro — common in real-world gems)
 - [ ] (stretch) `@!group` / `@!endgroup` (method grouping) — only include if
       we decide the output format should reflect YARD groups
-- [ ] (design) `@!macro` — attach-mode macros on class-level DSL methods
+- [ ] (design, pre-dogfood) `@!macro` — attach-mode macros on class-level DSL methods
       are the workhorse of DSL-heavy and generated codebases, so the
       dogfood run will hit them. YARD expands macros at parse time, so
       rendering *may* be free — probe rather than assume. Flagged by the
@@ -690,7 +704,7 @@ whether agents actually exercise those pointers.
       where `#tag` gets its normal full entry) — the existing mixin
       content-strategy decision already covered this, this item just
       verified nothing about the module-page side was left undecided
-- [ ] (mech) Graceful degradation for the inline forms scoped out of the
+- [ ] (mech, pre-dogfood) Graceful degradation for the inline forms scoped out of the
       inline-reference decision — `{file:...}`, `{include:...}`,
       `{render:...}`, bare URLs: full support was deliberately rejected
       (see "Inline cross-references in prose" under "Decisions"), but
@@ -740,7 +754,7 @@ whether agents actually exercise those pointers.
       the July 2026 coverage review's biggest *content* (vs. rendering)
       gap. Interacts with the navigation-preamble item above — both
       compete for `index.md` real estate
-- [ ] (mech) `index.md`'s per-entry summary doesn't go through
+- [ ] (mech, pre-dogfood) `index.md`'s per-entry summary doesn't go through
       `markdownify` or inline-reference resolution — `fulldoc/agentdocs/
       setup.rb`'s `index_summary_suffix(object)` splices
       `object.docstring.summary` raw, so a `{Name}` reference or RDoc
