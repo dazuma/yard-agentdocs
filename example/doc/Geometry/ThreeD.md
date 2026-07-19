@@ -6,4 +6,4 @@
 
 **Nested Classes & Modules**
 
-- [`Point`](ThreeD/Point.md) — A point in three-dimensional space.
+- [`Point`](ThreeD/Point.md) — A point in three-dimensional space, analogous to [`Geometry::Point`](Point.md).

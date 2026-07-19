@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
+include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
+include ::YARD::AgentDocs::Markdownify
+include ::YARD::AgentDocs::TextLayout
 
 def init
   options.serializer.extension = "md" if options.serializer
@@ -18,20 +21,28 @@ def indexed_object_path(object)
   "#{object.path.split('::').join('/')}.md"
 end
 
-# No " — summary" suffix at all when the object has no doc comment — same
-# "absence means empty" convention `module/agentdocs`'s summary lines use
-# (see devdocs/DESIGN.md's "Intentionally undocumented objects" decision),
-# rather than a dangling trailing dash. Named distinctly from
-# `module/agentdocs`'s `TextLayout#summary_suffix(text)` (a same-named,
-# different-signature method in a sibling template) — this one takes the
-# raw code object and splices its summary unconverted, without
-# `markdownify`, unlike that one.
+# " — summary" suffix for one index row, run through the same
+# `TextLayout#summary_suffix`/`Markdownify#markdownify` pipeline
+# `module/agentdocs`'s `nested_summary_line` uses (dialect conversion,
+# heading demotion, inline `{Name}` reference resolution; still "absence
+# means empty" — no suffix at all when the object has no doc comment). Sets
+# {#object} to +object+ first so `summary_suffix`'s cross-reference
+# resolution/self-reference checks use *that row's* namespace as context —
+# but {#current_dir} is overridden below to stay pinned at the doc root
+# regardless, since every row's summary is rendered onto the one `index.md`
+# file, not onto +object+'s own page.
 def index_summary_suffix(object)
-  summary = object.docstring.summary
-  summary.empty? ? "" : " — #{summary}"
+  self.object = object
+  summary_suffix(object.docstring.summary)
 end
 
 def serialize(object)
   options.object = object
   Templates::Engine.with_serializer(object, options.serializer) { T(object.type).run(options) }
+end
+
+# `index.md` always lives at the doc root, no matter which object a given
+# row's summary is about — see {#index_summary_suffix}.
+def current_dir
+  ::Pathname.new(".")
 end

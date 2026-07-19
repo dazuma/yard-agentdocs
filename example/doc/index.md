@@ -50,7 +50,7 @@
 - [`Geometry::Shape`](Geometry/Shape.md) — A generic two-dimensional shape.
 - [`Geometry::Taggable`](Geometry/Taggable.md) — Mixed into shape classes to add a short bracketed tag string, derived from whatever `#label` the including class defines.
 - [`Geometry::ThreeD`](Geometry/ThreeD.md)
-- [`Geometry::ThreeD::Point`](Geometry/ThreeD/Point.md) — A point in three-dimensional space.
+- [`Geometry::ThreeD::Point`](Geometry/ThreeD/Point.md) — A point in three-dimensional space, analogous to [`Geometry::Point`](Geometry/Point.md).
 - [`Geometry::Triangle`](Geometry/Triangle.md) — A triangle: a polygon with exactly three sides.
 - [`Geometry::Vector`](Geometry/Vector.md) — An immutable 2D displacement vector.
 - [`Geometry::Waypoint`](Geometry/Waypoint.md) — A labeled stop along a route, documented the way YARD supported before `attr_*` gained its own doc-comment convention: `@attr`/`@attr_reader`/ `@attr_writer` tags on the class docstring, rather than a comment above each reader/writer method.

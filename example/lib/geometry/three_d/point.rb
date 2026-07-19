@@ -3,7 +3,7 @@
 module Geometry
   module ThreeD
     ##
-    # A point in three-dimensional space.
+    # A point in three-dimensional space, analogous to {Geometry::Point}.
     #
     class Point
       ##

@@ -773,19 +773,19 @@ whether agents actually exercise those pointers.
       the July 2026 coverage review's biggest *content* (vs. rendering)
       gap. Interacts with the navigation-preamble item above — both
       compete for `index.md` real estate
-- [ ] (mech, pre-dogfood) `index.md`'s per-entry summary doesn't go through
-      `markdownify` or inline-reference resolution — `fulldoc/agentdocs/
-      setup.rb`'s `index_summary_suffix(object)` splices
-      `object.docstring.summary` raw, so a `{Name}` reference or RDoc
-      markup in a class/module docstring's first sentence renders
-      resolved/converted on the class's own page (via
-      `TextLayout#summary_suffix`) but literal in `index.md`. The fix
-      should mechanically follow the treatment `module/agentdocs/
-      setup.rb`'s `nested_summary_line` already gives the same kind of
-      summary (it calls `summary_suffix`, which markdownifies); it
-      changes rendered output, so it needs an `example/` fixture through
-      the TDD loop rather than a direct fix. Flagged by the 2026-07-17
-      code review
+- [x] (mech→design, pre-dogfood) `index.md`'s per-entry summary doesn't go
+      through `markdownify` or inline-reference resolution —
+      `Geometry::ThreeD::Point`'s summary now reads "...analogous to
+      `{Geometry::Point}`.", exercised at three different nesting depths
+      (its own page, `Geometry::ThreeD`'s nested-class listing, and
+      `index.md`) so the three required relative paths can't coincide by
+      accident. Escalated to (design) on the spot, per "Prioritization and
+      roadmap": reusing `summary_suffix` verbatim conflates "resolution
+      context" with "link path base", which happen to be the same object
+      for every other template but diverge for `index.md`. See "`index.md`
+      per-entry summaries: `summary_suffix`, plus a `current_dir` seam in
+      `CrossReferencing`" under "Decisions". Originally flagged by the
+      2026-07-17 code review
 
 ## Open questions
 
@@ -3842,6 +3842,45 @@ Summary line and full entry both rendered with an empty description until
 the text was re-indented as part of the directive's own block. Three for
 three now across `@!macro`/`@!method`/`@!attribute`; worth remembering as
 a single shared rule rather than a per-directive quirk.
+
+### `index.md` per-entry summaries: `summary_suffix`, plus a `current_dir` seam in `CrossReferencing`
+
+Settles the `index.md`-summary checklist item under "Indexing & discovery"
+(`mech`, escalated to `design`, `pre-dogfood`). `fulldoc/agentdocs/
+setup.rb`'s `index_summary_suffix(object)` spliced `object.docstring.summary`
+raw, so a `{Name}` inline reference or RDoc markup in a class/module's first
+sentence rendered resolved/converted on that class's own page (and in any
+enclosing namespace's `nested_summary_line` listing) but literal in
+`index.md` — the one place a fresh agent is most likely to read it.
+`Geometry::ThreeD::Point`'s summary now demonstrates the fix at three
+different relative-path distances from the same underlying docstring.
+
+**The surprise:** the obvious fix — have `index_summary_suffix` call
+`TextLayout#summary_suffix` like `nested_summary_line` already does — looked
+purely mechanical, but `CrossReferencing#link_path` computes its relative
+path from a single `object` accessor that, in every existing template, is
+*both* "the object providing resolution context" (namespace-relative name
+lookup, self-reference detection) *and* "the object whose page is being
+rendered" (the path a link is relative from). Those two roles are the same
+object everywhere else, but `index.md` is one page listing many different
+objects' summaries: resolution context should still be each row's own
+object (so a bare name in `Geometry::ThreeD::Point`'s summary resolves
+preferentially within `Geometry::ThreeD`, and a self-mention stays
+unlinked, same as everywhere else), while the link path must always be
+relative to the doc root, since `index.md` never moves. Reusing `object`
+for both would silently compute link paths relative to each row's own
+(possibly deeply-nested) location instead of the root.
+
+**The fix:** `CrossReferencing#link_path` now resolves its base directory
+through a new private `#current_dir` method (`Pathname.new` of `object`'s
+own file location — unchanged default behavior, so no `module`/`class`
+template call site needed to change). `fulldoc/agentdocs/setup.rb` mixes in
+`CrossReferencing`/`Markdownify`/`TextLayout`, overrides `current_dir` to
+always return `Pathname.new(".")` (the doc root), and `index_summary_suffix`
+sets `self.object = object` (`Template`'s own `Helpers::BaseHelper` accessor
+— distinct from, but kept in sync with, `options.object`) before calling
+`summary_suffix`, so resolution/self-reference still uses that row's own
+object while the path comes out root-relative regardless of nesting depth.
 
 ## Implementation
 

@@ -3,7 +3,7 @@
 - **Superclass:** `Object`
 - **Defined in:** `example/lib/geometry/three_d/point.rb`
 
-A point in three-dimensional space.
+A point in three-dimensional space, analogous to [`Geometry::Point`](../Point.md).
 
 ## Member Summary
 

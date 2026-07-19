@@ -155,11 +155,28 @@ module YARD
       def link_path(target)
         namespace = target.is_a?(::YARD::CodeObjects::NamespaceObject) ? target : target.namespace
         target_file = ::Pathname.new("#{namespace.path.split('::').join('/')}.md")
-        current_dir = ::Pathname.new("#{object.path.split('::').join('/')}.md").dirname
         target_file.relative_path_from(current_dir).to_s
       end
 
       private
+
+      # The directory {#link_path} resolves a relative path from — the
+      # directory of the file currently being rendered. Defaults to
+      # {#object}'s own file location, which is correct for every
+      # `module`/`class`-template page: the page's location and its
+      # cross-reference resolution context (also {#object}) are one and the
+      # same object there. `fulldoc/agentdocs`'s index page overrides this:
+      # it lists many different objects' summaries on one page fixed at the
+      # doc root, so the resolution context (still each row's own object,
+      # via {#object}) and the path base (always the root) diverge — see
+      # "index.md's per-entry summary" under "Decisions" in
+      # `devdocs/DESIGN.md`.
+      #
+      # @return [::Pathname]
+      #
+      def current_dir
+        ::Pathname.new("#{object.path.split('::').join('/')}.md").dirname
+      end
 
       # Scans +text+ for backtick code spans (of any length, so this also
       # covers a fenced ` ``` ` block) and yields every segment *outside*
