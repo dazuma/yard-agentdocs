@@ -165,15 +165,24 @@ much design latitude it involves:
 - **(stretch)** — don't tackle unless evidence from real usage demands it.
 
 Additionally, a **pre-dogfood** annotation (alongside the priority marker)
-means the item was judged (2026-07-17 review) worth completing *before* the
-dogfood milestone: the gap sits on a pattern real gems certainly use, and
-today's behavior is a silent drop, a pervasive rendering artifact, or —
-worst, for the `@param`-mismatch item — nondeterministic output, so leaving
-it open would pollute the dogfood diff-read with known noise (or, for the
-nondeterminism, undermine its reproducibility). As the dogfood milestone
-approaches, prefer pre-dogfood items over unannotated ones of the same
-marker; the `@param`-mismatch item comes first among them since it protects
-the reproducibility of every run after it.
+means the item was judged (2026-07-17 review; two more added by a
+2026-07-20 re-review after the first pre-dogfood pass closed out) worth
+completing *before* the dogfood milestone: the gap sits on a pattern real
+gems certainly use, and today's behavior is a silent drop, a pervasive
+rendering artifact, or — worst, for the `@param`-mismatch item —
+nondeterministic output, so leaving it open would pollute the dogfood
+diff-read with known noise (or, for the nondeterminism, undermine its
+reproducibility). As the dogfood milestone approaches, prefer pre-dogfood
+items over unannotated ones of the same marker; the `@param`-mismatch item
+comes first among them since it protects the reproducibility of every run
+after it. The 2026-07-20 additions (the lexical cross-reference resolution
+cap and the explicit-assignment-method rendering gap) were found by
+probing the intended dogfood target (YARD's own source) directly rather
+than reasoning abstractly — see their checklist entries under "Methods —
+shapes & signatures" and "Cross-referencing scenarios" for the measured
+evidence — which is why the same technique (a disposable probe against the
+real target, not just re-reading the checklist) is worth repeating in any
+future pre-dogfood re-review.
 
 Suggested ordering: prefer (design) items early — each one settled reduces
 the risk of late format churn invalidating already-approved fixtures — and
@@ -426,13 +435,26 @@ whether agents actually exercise those pointers.
       almost certainly renders identically to the block form, but it's a
       distinct parse path in YARD and a one-line fixture proves it.
       Flagged by the July 2026 coverage review
-- [ ] (mech) Explicit assignment method (`def name=(value)`) not paired
-      via `attr_*` — YARD treats it as a plain method named `name=`, not
-      an attribute, so it takes the method-entry path; the assignment-form
-      rendering settled for `#[]=` (natural `obj[i] = v` syntax, no `→`
-      arrow — see "Remaining operator forms" under "Decisions") should
-      extend to it, else it renders as the awkward `obj.name=(value)`.
-      Flagged by the July 2026 coverage review
+- [ ] (mech, pre-dogfood) Explicit assignment method (`def name=(value)`) not
+      paired via `attr_*` — YARD treats it as a plain method named `name=`,
+      not an attribute, so it takes the method-entry path; the
+      assignment-form rendering settled for `#[]=` (natural `obj[i] = v`
+      syntax, no `→` arrow — see "Remaining operator forms" under
+      "Decisions") should extend to it, else it renders as the awkward
+      `obj.name=(value)`. Originally flagged by the July 2026 coverage
+      review; escalated to pre-dogfood by the 2026-07-20 review, which
+      confirmed the bad rendering directly (`foo.label=(value) → String`,
+      generated from a one-method probe fixture — invalid Ruby syntax, plus
+      a meaningless `→` arrow on an assignment) and found the pattern
+      genuinely common on the intended dogfood target: 36 occurrences in
+      YARD's own source (e.g. `Verifier#expressions=`,
+      `SourceParser.parser_type=`). Fix: generalize the existing
+      `bracket_call?`/`bracket_call_text` machinery (or a sibling
+      `assignment_call?`) to any method whose name ends in `=` and isn't
+      already one of `OPERATOR_METHOD_NAMES`' comparison operators
+      (`==`/`!=`/`<=`/`>=`/`=~`), rendering `obj.name = value` with no
+      arrow — same shape `#[]=` already gets, just not keyed to bracket
+      names specifically
 
 ### Visibility
 
@@ -704,23 +726,36 @@ whether agents actually exercise those pointers.
       references, and code-span/fenced-block exclusion. See "Inline
       cross-references in prose" under "Decisions" for the full scope and
       rendering rules.
-- [ ] (mech) Inline `{Class#method}` reference more than one namespace hop
-      away from a method target — `RegistryResolver#lookup_by_path` caps
-      *lexical* (non-inheritance) method lookups at exactly one namespace
-      hop up from the referencing object (`lib/yard/registry_resolver.rb`'s
-      `lexical_lookup > 1 && resolved.is_a?(CodeObjects::MethodObject)`
-      check); a same-distance *class*-only reference resolves fine, since
-      the cap is method-specific. Silently renders as unresolved (plain
-      text with the braces stripped, same as any other unresolved
-      reference — no crash, just a quietly wrong result) rather than
-      erroring, so it's easy to miss in review. Surfaced by-product of the
-      `Geometry::Cache` fixture (see "Class-level `@private`/`@api
+- [ ] (mech, pre-dogfood) Inline `{Class#method}` reference (and, since it
+      shares the identical `Registry.resolve` call, `@see` targeting a
+      method) more than one namespace hop away from a method target —
+      `RegistryResolver#lookup_by_path` caps *lexical* (non-inheritance)
+      method lookups at exactly one namespace hop up from the referencing
+      object (`lib/yard/registry_resolver.rb`'s `lexical_lookup > 1 &&
+      resolved.is_a?(CodeObjects::MethodObject)` check); a same-distance
+      *class*-only reference resolves fine, since the cap is
+      method-specific. Silently renders as unresolved (plain text with the
+      braces stripped, same as any other unresolved reference — no crash,
+      just a quietly wrong result) rather than erroring, so it's easy to
+      miss in review — worse than ordinary "known noise," since there's
+      nothing visibly different to spot in a diff-read. Surfaced by-product
+      of the `Geometry::Cache` fixture (see "Class-level `@private`/`@api
       private`" under "Decisions"), worked around there rather than fixed.
-      Needs at least a unit test proving the boundary (one hop resolves,
-      two hops doesn't) and a decision on whether this format should work
-      around YARD's cap (e.g. resolving method references from the root
-      namespace outward instead of relying on YARD's lexical walk) or just
-      document the limitation
+      Escalated to pre-dogfood by the 2026-07-20 review, which measured the
+      real impact on the intended dogfood target directly: a probe that
+      parses YARD's own source and compares its capped resolution against
+      an uncapped resolver found **30 of 555 real inline references (5.4%)**
+      would silently degrade to plain unlinked text, e.g. `{Handlers::
+      Base#push_state}` from `Handlers::Ruby::Legacy::Base`, `{Registry.
+      root}` from `CodeObjects::Base`. Every failing case found was a
+      `::`-qualified reference, never a bare unqualified name, suggesting a
+      targeted fix: on a failed lexical resolve, retry once from the root
+      namespace, but only when the given name contains `::` — preserving
+      YARD's original cap (presumably an anti-false-positive guard) for
+      bare/ambiguous names, which this project has no independent evidence
+      against. Needs a unit test proving the boundary (one hop resolves,
+      two hops doesn't, a `::`-qualified two-hop reference does via the
+      fallback) plus an `example/` appearance
 - [x] `Hash{K => V}` compound type — the `=>`/`{`/`}` tokens needed no scanner
       changes (`type_ref` was already written to buffer any punctuation
       generically, not just `Array`'s `<`/`>`; see "Compound-type
