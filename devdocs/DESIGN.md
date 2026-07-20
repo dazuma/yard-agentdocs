@@ -463,12 +463,20 @@ whether agents actually exercise those pointers.
       template's behavior (only `@api private` ever renders) — see "`@api`
       with non-private values" under "Decisions". Originally flagged by the
       July 2026 coverage review
-- [ ] (mech, pre-dogfood) Class-level `@private` (or `@api private`) on a class/module —
+- [x] (mech, pre-dogfood) Class-level `@private` (or `@api private`) on a class/module —
       tag-based privacy was settled and exercised on methods only; whether
       a `@private`-tagged class gets a file, gets flagged on its own page,
       and gets flagged (or filtered) in `index.md` is unverified. Escalate
-      to (design) if the index treatment isn't obvious. Flagged by the
-      July 2026 coverage review
+      to (design) if the index treatment isn't obvious. Confirmed: gets a
+      file (nothing filters on tags, same as methods); own page already
+      flagged with zero template changes (`page.erb` already calls the
+      generic `annotation_lines(object)`). The two gaps that did need code
+      — a parent's "Nested Classes & Modules" listing and `index.md`'s row,
+      neither of which called the existing `private_api_annotation_short`
+      helper — didn't need to escalate to (design): settled on flagging
+      (not filtering), consistently with the already-decided policy, not a
+      new decision. See "Class-level `@private`/`@api private`" under
+      "Decisions". Originally flagged by the July 2026 coverage review
 
 ### Attributes & constants
 
@@ -696,6 +704,23 @@ whether agents actually exercise those pointers.
       references, and code-span/fenced-block exclusion. See "Inline
       cross-references in prose" under "Decisions" for the full scope and
       rendering rules.
+- [ ] (mech) Inline `{Class#method}` reference more than one namespace hop
+      away from a method target — `RegistryResolver#lookup_by_path` caps
+      *lexical* (non-inheritance) method lookups at exactly one namespace
+      hop up from the referencing object (`lib/yard/registry_resolver.rb`'s
+      `lexical_lookup > 1 && resolved.is_a?(CodeObjects::MethodObject)`
+      check); a same-distance *class*-only reference resolves fine, since
+      the cap is method-specific. Silently renders as unresolved (plain
+      text with the braces stripped, same as any other unresolved
+      reference — no crash, just a quietly wrong result) rather than
+      erroring, so it's easy to miss in review. Surfaced by-product of the
+      `Geometry::Cache` fixture (see "Class-level `@private`/`@api
+      private`" under "Decisions"), worked around there rather than fixed.
+      Needs at least a unit test proving the boundary (one hop resolves,
+      two hops doesn't) and a decision on whether this format should work
+      around YARD's cap (e.g. resolving method references from the root
+      namespace outward instead of relying on YARD's lexical walk) or just
+      document the limitation
 - [x] `Hash{K => V}` compound type — the `=>`/`{`/`}` tokens needed no scanner
       changes (`type_ref` was already written to buffer any punctuation
       generically, not just `Array`'s `<`/`>`; see "Compound-type
@@ -4228,6 +4253,74 @@ not literally checking for the string `"public"` — any non-`"private"` value
 drops the same way). `example/doc/Stopwatch.md` needed no content changes at
 all, only `**Defined in:**` line-number bumps from the two added comment
 lines — the whole point of the fixture.
+
+### Class-level `@private`/`@api private`: flag consistently at every listing surface, don't filter
+
+Settles the "Class-level `@private` (or `@api private`) on a class/module"
+checklist item — the last pre-dogfood gap. Tag-based privacy was already
+settled and exercised on methods only (see "Visibility policy" above); this
+item verified the same policy actually reaches every place a class/module
+can show up, not just its own page.
+
+**Gets a file: confirmed, zero code change.** `fulldoc/agentdocs/setup.rb`'s
+object enumeration doesn't filter on tags at all — only Ruby-scope
+visibility does, and a class's visibility is always `:public` (Ruby has no
+native "private class" concept). Consistent with the already-decided
+"tag-based privacy is shown, not omitted" policy.
+
+**Own page: confirmed, zero code change.** `page.erb` already calls
+`annotation_lines(object)` generically for the class/module itself — the
+exact mechanism `method_entry.erb` uses per-method — and `annotation_lines`
+already includes the private-API check. The gap the checklist flagged was
+untested, not actually missing.
+
+**The two real gaps, both fixed the same way.** Neither a parent's "Nested
+Classes & Modules" listing (`nested_summary_line`) nor `index.md`'s row
+(`fulldoc/agentdocs/index.erb`) called the existing
+`private_api_annotation_short` helper, unlike `method_summary_line`/
+`attribute_summary_line`, which already do. **Decision: flag, don't
+filter** — both now render the same `` (private API) `` parenthetical
+suffix those two already use, right after the name/link and before the
+summary. This didn't need to escalate to (design) as the checklist item
+flagged as a possibility: the project already has a settled, general policy
+(tag-based privacy is shown-and-flagged everywhere, never silently omitted
+or filtered), and these were simply two listing surfaces that policy hadn't
+been extended to yet — applying it is consistency, not a new choice. (For
+what it's worth, YARD's own default HTML template isn't internally
+consistent here either — its method-summary rows flag `@api private`, but
+its "Defined Under Namespace" nested-class listing never flags anything at
+all — so there's no clean upstream precedent to mirror either way; this
+project's own convention wins.) Implementation: `nested_summary_line`
+(`module/agentdocs/setup.rb`) now computes `private_api_annotation_short`
+the same way `attribute_summary_line` already did; `fulldoc/agentdocs/
+setup.rb` now mixes in `VisibilityInfo` (it didn't before) so `index.erb`
+can call the same helper per row.
+
+**A non-obvious wrinkle the fixture had to account for:** unlike `@since`/
+`@api`, `@private` is *not* one of YARD's transitive tags (confirmed via
+`Tags::Library.transitive_tags` and a direct parse probe) — a class-level
+`@private` tag does not cascade to that class's own methods. `Geometry::Cache`
+(the new fixture) has one ordinary method (`#fetch`) with no tag of its own,
+specifically to prove it doesn't get flagged just because its containing
+class is.
+
+**An unrelated, genuine gap surfaced along the way, not fixed here:**
+drafting `Cache`'s docstring to cross-reference `{Stopwatch#raw_elapsed_s}`
+silently rendered as plain unresolved text — traced to a real YARD
+limitation, not a bug in this project's cross-referencing code.
+`RegistryResolver#lookup_by_path` caps *lexical* (non-inheritance) method
+lookups at exactly one namespace hop up from the referencing object
+(`lib/yard/registry_resolver.rb`'s `lexical_lookup > 1 && resolved.is_a?
+(CodeObjects::MethodObject)` check) — a *class*-only reference the same
+distance away resolves fine, since that cap only applies to
+`MethodObject`s. `Geometry::Cache` is two hops from the top-level
+`Stopwatch`, so the reference silently failed to resolve even though
+`Registry.resolve` finds it perfectly well from one hop closer. Worked
+around in the fixture by using a plain, unlinked `` `Stopwatch#raw_elapsed_s` ``
+code span instead of a `{...}` inline reference — the sentence didn't
+depend on a live link. Logged as a new checklist item under
+"Cross-referencing scenarios" rather than fixed now, per this project's
+usual practice of not bundling incidental fixes into an unrelated task.
 
 ## Implementation
 

@@ -40,5 +40,6 @@
 ## Classes & modules
 
 <%- @indexed_objects.each do |object| -%>
-- [`<%= object.path %>`](<%= indexed_object_path(object) %>)<%= index_summary_suffix(object) %>
+<%- suffix = private_api_annotation_short(object) -%>
+- [`<%= object.path %>`](<%= indexed_object_path(object) %>)<%= " (#{suffix})" if suffix %><%= index_summary_suffix(object) %>
 <%- end -%>

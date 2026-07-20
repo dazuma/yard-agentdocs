@@ -37,6 +37,7 @@ reserves, so it renders unchanged.
 
 - [`Angles`](Geometry/Angles.md) — Angle-related helpers.
 - [`BoundingBox`](Geometry/BoundingBox.md) — An axis-aligned bounding box, whose four numeric edges are declared through a small class-level DSL (`.edge`) instead of individual `attr_reader`s.
+- [`Cache`](Geometry/Cache.md) (private API) — An internal memoization cache used by a few computation-heavy methods elsewhere in this namespace.
 - [`Circle`](Geometry/Circle.md) — A circle, defined by its radius.
 - [`CompassRose`](Geometry/CompassRose.md) — Compass-bearing lookups, one instance method per cardinal direction.
 - [`Computations`](Geometry/Computations.md) — Utility computations on `Point` values.

@@ -142,7 +142,8 @@ def option_line(tag)
 end
 
 def nested_summary_line(nested)
-  "- [`#{nested.name}`](#{link_path(nested)})#{summary_suffix(nested.docstring.summary)}"
+  suffix = private_api_annotation_short(nested)
+  "- [`#{nested.name}`](#{link_path(nested)})#{" (#{suffix})" if suffix}#{summary_suffix(nested.docstring.summary)}"
 end
 
 def constant_summary_line(const)

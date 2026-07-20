@@ -39,6 +39,7 @@
 - [`Geometry`](Geometry.md) — A small toy geometry namespace, used as a worked example and test case for the `yard-agentdocs` output format.
 - [`Geometry::Angles`](Geometry/Angles.md) — Angle-related helpers.
 - [`Geometry::BoundingBox`](Geometry/BoundingBox.md) — An axis-aligned bounding box, whose four numeric edges are declared through a small class-level DSL (`.edge`) instead of individual `attr_reader`s.
+- [`Geometry::Cache`](Geometry/Cache.md) (private API) — An internal memoization cache used by a few computation-heavy methods elsewhere in this namespace.
 - [`Geometry::Circle`](Geometry/Circle.md) — A circle, defined by its radius.
 - [`Geometry::CompassRose`](Geometry/CompassRose.md) — Compass-bearing lookups, one instance method per cardinal direction.
 - [`Geometry::Computations`](Geometry/Computations.md) — Utility computations on `Point` values.

@@ -4,6 +4,7 @@ include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::TextLayout
+include ::YARD::AgentDocs::VisibilityInfo
 
 def init
   options.serializer.extension = "md" if options.serializer
