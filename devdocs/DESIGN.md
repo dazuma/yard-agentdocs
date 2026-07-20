@@ -767,13 +767,9 @@ whether agents actually exercise those pointers.
 - [x] (design) README and extra files (guides) — scoped to the README only;
       arbitrary `--files` guides remain unaddressed. See "README rendering:
       own page via `options.readme`, no heading demotion" under "Decisions".
-- [ ] (mech) Arbitrary `--files` guides (beyond the README) — extend
-      `serialize_readme`/the `## Guides` index section to iterate
-      `options.files` generically instead of special-casing
-      `options.readme` alone. The hard calls (own page, filename
-      convention, no heading demotion) are already settled by the README
-      item above; this should mostly be "loop instead of one file," plus
-      deciding `## Guides` list ordering for more than one entry.
+- [x] (mech) Arbitrary `--files` guides (beyond the README) — see "Arbitrary
+      `--files` guides: generalize the README path, `options.files`
+      ordering" under "Decisions".
 - [x] (mech→design, pre-dogfood) `index.md`'s per-entry summary doesn't go
       through `markdownify` or inline-reference resolution —
       `Geometry::ThreeD::Point`'s summary now reads "...analogous to
@@ -3965,6 +3961,49 @@ ended up with its own small README fixture rather than staying
 README-free: there was no available way to opt out once the mechanism
 existed, and it doubled as the only coverage of `demote_headings: false`
 under RDoc-to-Markdown conversion rather than Markdown passthrough.
+
+### Arbitrary `--files` guides: generalize the README path, `options.files` ordering
+
+Settles the "Arbitrary `--files` guides" follow-up checklist item — as
+anticipated when it was split off, this was mechanical: every hard call
+(own page, `file.<name>.md` naming, no heading demotion) was already made
+by the README decision above and just needed generalizing from one file
+to an array.
+
+**The generalization.** `fulldoc/agentdocs/setup.rb`'s `serialize_readme`
+became `serialize_extra_file`, called once per entry in `options.files`
+instead of once for `options.readme`; `index.erb`'s `## Guides` section
+loops the same array instead of special-casing the README. No new
+decision needed here: YARD's CLI already unshifts `options.readme` onto
+the front of `options.files` when both are given, so the README stays the
+first `## Guides` entry automatically — this is also what settled the
+one open question the split-off item flagged, **list ordering**: whatever
+order `options.files` comes out in (README first, then `--files` entries
+in the order passed on the command line), not a newly invented policy
+like alphabetizing.
+
+**`file.title`, not a raw filename, for link text — already true for the
+README, now proven to generalize.** `example/docs/point_cloud.md` carries
+a `# @title Working with point clouds` comment attribute (YARD's own
+extra-file convention, parsed and stripped by `ExtraFileObject` before
+`#contents` — needed no template code), so its `## Guides` entry reads
+`` [`Working with point clouds`](file.point_cloud.md) `` rather than the
+terser `point_cloud` its filename would otherwise default to (same
+`.title` accessor the README entry already used, which happened to
+default to "README" — its filename minus extension — since it declares no
+`@title`).
+
+**Directory dropped from the output filename, deliberately unaddressed
+collision risk.** `example/docs/point_cloud.md` (a subdirectory, unlike
+the root-level README) still renders to `file.point_cloud.md` at the doc
+root — `ExtraFileObject#name` is `File.basename` minus extension, so two
+guides in different directories sharing a basename would collide (last
+one serialized wins, silently). Judged acceptable to leave unaddressed
+for the same reason the original README item didn't invent a
+collision-avoidance scheme: no existing mechanism in this format
+addresses analogous collisions elsewhere, and inventing one
+speculatively isn't warranted absent real evidence (e.g. from the
+dogfood milestone) that it happens in practice.
 
 ## Implementation
 

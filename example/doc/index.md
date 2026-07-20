@@ -32,6 +32,7 @@
 ## Guides
 
 - [`README`](file.README.md)
+- [`Working with point clouds`](file.point_cloud.md)
 
 ## Classes & modules
 

@@ -29,10 +29,12 @@
   instead, and stack with no blank line between them — a deliberate marker
   change so they never render as part of the preceding content list.
 
-<%- if options.readme -%>
+<%- unless options.files.empty? -%>
 ## Guides
 
-- [`<%= options.readme.title %>`](file.<%= options.readme.name %>.md)
+<%- options.files.each do |file| -%>
+- [`<%= file.title %>`](file.<%= file.name %>.md)
+<%- end -%>
 <%- end -%>
 
 ## Classes & modules

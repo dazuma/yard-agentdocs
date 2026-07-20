@@ -22,6 +22,7 @@ describe "agentdocs template" do
         "--markup", "markdown",
         "--title", "yard-agentdocs example — API Reference",
         "--readme", "example/README.md",
+        "--files", "example/docs/point_cloud.md",
         *files
       )
     end
