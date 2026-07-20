@@ -131,6 +131,33 @@ module YARD
       FILE_REFERENCE_PREFIX = "file:"
 
       ##
+      # `{include:file:path}` — YARD's other spelling of a `file:`
+      # reference (`BaseHelper#linkify`'s `include:file:` form). Checked
+      # ahead of {FILE_REFERENCE_PREFIX} in {#render_reference} (a name
+      # starting with this also starts with `"include:"`) and dispatches to
+      # the very same {#render_file_reference} — see "`{file:...}` guide
+      # references" under "Decisions" in `devdocs/DESIGN.md` for why
+      # `{include:...}`/`{render:...}` collapse to plain links here rather
+      # than the content-embedding/whole-page duplication real YARD does
+      # for them.
+      #
+      INCLUDE_FILE_REFERENCE_PREFIX = "include:file:"
+
+      ##
+      # `{include:Name}`/`{render:Name}` — YARD's own content-embedding
+      # forms, repurposed here as plain aliases for a bare `{Name}`
+      # reference (see {INCLUDE_FILE_REFERENCE_PREFIX}'s note).
+      # {#render_reference} strips whichever of these prefixes matched
+      # before falling through to its ordinary object-resolution path, so
+      # both resolve identically to `{Name}` — including from the same
+      # scope, a deliberate unification rather than preserving YARD's own
+      # differing `include:`/`render:` resolution roots (`object.namespace`
+      # and `object`, respectively): there's no reason two spellings of
+      # "link to this" should ever resolve from different places.
+      #
+      OBJECT_REFERENCE_ALIAS_PREFIXES = ["include:", "render:"].freeze
+
+      ##
       # Resolves YARD's inline `{Name}`/`{Name label text}` cross-reference
       # syntax within prose. Must run on already-dialect-converted text —
       # {Markdownify#markdownify} calls this as its final step, so template
@@ -231,13 +258,25 @@ module YARD
         name = match[2]
         label = match[3]
         return match[0][1..] if escape
+        if name.start_with?(INCLUDE_FILE_REFERENCE_PREFIX)
+          return render_file_reference(name.delete_prefix(INCLUDE_FILE_REFERENCE_PREFIX), label, match[0])
+        end
         if name.start_with?(FILE_REFERENCE_PREFIX)
           return render_file_reference(name.delete_prefix(FILE_REFERENCE_PREFIX), label, match[0])
         end
-        resolved = ::YARD::Registry.resolve(object, name, true, false)
+        object_name = object_reference_name(name)
+        resolved = ::YARD::Registry.resolve(object, object_name, true, false)
         return match[0] if resolved.nil?
-        return label || "`#{name}`" if self_reference?(resolved)
-        "[#{label || "`#{name}`"}](#{link_path(resolved)})"
+        return label || "`#{object_name}`" if self_reference?(resolved)
+        "[#{label || "`#{object_name}`"}](#{link_path(resolved)})"
+      end
+
+      # Strips a leading `{OBJECT_REFERENCE_ALIAS_PREFIXES}` entry (present
+      # for an `{include:Name}`/`{render:Name}` reference), or returns
+      # +name+ unchanged for an ordinary bare `{Name}` reference.
+      def object_reference_name(name)
+        prefix = OBJECT_REFERENCE_ALIAS_PREFIXES.find { |candidate| name.start_with?(candidate) }
+        prefix ? name.delete_prefix(prefix) : name
       end
 
       # Renders a `{file:path}`/`{file:path label text}` reference: +path+

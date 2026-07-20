@@ -727,14 +727,19 @@ whether agents actually exercise those pointers.
       support, not degradation: `{file:path}`/`{file:path label text}`
       resolve to a Markdown link to that guide's own rendered page. See
       "`{file:...}` guide references" under "Decisions"
-- [ ] (mech, pre-dogfood) Graceful degradation for the remaining inline forms scoped
-      out of the inline-reference decision — `{include:...}`, `{render:...}`,
-      bare URLs: full support was deliberately rejected (see "Inline
-      cross-references in prose" under "Decisions"), but nothing proves what
-      a docstring containing them renders as today (presumably literal
-      unresolved text). Decide and prove the degradation, not support.
-      Flagged by the July 2026 coverage review; narrowed to these three forms
-      once `{file:...}` gained full support (see above)
+- [x] `{include:...}`/`{render:...}` inline references — full support, not
+      degradation, but not content-embedding either: both collapse to a
+      plain link, the same as a bare `{Name}` reference (or `{file:...}`,
+      for `{include:file:...}`). See "`{include:...}`/`{render:...}`:
+      collapse to a plain link, never embed" under "Decisions"
+- [ ] (mech, pre-dogfood) Graceful degradation for the one remaining inline form
+      scoped out of the inline-reference decision — bare URLs: full support
+      was deliberately rejected (see "Inline cross-references in prose"
+      under "Decisions"), but nothing proves what a docstring containing
+      one renders as today (presumably literal unresolved text). Decide and
+      prove the degradation, not support. Flagged by the July 2026 coverage
+      review; narrowed to this one form once `{file:...}`/`{include:...}`/
+      `{render:...}` all gained full support (see above)
 
 ### Indexing & discovery
 
@@ -1921,8 +1926,10 @@ Settles the `{file:...}` portion of the "Graceful degradation for the inline
 forms scoped out of the inline-reference decision" checklist item — upgraded
 from degradation to full support once arbitrary `--files` guides (see
 "Arbitrary `--files` guides" above) gave every such reference something real
-to link to. `{include:...}`, `{render:...}`, and bare URLs remain out of
-scope, tracked by the same checklist item, narrowed accordingly.
+to link to. `{include:...}`/`{render:...}` followed immediately after (see
+"`{include:...}`/`{render:...}`: collapse to a plain link, never embed"
+below); bare URLs remain the one form still tracked by the checklist item,
+narrowed accordingly.
 
 **Syntax**: reuses the existing `REFERENCE` scanner unchanged (a `{file:...}`
 reference is just a `{Name}`/`{Name label text}` whose name happens to start
@@ -1968,6 +1975,76 @@ relative path (`Geometry/PointCloud.md` → `../file.point_cloud.md`) as well
 as root-level resolution (`file.README.md` → `file.point_cloud.md`, both at
 the doc root). The unregistered-path (unresolved) case, and the
 label/no-label rendering split in isolation, are covered by unit tests only
+(`test/test_cross_referencing.rb`), per this project's existing precedent
+of keeping narrative fixture prose natural rather than forcing in every
+edge case.
+
+### `{include:...}`/`{render:...}`: collapse to a plain link, never embed
+
+Settles the `{include:...}`/`{render:...}` portion of the checklist item
+`{file:...}` narrowed just above. Real YARD's two forms both embed content
+inline — `{include:file:path}`/`{include:Name}` splice in a raw file's
+contents or another object's docstring text (`BaseHelper#linkify`,
+`HtmlHelper#link_include_file`/`#link_include_object`); `{render:Name}`
+splices in that object's *entire rendered page*
+(`CodeObjects::Base#format`, a full recursive template run). Considered and
+rejected: building real support for either. The content-duplication use
+case both exist for is already served better by `@!macro` (full support,
+zero template changes, with correct per-call-site `Defined in:`
+attribution — see "`@!macro`" above), and actually embedding either form
+would need genuinely new machinery this template has never needed
+before — splicing multi-line/multi-heading block content mid-`gsub` instead
+of a single inline substitution, plus cycle detection for a mutual-include
+(`{render:...}`'s whole-page form would also collide with the
+`demote_headings` single-level heading scheme, which has no notion of
+absorbing another page's own structural hierarchy).
+
+**Landed shape: both degrade to a plain link — the same link a bare
+`{Name}` reference (or `{file:...}`, for `{include:file:...}`) to the same
+target would produce — rather than to literal unresolved text.** This is a
+genuine third option, distinct from both "full support" and the
+"presumably literal text" degradation the checklist item originally
+assumed: an agent hitting `{include:Foo}` gets a working link to `Foo`'s
+own page instead of either duplicated content or dead braces, at zero
+marginal implementation cost over what `{file:...}` already built. Precedent:
+this is the same call "README rendering" already made — link out to a
+guide's own page rather than inlining its content into `index.md`, to keep
+pages compact and addressable.
+
+**Mechanics**, all in `CrossReferencing#render_reference`
+(`lib/yard/agentdocs/cross_referencing.rb`): `{include:file:path}` is
+checked ahead of `{file:path}` (a name starting with the former also starts
+with the latter's `"include:"` half) and dispatches to the very same
+`#render_file_reference` `{file:...}` uses — a pure syntax alias, nothing
+new. `{include:Name}`/`{render:Name}` strip their prefix
+(`OBJECT_REFERENCE_ALIAS_PREFIXES`) and fall through to the ordinary
+bare-`{Name}` object-resolution branch — also a pure alias, including
+label handling, self-reference (a plain backtick/label, no link), and the
+unresolved case (left completely untouched, prefix and braces included).
+
+**Resolution scope, unified rather than mirrored.** Real YARD resolves
+`{include:Name}` from `object.namespace` and `{render:Name}` from `object`
+itself — two different roots, neither matching how `{Name}` resolves in
+this template (`object`, with `inheritance: true, proxy_fallback: false`).
+Since these are no longer "real" includes/renders, only alternate spellings
+of "link to this," all three were unified to resolve identically — deciding
+otherwise would mean two visually-similar spellings silently resolving from
+different scopes, an invisible landmine in the rendered output (nothing
+about a produced link reveals which scope resolved it).
+
+**No `#anchor` support** for `{include:file:path#anchor}`, same reasoning
+as `{file:...}`: nothing needs it yet, and it's cheap to add later behind
+its own fixture.
+
+**Exercised**: `example/README.md` gains an `{include:file:...}` reference
+to the same `docs/point_cloud.md` guide `{file:...}` already proved,
+showing it resolves to the identical link. `Geometry::Rounding`'s module
+docstring (`example/lib/geometry/rounding.rb`) gains three paragraphs
+covering `{include:Name}`/`{render:Name}`: unlabeled resolved (linking to
+`Angles`/`Vector`), labeled resolved (same targets, with label text), and
+an unlabeled/labeled same-file self-reference pair (`{include:Rounding}` →
+a plain backtick; `{render:Rounding this very module}` → plain label text).
+The unresolved case is covered by unit tests only
 (`test/test_cross_referencing.rb`), per this project's existing precedent
 of keeping narrative fixture prose natural rather than forcing in every
 edge case.

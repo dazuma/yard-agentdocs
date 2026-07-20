@@ -10,6 +10,22 @@ describe ::YARD::AgentDocs::CrossReferencing do
     agentdocs_holder(::YARD::AgentDocs::CrossReferencing, source: source, at: current_path)
   end
 
+  # A minimal stand-in for `YARD::CodeObjects::ExtraFileObject`, exposing
+  # only the three accessors {CrossReferencing#render_file_reference}
+  # actually reads.
+  def guide_fixture(filename, name, title)
+    ::Struct.new(:filename, :name, :title).new(filename, name, title)
+  end
+
+  # {#holder_for}, with +options.files+ additionally set to +files+ — for
+  # exercising `{file:...}`/`{include:file:...}` reference resolution,
+  # which needs a registered guide list `#holder_for` alone doesn't provide.
+  def holder_with_files(source, current_path, *files)
+    holder = holder_for(source, current_path)
+    holder.options = ::Struct.new(:files).new(files)
+    holder
+  end
+
   describe "#type_ref" do
     it "returns an empty string for a nil or empty type name" do
       holder = holder_for("class Foo; end", "Foo")
@@ -276,19 +292,6 @@ describe ::YARD::AgentDocs::CrossReferencing do
   end
 
   describe "#resolve_references — {file:...} guide references" do
-    # A minimal stand-in for `YARD::CodeObjects::ExtraFileObject`, exposing
-    # only the three accessors {CrossReferencing#render_file_reference}
-    # actually reads.
-    def guide_fixture(filename, name, title)
-      ::Struct.new(:filename, :name, :title).new(filename, name, title)
-    end
-
-    def holder_with_files(source, current_path, *files)
-      holder = holder_for(source, current_path)
-      holder.options = ::Struct.new(:files).new(files)
-      holder
-    end
-
     it "renders a resolved unlabeled file reference as a markdown link using the guide's title" do
       holder = holder_with_files("class Foo; end", "Foo", guide_fixture("guide.md", "guide", "The Guide"))
       assert_equal(
@@ -318,6 +321,84 @@ describe ::YARD::AgentDocs::CrossReferencing do
         end
       RUBY
       assert_equal("[`The Guide`](../file.guide.md)", holder.resolve_references("{file:guide.md}"))
+    end
+  end
+
+  describe "#resolve_references — {include:...}/{render:...} aliases" do
+    it "renders an {include:file:...} reference identically to {file:...}" do
+      holder = holder_with_files("class Foo; end", "Foo", guide_fixture("guide.md", "guide", "The Guide"))
+      assert_equal(
+        "See [`The Guide`](file.guide.md) for details.",
+        holder.resolve_references("See {include:file:guide.md} for details.")
+      )
+    end
+
+    it "renders a resolved unlabeled {include:Name} reference as a markdown link, same as bare {Name}" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal("[`Baz`](Baz.md)", holder.resolve_references("{include:Baz}"))
+    end
+
+    it "renders a resolved unlabeled {render:Name} reference as a markdown link, same as bare {Name}" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal("[`Baz`](Baz.md)", holder.resolve_references("{render:Baz}"))
+    end
+
+    it "renders a resolved labeled {include:Name label text} reference with the label as text" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal(
+        "[the Baz class](Baz.md)",
+        holder.resolve_references("{include:Baz the Baz class}")
+      )
+    end
+
+    it "renders a resolved labeled {render:Name label text} reference with the label as text" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal(
+        "[the Baz class](Baz.md)",
+        holder.resolve_references("{render:Baz the Baz class}")
+      )
+    end
+
+    it "renders an unlabeled same-file {include:Name} self-reference as a plain backtick, not a link" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal("`Foo`", holder.resolve_references("{include:Foo}"))
+    end
+
+    it "renders a labeled same-file {render:Name} self-reference as plain label text, no backticks or link" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal("this class", holder.resolve_references("{render:Foo this class}"))
+    end
+
+    it "leaves an unresolved {include:Name} reference completely untouched, prefix included" do
+      holder = holder_for("class Foo; end", "Foo")
+      text = "See {include:Bogus} for details."
+      assert_equal(text, holder.resolve_references(text))
+    end
+
+    it "leaves an unresolved {render:Name} reference completely untouched, prefix included" do
+      holder = holder_for("class Foo; end", "Foo")
+      text = "See {render:Bogus} for details."
+      assert_equal(text, holder.resolve_references(text))
     end
   end
 

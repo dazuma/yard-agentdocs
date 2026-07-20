@@ -24,3 +24,5 @@ elapsed-time tracking.
   format's Markdown is meant to conform to.
 - [the point cloud guide](file.point_cloud.md), another
   `--files` guide beyond this README.
+- [`Working with point clouds`](file.point_cloud.md), the same guide referenced
+  again via `{include:file:...}`, an alias for `{file:...}`.
