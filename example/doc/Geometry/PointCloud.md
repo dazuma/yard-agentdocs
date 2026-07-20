@@ -14,6 +14,8 @@ with no source declaration of its own for a docstring to attach to, so
 *under* the directive line to become the attribute's own docstring — a
 sibling-indented paragraph above the directive attaches to nothing.
 
+See [`Working with point clouds`](../file.point_cloud.md) for a worked example.
+
 ## Member Summary
 
 **Instance Attributes**
@@ -33,7 +35,7 @@ sibling-indented paragraph above the directive attaches to nothing.
 
 The number of points in the cloud.
 
-* **Defined in:** `example/lib/geometry/point_cloud.rb:22`
+* **Defined in:** `example/lib/geometry/point_cloud.rb:24`
 
 ## Class Methods
 
@@ -51,4 +53,4 @@ Creates a point cloud from the given points.
 
 - `points` (`Array<`[`Point`](Point.md)`>`) — the points to collect
 
-* **Defined in:** `example/lib/geometry/point_cloud.rb:29`
+* **Defined in:** `example/lib/geometry/point_cloud.rb:31`

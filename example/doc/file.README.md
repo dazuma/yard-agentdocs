@@ -22,3 +22,5 @@ elapsed-time tracking.
 
 - The [CommonMark spec](https://spec.commonmark.org/), which this
   format's Markdown is meant to conform to.
+- [the point cloud guide](file.point_cloud.md), another
+  `--files` guide beyond this README.

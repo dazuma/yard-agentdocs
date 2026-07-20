@@ -723,13 +723,18 @@ whether agents actually exercise those pointers.
       where `#tag` gets its normal full entry) — the existing mixin
       content-strategy decision already covered this, this item just
       verified nothing about the module-page side was left undecided
-- [ ] (mech, pre-dogfood) Graceful degradation for the inline forms scoped out of the
-      inline-reference decision — `{file:...}`, `{include:...}`,
-      `{render:...}`, bare URLs: full support was deliberately rejected
-      (see "Inline cross-references in prose" under "Decisions"), but
-      nothing proves what a docstring containing them renders as today
-      (presumably literal unresolved text). Decide and prove the
-      degradation, not support. Flagged by the July 2026 coverage review
+- [x] `{file:...}` inline references to a `--files`/`--readme` guide — full
+      support, not degradation: `{file:path}`/`{file:path label text}`
+      resolve to a Markdown link to that guide's own rendered page. See
+      "`{file:...}` guide references" under "Decisions"
+- [ ] (mech, pre-dogfood) Graceful degradation for the remaining inline forms scoped
+      out of the inline-reference decision — `{include:...}`, `{render:...}`,
+      bare URLs: full support was deliberately rejected (see "Inline
+      cross-references in prose" under "Decisions"), but nothing proves what
+      a docstring containing them renders as today (presumably literal
+      unresolved text). Decide and prove the degradation, not support.
+      Flagged by the July 2026 coverage review; narrowed to these three forms
+      once `{file:...}` gained full support (see above)
 
 ### Indexing & discovery
 
@@ -1909,6 +1914,63 @@ example fixtures, per this project's existing precedent of keeping
 narrative fixture prose natural rather than forcing in every edge case
 (see the heading-collision note this same precedent left under "Markdown
 formatting in prose").
+
+### `{file:...}` guide references: full support, matched only against registered `--files`/`--readme` entries
+
+Settles the `{file:...}` portion of the "Graceful degradation for the inline
+forms scoped out of the inline-reference decision" checklist item — upgraded
+from degradation to full support once arbitrary `--files` guides (see
+"Arbitrary `--files` guides" above) gave every such reference something real
+to link to. `{include:...}`, `{render:...}`, and bare URLs remain out of
+scope, tracked by the same checklist item, narrowed accordingly.
+
+**Syntax**: reuses the existing `REFERENCE` scanner unchanged (a `{file:...}`
+reference is just a `{Name}`/`{Name label text}` whose name happens to start
+with `file:`) — `{file:path}` and `{file:path label text}`, plus the same
+escaping (`\{...}`/`!{...}`) and code-span exclusion every other inline
+reference already gets for free. No `#anchor` support (YARD's own
+`{file:path#anchor}`): nothing currently needs it, and it's easy to add
+later behind its own fixture — deferred rather than built speculatively.
+
+**Matching policy — a deliberate departure from real YARD.** YARD's own
+`file:` link (`BaseHelper#linkify`, `HtmlHelper#link_file`) treats `path` as
+a literal disk path relative to the CLI's CWD and re-reads it fresh,
+whether or not it was ever passed to `--files`/`--readme` — so it happily
+emits a link to a page that was never serialized (a dead link in the
+generated site). `render_file_reference`
+(`CrossReferencing#render_file_reference`) instead matches `path` by exact
+string equality against each entry in `options.files`' own `filename` — the
+literal path given on the CLI, the same array `index.erb`'s `## Guides`
+section already iterates (YARD's CLI unshifts `options.readme` onto the
+front, so a README reference needs no special-casing). A `path` matching no
+registered guide is left completely untouched, braces included — same
+"never rewrite what doesn't resolve" policy already applied to an
+unresolved `{Name}` (see "Inline cross-references in prose" above). This
+guarantees the format can never emit a link to a page that doesn't exist,
+at the cost of requiring the referenced path to exactly match how it was
+passed on the CLI.
+
+**Rendering**, mirroring the established `{Name}` conventions exactly:
+unlabeled `{file:path}` → `` [`Title`](file.name.md) `` (the guide's own
+`ExtraFileObject#title`, backticked — same shape as a resolved `{Name}` and
+the `## Guides` list itself); labeled `{file:path label text}` →
+`[label text](file.name.md)` (plain prose, no backticks, same as a labeled
+`{Name label text}`). No self-reference suppression — a guide linking to
+itself just renders a normal link; unlike an object cross-reference, there's
+no established "you're already on this page" convention for guides to
+preserve, and a redundant-but-correct link is harmless.
+
+**Exercised**: `example/README.md` gains a resolved labeled reference to
+the `docs/point_cloud.md` guide (`## Further reading`); the `PointCloud`
+class docstring (`example/lib/geometry/point_cloud.rb`) gains a resolved
+unlabeled reference back to that same guide, proving the cross-directory
+relative path (`Geometry/PointCloud.md` → `../file.point_cloud.md`) as well
+as root-level resolution (`file.README.md` → `file.point_cloud.md`, both at
+the doc root). The unregistered-path (unresolved) case, and the
+label/no-label rendering split in isolation, are covered by unit tests only
+(`test/test_cross_referencing.rb`), per this project's existing precedent
+of keeping narrative fixture prose natural rather than forcing in every
+edge case.
 
 ### Prose/summary containing Markdown metacharacters: indent as list-item continuation, don't escape
 

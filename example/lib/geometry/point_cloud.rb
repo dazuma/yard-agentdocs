@@ -13,6 +13,8 @@ module Geometry
   # *under* the directive line to become the attribute's own docstring — a
   # sibling-indented paragraph above the directive attaches to nothing.
   #
+  # See {file:example/docs/point_cloud.md} for a worked example.
+  #
   class PointCloud
     ##
     # @!attribute [r] size

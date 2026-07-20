@@ -275,6 +275,52 @@ describe ::YARD::AgentDocs::CrossReferencing do
     end
   end
 
+  describe "#resolve_references — {file:...} guide references" do
+    # A minimal stand-in for `YARD::CodeObjects::ExtraFileObject`, exposing
+    # only the three accessors {CrossReferencing#render_file_reference}
+    # actually reads.
+    def guide_fixture(filename, name, title)
+      ::Struct.new(:filename, :name, :title).new(filename, name, title)
+    end
+
+    def holder_with_files(source, current_path, *files)
+      holder = holder_for(source, current_path)
+      holder.options = ::Struct.new(:files).new(files)
+      holder
+    end
+
+    it "renders a resolved unlabeled file reference as a markdown link using the guide's title" do
+      holder = holder_with_files("class Foo; end", "Foo", guide_fixture("guide.md", "guide", "The Guide"))
+      assert_equal(
+        "See [`The Guide`](file.guide.md) for details.",
+        holder.resolve_references("See {file:guide.md} for details.")
+      )
+    end
+
+    it "renders a resolved labeled file reference as a markdown link with the label as text" do
+      holder = holder_with_files("class Foo; end", "Foo", guide_fixture("guide.md", "guide", "The Guide"))
+      assert_equal(
+        "See [the guide](file.guide.md) for details.",
+        holder.resolve_references("See {file:guide.md the guide} for details.")
+      )
+    end
+
+    it "leaves a file reference to an unregistered path completely untouched" do
+      holder = holder_with_files("class Foo; end", "Foo")
+      text = "See {file:missing.md} for details."
+      assert_equal(text, holder.resolve_references(text))
+    end
+
+    it "computes a file reference's link relative to the currently-rendered object's own file" do
+      holder = holder_with_files(<<~RUBY, "Foo::Bar", guide_fixture("guide.md", "guide", "The Guide"))
+        module Foo
+          class Bar; end
+        end
+      RUBY
+      assert_equal("[`The Guide`](../file.guide.md)", holder.resolve_references("{file:guide.md}"))
+    end
+  end
+
   describe "#link_path" do
     it "returns a path relative to the currently-rendered object's own file" do
       holder = holder_for(<<~RUBY, "Foo::Bar")

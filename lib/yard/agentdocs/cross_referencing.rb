@@ -123,6 +123,14 @@ module YARD
       REFERENCE = /(\\|!)?\{(?!\})(\S+?)(?:[ \t]+([^{}]*?))?\}/
 
       ##
+      # Prefix marking a {REFERENCE} name as a `{file:path}`/`{file:path
+      # label text}` guide reference (YARD's own `file:` `linkify` form)
+      # rather than an object name — {#render_reference} dispatches to
+      # {#render_file_reference} when a match's name starts with this.
+      #
+      FILE_REFERENCE_PREFIX = "file:"
+
+      ##
       # Resolves YARD's inline `{Name}`/`{Name label text}` cross-reference
       # syntax within prose. Must run on already-dialect-converted text —
       # {Markdownify#markdownify} calls this as its final step, so template
@@ -223,10 +231,31 @@ module YARD
         name = match[2]
         label = match[3]
         return match[0][1..] if escape
+        if name.start_with?(FILE_REFERENCE_PREFIX)
+          return render_file_reference(name.delete_prefix(FILE_REFERENCE_PREFIX), label, match[0])
+        end
         resolved = ::YARD::Registry.resolve(object, name, true, false)
         return match[0] if resolved.nil?
         return label || "`#{name}`" if self_reference?(resolved)
         "[#{label || "`#{name}`"}](#{link_path(resolved)})"
+      end
+
+      # Renders a `{file:path}`/`{file:path label text}` reference: +path+
+      # (matched against each `--files`/`--readme` entry's own +filename+ —
+      # the literal path passed on the CLI, same convention `link_path`'s
+      # object resolution already follows) resolves to a Markdown link to
+      # that guide's own rendered page. A path matching no registered guide
+      # is left completely untouched, braces included — same "never rewrite
+      # what doesn't resolve" policy {#render_reference} already applies to
+      # an unresolved `{Name}`, and a deliberate departure from real YARD's
+      # `file:` link, which resolves any path on disk whether or not a page
+      # for it actually exists (see "`{file:...}` guide references" under
+      # "Decisions" in devdocs/DESIGN.md).
+      def render_file_reference(path, label, original)
+        file = options.files.find { |candidate| candidate.filename == path }
+        return original if file.nil?
+        target = ::Pathname.new("file.#{file.name}.md").relative_path_from(current_dir).to_s
+        "[#{label || "`#{file.title}`"}](#{target})"
       end
 
       # Whether +resolved+ lives in the same file as the object currently
