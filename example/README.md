@@ -26,3 +26,11 @@ elapsed-time tracking.
   `--files` guide beyond this README.
 - {include:file:example/docs/point_cloud.md}, the same guide referenced
   again via `{include:file:...}`, an alias for `{file:...}`.
+- {https://www.ruby-lang.org/en/}, exercising an unlabeled bracketed URL
+  reference — a bare `{url}` resolves unconditionally to a plain link, no
+  object/guide lookup involved.
+- {https://en.wikipedia.org/wiki/Ruby_(programming_language) Ruby on Wikipedia},
+  a labeled bracketed URL reference whose own URL contains unbalanced
+  parentheses — exercising the angle-bracket destination escape
+  (`(<url>)` instead of `(url)`) that keeps it from corrupting the
+  surrounding Markdown link syntax.

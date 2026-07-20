@@ -402,6 +402,40 @@ describe ::YARD::AgentDocs::CrossReferencing do
     end
   end
 
+  describe "#resolve_references — {url}/{mailto:...} references" do
+    it "renders an unlabeled bare-URL reference as a markdown link with backticked display text" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal(
+        "[`https://example.com/`](<https://example.com/>)",
+        holder.resolve_references("{https://example.com/}")
+      )
+    end
+
+    it "renders a labeled bare-URL reference with the label as plain text" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal(
+        "[the site](<https://example.com/>)",
+        holder.resolve_references("{https://example.com/ the site}")
+      )
+    end
+
+    it "renders a mailto: reference as a markdown link" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal(
+        "[`mailto:foo@example.com`](<mailto:foo@example.com>)",
+        holder.resolve_references("{mailto:foo@example.com}")
+      )
+    end
+
+    it "wraps the destination in angle brackets so an unescaped paren in the URL can't corrupt the link" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal(
+        "[Ruby](<https://en.wikipedia.org/wiki/Ruby_(programming_language)>)",
+        holder.resolve_references("{https://en.wikipedia.org/wiki/Ruby_(programming_language) Ruby}")
+      )
+    end
+  end
+
   describe "#link_path" do
     it "returns a path relative to the currently-rendered object's own file" do
       holder = holder_for(<<~RUBY, "Foo::Bar")

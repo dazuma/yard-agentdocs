@@ -158,6 +158,25 @@ module YARD
       OBJECT_REFERENCE_ALIAS_PREFIXES = ["include:", "render:"].freeze
 
       ##
+      # Marks a {REFERENCE} name as a bare-URL reference (YARD's own
+      # `linkify` form for `{http://example.com}`) rather than an object
+      # name or a `file:`/`include:`/`render:` form — mirrors
+      # `BaseHelper#linkify`'s own dispatch exactly (`name` contains this
+      # anywhere). Unlike every other {REFERENCE} form, there's no lookup
+      # involved: the URL text itself *is* the target, so a match here
+      # always "resolves." See "`{url}`/`{mailto:...}` references" under
+      # "Decisions" in `devdocs/DESIGN.md`.
+      #
+      URL_REFERENCE_PATTERN = %r{://}
+
+      ##
+      # {URL_REFERENCE_PATTERN}'s companion: marks a {REFERENCE} name as a
+      # `{mailto:foo@example.com}` reference — YARD's other `linkify` form
+      # for a bare-URL-shaped target, which has no `"://"` to match on.
+      #
+      MAILTO_REFERENCE_PREFIX = "mailto:"
+
+      ##
       # Resolves YARD's inline `{Name}`/`{Name label text}` cross-reference
       # syntax within prose. Must run on already-dialect-converted text —
       # {Markdownify#markdownify} calls this as its final step, so template
@@ -258,6 +277,7 @@ module YARD
         name = match[2]
         label = match[3]
         return match[0][1..] if escape
+        return render_url_reference(name, label) if url_reference?(name)
         if name.start_with?(INCLUDE_FILE_REFERENCE_PREFIX)
           return render_file_reference(name.delete_prefix(INCLUDE_FILE_REFERENCE_PREFIX), label, match[0])
         end
@@ -277,6 +297,26 @@ module YARD
       def object_reference_name(name)
         prefix = OBJECT_REFERENCE_ALIAS_PREFIXES.find { |candidate| name.start_with?(candidate) }
         prefix ? name.delete_prefix(prefix) : name
+      end
+
+      # Whether a {REFERENCE} name is a bare-URL/`mailto:` reference — see
+      # {URL_REFERENCE_PATTERN}.
+      def url_reference?(name)
+        name.match?(URL_REFERENCE_PATTERN) || name.start_with?(MAILTO_REFERENCE_PREFIX)
+      end
+
+      # Renders a `{url}`/`{url label text}` reference: always resolves (the
+      # URL itself is the target, no lookup involved) to a Markdown link,
+      # backticked display text when unlabeled (same convention every other
+      # unlabeled {REFERENCE} form uses) or the label as plain prose when
+      # given. The destination is always wrapped in angle brackets
+      # (`(<url>)`, not `(url)`) — verified against several real Markdown
+      # parsers (see "`{url}`/`{mailto:...}` references" under "Decisions"
+      # in `devdocs/DESIGN.md`) to keep an unescaped `(`/`)` pair in the URL
+      # itself (e.g. a Wikipedia disambiguation link) from corrupting the
+      # surrounding `[...](...)` link syntax.
+      def render_url_reference(url, label)
+        "[#{label || "`#{url}`"}](<#{url}>)"
       end
 
       # Renders a `{file:path}`/`{file:path label text}` reference: +path+

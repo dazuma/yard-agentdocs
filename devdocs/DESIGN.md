@@ -732,14 +732,10 @@ whether agents actually exercise those pointers.
       plain link, the same as a bare `{Name}` reference (or `{file:...}`,
       for `{include:file:...}`). See "`{include:...}`/`{render:...}`:
       collapse to a plain link, never embed" under "Decisions"
-- [ ] (mech, pre-dogfood) Graceful degradation for the one remaining inline form
-      scoped out of the inline-reference decision — bare URLs: full support
-      was deliberately rejected (see "Inline cross-references in prose"
-      under "Decisions"), but nothing proves what a docstring containing
-      one renders as today (presumably literal unresolved text). Decide and
-      prove the degradation, not support. Flagged by the July 2026 coverage
-      review; narrowed to this one form once `{file:...}`/`{include:...}`/
-      `{render:...}` all gained full support (see above)
+- [x] `{url}`/`{mailto:...}` inline references — full support, the last of
+      the four forms originally scoped out of the inline-reference decision
+      (flagged by the July 2026 coverage review). See "`{url}`/
+      `{mailto:...}` references" under "Decisions"
 
 ### Indexing & discovery
 
@@ -2048,6 +2044,58 @@ The unresolved case is covered by unit tests only
 (`test/test_cross_referencing.rb`), per this project's existing precedent
 of keeping narrative fixture prose natural rather than forcing in every
 edge case.
+
+### `{url}`/`{mailto:...}` references: full support, destination always angle-bracketed
+
+Settles the last of the four forms the original "graceful degradation"
+checklist item bundled together — `{file:...}`, `{include:...}`/
+`{render:...}`, and now bare URLs, all ended up with full support rather
+than degradation, following the same "convert to a real Markdown link"
+reasoning each time.
+
+**Detection mirrors `BaseHelper#linkify`'s own dispatch exactly**: a
+{REFERENCE} name containing `"://"` anywhere (`URL_REFERENCE_PATTERN`), or
+starting with `"mailto:"` (`MAILTO_REFERENCE_PREFIX`). Unlike every other
+form this template resolves, there's no lookup step — the URL text *is*
+the target, so a match here always renders as a link; there's no
+unresolved case to prove. Checked ahead of the `file:`/`include:`/
+`render:` prefixes in `render_reference`, though the two families never
+actually collide (nothing starting with `"file:"`/`"include:"`/`"render:"`
+also contains `"://"` or starts with `"mailto:"` in practice).
+
+**Rendering**, matching the established unlabeled/labeled split: unlabeled
+`{url}` → `` [`url`](<url>) `` (backticked display text, same convention
+every other unlabeled {REFERENCE} form uses — YARD's own `link_url`
+defaults the visible text to the URL itself, same idea); labeled
+`{url label text}` → `[label text](<url>)` (plain prose, no backticks,
+same as every other labeled form).
+
+**The destination is always wrapped in angle brackets** (`(<url>)`, not
+`(url)`) — the one place this template emits a link whose destination is
+arbitrary, unvetted text rather than a path it generated itself, so unlike
+every other link this template produces, it can contain Markdown-hostile
+characters. Verified against a real hazard, not a hypothetical one: a URL
+with a single unescaped `(` (e.g. a Wikipedia disambiguation link,
+`https://en.wikipedia.org/wiki/Ruby_(programming_language)`) breaks a bare
+`[label](url)` — confirmed against six real parsers in a scratch dir (not
+project dependencies) spanning three ecosystems and both CommonMark-strict
+and pre-CommonMark lineages: `commonmarker` (cmark-gfm/GitHub),
+`redcarpet`, `kramdown`, `markdown-it`, `marked`, and Python's `markdown`.
+Each broke differently (kramdown/markdown-it/Python-Markdown: no link at
+all; cmark-gfm: mangled partial-autolink fallback; marked: a link to the
+wrong, truncated URL) — none produced the correct link. The angle-bracket
+form (`[label](<url>)`) is standard Markdown, not a CommonMark-only
+extension (present in Gruber's original 2004 syntax, for reference-link
+definitions specifically), and all six parsers handled it identically and
+correctly on the same inputs, including a plain URL with no parens at all.
+
+**Exercised**: `example/README.md` gains two "Further reading" bullets — an
+unlabeled `{https://www.ruby-lang.org/en/}` (the baseline case), and a
+labeled `{https://en.wikipedia.org/wiki/Ruby_(programming_language) Ruby on
+Wikipedia}` (the paren-escape case, using a real, naturally-occurring URL
+rather than a contrived one). `mailto:` and the unlabeled/labeled rendering
+split in isolation are covered by unit tests only
+(`test/test_cross_referencing.rb`), per this project's existing precedent.
 
 ### Prose/summary containing Markdown metacharacters: indent as list-item continuation, don't escape
 
