@@ -211,6 +211,11 @@ re-measure the per-entry `**Defined in:**` overhead on a real gem (8.6%
 of corpus bytes on the hand-written example), and watch for evidence of
 whether agents actually exercise those pointers.
 
+**First run complete (2026-07-20, YARD 0.9.44 self-run)** — findings,
+measurements, and two new checklist items in "Dogfood milestone: first run"
+under "Decisions"; full working notes in `devdocs/Dogfood.md`. Further gems
+may follow; that doc tracks status across all of them.
+
 ### Module/class structure
 
 - [x] Top-level class — `Stopwatch`
@@ -408,6 +413,26 @@ whether agents actually exercise those pointers.
       its own top-level Markdown paragraph(s), still run through
       `markdownify` (heading demotion included) — see "Aliased method with
       its own comment" under "Decisions"
+- [ ] (design) Alias targeting a method outside the parsed corpus (external
+      gem/stdlib, or otherwise not a plain `def` YARD's registry resolves) —
+      `alias_original(meth)` returns `nil` in this case, and nothing
+      downstream guards it: `member_heading(nil)` (called from both
+      `method_summary_line` and `method_entry.erb`'s `**Alias for:**` line)
+      raises `NoMethodError`, crashing the entire `yard doc` run. Not
+      hypothetical — hit on the very first dogfood run, from two
+      independent real cases in YARD's own source (`alias block last` where
+      `last` is inherited `Array`-like behavior, never a plain `def`;
+      `alias query params` where `params` comes from the external `rack`
+      gem). Same shape as the already-settled "unresolved mixin/superclass
+      renders as a plain, unlinked backtick" pattern (see "Mixin content
+      strategy"/`superclass_line` under "Decisions"), but genuinely
+      (design), not (mech): unlike an unresolved mixin/superclass, which is
+      still a `Proxy` object with a real `.name`, `alias_original` returning
+      `nil` loses even the original's *name* — recovering it means falling
+      back to the raw `meth.namespace.aliases[meth]` symbol instead of a
+      resolved object, a display case none of the existing unresolved-
+      reference handling covers. Flagged by the 2026-07-20 YARD dogfood run
+      (see devdocs/Dogfood.md)
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [x] (mech, pre-dogfood) Class methods defined via `class << self` — should render
@@ -520,6 +545,30 @@ whether agents actually exercise those pointers.
       "`attr_accessor`/`attr_writer` with doc comments" under "Decisions",
       which also closes out the undocumented-attribute boilerplate revisit
       this item was carrying
+- [ ] (design) Attribute `**Type:**` fallback for a plain, comment-less
+      `attr_reader`/`attr_writer`/`attr_accessor` with no `@attr*` tag —
+      reopens part of the boilerplate-revisit claim the item above closed.
+      That claim ("YARD's `Struct`/`Data` handlers and `AttributeHandler`
+      generate the same boilerplate text through the same `AttributeInfo`
+      rendering path") holds for the docstring *text* half
+      ("Returns the value of attribute `name`" — genuinely shared, both
+      handlers populate the same generic docstring), but not the *type*
+      half: `` **Type:** `Object` `` on `Circle#radius`/`Vector#dx` comes
+      from a real `@return [Object]` tag YARD's `Struct.new`/`Data.define`
+      handlers synthesize on the accessor — confirmed directly
+      (`tag(:return).types == ["Object"]`) — which plain `AttributeHandler`
+      (backing ordinary `attr_*`) never adds (`tag(:return) == nil`).
+      `attribute_type` passes that `nil` through and `type_ref(nil)`
+      returns `""`, so a plain `attr_*`'s `**Type:**` line renders visibly
+      blank instead of falling back to `` `Object` ``, reading as a
+      rendering bug rather than a terse-but-valid entry. Pervasive on real
+      code: 245 occurrences across 89 of 286 classes/modules (~31%) in the
+      2026-07-20 YARD dogfood run (see devdocs/Dogfood.md) — every
+      undocumented plain `attr_accessor`. Needs an `example/lib` fixture
+      with a bare, comment-less `attr_reader`/`writer`/`accessor` (not
+      Struct/Data-based, which is already covered by `Circle`/`Vector`) to
+      settle whether the fix is defaulting to `` `Object` `` to match the
+      Struct/Data case, or something else
 - [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
@@ -1203,7 +1252,15 @@ YARD's own `MethodObject#aliases`/`#is_alias?`), not a docstring tag.
 - `alias_original(meth)` — `nil` unless `meth.is_alias?`; otherwise looks up
   `meth.namespace.aliases[meth]` (the original's name, per YARD's own
   bookkeeping) among `meth.namespace.meths(scope: meth.scope,
-  included: false)` to find the actual original `MethodObject`.
+  included: false)` to find the actual original `MethodObject`. **Correction
+  (2026-07-20 YARD dogfood run, see devdocs/Dogfood.md):** this description
+  undersold the `nil` case — `alias_original` also returns `nil` when
+  `meth.is_alias?` is true but the `.find` comes up empty (the original is
+  outside the parsed corpus), and unlike this decision's own examples, no
+  caller guards against it: `member_heading(alias_original(meth))` crashes
+  the whole run. See the new "Alias targeting a method outside the parsed
+  corpus" checklist item under "Methods — shapes & signatures" — not yet
+  fixed.
 - `also_known_as_line(meth)` — `nil` if `meth.aliases` (YARD's own reverse
   list) is empty, otherwise the `**Also known as:**` line, comma-joining
   every alias.
@@ -3930,6 +3987,26 @@ human docstring), so the policy stands: render the boilerplate, don't
 suppress it. Closes the revisit; not expected to be reopened without new
 evidence.
 
+**Reopened in part (2026-07-20 YARD dogfood run, see devdocs/Dogfood.md):**
+new evidence did surface, against the middle claim above, not the policy
+conclusion. "`Struct`/`Data` handlers and `AttributeHandler` generate the
+same boilerplate text through the same `AttributeInfo` rendering path" is
+true for the docstring *text* (`attribute_docstring`, genuinely shared) but
+false for the *type*: `` **Type:** `Object` `` on `Circle#radius`/
+`Vector#dx` comes from a real `@return [Object]` tag `Struct.new`/
+`Data.define`'s handlers synthesize on the accessor
+(`tag(:return).types == ["Object"]`, confirmed directly) — plain
+`AttributeHandler` never adds one (`tag(:return) == nil`), so
+`attribute_type` returns `nil` and `type_ref(nil)` returns `""`: a plain,
+undocumented `attr_*`'s `**Type:**` line renders visibly blank, not
+`` `Object` ``. Pervasive on real code — 245 occurrences across 89 of 286
+classes/modules (~31%) on the dogfood run. The render-the-boilerplate
+*policy* still stands (this doesn't reopen the filtering-is-fragile
+reasoning), but the claim that `Circle#radius`/`Vector#dx` already exercise
+the plain-`attr_*` case "end-to-end" was wrong — they only exercise the
+Struct/Data path. See the new "Attribute `**Type:**` fallback for a plain…
+`attr_*`" checklist item under "Attributes & constants" — not yet fixed.
+
 ### `@attr`/`@attr_reader`/`@attr_writer` tags on a manual reader/writer pair: accept YARD's own `Defined in:` quirk, no workaround
 
 Settles the "Manually-defined reader/writer pair documented via `@attr`/
@@ -4408,6 +4485,99 @@ code span instead of a `{...}` inline reference — the sentence didn't
 depend on a live link. Logged as a new checklist item under
 "Cross-referencing scenarios" rather than fixed now, per this project's
 usual practice of not bundling incidental fixes into an unrelated task.
+
+### Dogfood milestone: first run (YARD 0.9.44 self-run, 2026-07-20)
+
+The dogfood milestone described under "Prioritization and roadmap" — run
+the template against a real, mid-size gem and diff-read the output — is
+underway. Full working notes, the exact generation setup, and the raw
+measurements live in `devdocs/Dogfood.md` (not shipped in the gem, kept
+separate from this file so exploratory multi-gem material doesn't balloon
+DESIGN.md); this entry records only the durable outcome of the first run,
+matching how "Agent-usefulness evaluation (July 2026)" above logs its
+findings. Further gems queued in `devdocs/Dogfood.md` may add more runs
+here later.
+
+**Target:** YARD itself (`yard-0.9.44`, already Bundler-vendored — named as
+"a fitting candidate" in the roadmap section). Generated with
+`--markup rdoc` (YARD's own docstrings use the `:rdoc` dialect, confirmed
+by inspection — this was also the first real-scale exercise of that path,
+previously only covered by the one-file `example/rdoc` fixture), excluding
+`lib/yard/server/templates/` and `lib/yard/rubygems/` to mirror YARD's own
+`.yardopts` `--exclude` entries (template-DSL source and a vendored
+rubygems shim, neither part of the API surface a normal consumer would
+generate docs for). Result: 287 output files (286 classes/modules + the
+README guide) from 1,024,370 bytes of source across 200 files.
+
+**Findings, escalated to new checklist items** (both detailed in their own
+checklist entries — "Alias targeting a method outside the parsed corpus"
+under "Methods — shapes & signatures", and "Attribute `**Type:**` fallback
+for a plain… `attr_*`" under "Attributes & constants" — and as corrections
+appended to "Aliased method: minimal pointer entry" and "`attr_accessor`/
+`attr_writer` with doc comments" respectively):
+
+1. **Crash:** an `alias`/`alias_method` targeting a method outside the
+   parsed corpus (external gem, stdlib, or otherwise unresolvable) makes
+   `alias_original` return `nil`, which nothing downstream guards against —
+   `member_heading(nil)` raises and aborts the entire run. Hit immediately,
+   from two independent real cases, not a contrived one.
+2. **Pervasive gap:** a plain, comment-less `attr_reader`/`attr_writer`/
+   `attr_accessor`'s `**Type:**` line renders blank rather than
+   `` `Object` ``, because the `` `Object` `` fallback is actually
+   synthesized by YARD's `Struct.new`/`Data.define` handlers specifically,
+   not a general YARD behavior as an earlier decision ("`attr_accessor`/
+   `attr_writer` with doc comments") had concluded. 245 occurrences across
+   89 of 286 classes/modules (~31%).
+
+**What works, no changes recommended** — confirms several existing
+decisions/fixes hold up on real, independently-authored source, not just
+the hand-crafted fixture that motivated them:
+
+- **Token economy claim confirmed.** The July 2026 agent-usefulness
+  evaluation flagged the toy fixture as ~37% *larger* than its source
+  (38.9KB vs. 28.5KB) and made "cheaper than reading source" an explicit
+  claim for this milestone to verify. On real code it flips as
+  hypothesized: 771,369 bytes of docs vs. 1,024,370 bytes of source — docs
+  are **~24.7% smaller**. The toy fixture's result was indeed an artifact
+  of rich docstrings over toy method bodies, not a problem with the format.
+- Cross-reference resolution at real scale/nesting depth works (`index.md`
+  summaries correctly link deeply-nested real paths), and
+  `indent_continuation` correctly keeps a hard-wrapped, multi-line
+  docstring summary from breaking `index.md`'s Markdown list structure —
+  both previously only exercised by short, single-line fixture text.
+- The three most recent pre-dogfood fixes — assignment-method headings
+  (`#[]=`/`#all=`), class-level `@private`/`@api private` flags, and
+  `class << self` attributes — all render correctly on real source.
+- YARD's own custom tags (`@yard.tag`/`@yard.signature`/`@yard.directive`,
+  from `.yardopts` entries this run didn't load) are dropped with an
+  `Unknown tag` warning and don't leak into rendered output — consistent
+  with, and no new pressure on, the unchanged "Custom user-defined tags"
+  `(stretch)` checklist item.
+- No empty/broken output files. The one near-empty page produced
+  (`YARD::Parser::C::CommentParser`, header + `Defined in:` only) is a
+  module whose only methods are Ruby-`protected` — correctly filtered
+  before any template code sees them, correctly rendering no `## Member
+  Summary` at all, matching the existing "empty section omitted entirely"
+  decision.
+
+**Measurement: per-entry `Defined in:` overhead re-checked, went the
+opposite direction from the stated expectation.** "Per-entry `Defined in:`
+retained at all levels" gated its keep-as-is disposition partly on
+re-measuring this on a real gem, speculating the fraction "should shrink…
+(real prose and method bodies dilute it)". It grew instead: 8.6% on the toy
+fixture (3,543B / 41,422B) vs. **~11.0%** here (84,454B / 771,369B). The
+disposition doesn't automatically change on this alone — it was gated on
+overhead staying high *and* the pointers going unused, and no measurement
+of actual pointer usage was possible (that needs a live agent doing a real
+lookup task, out of scope for a diff-read) — but the "should shrink"
+expectation itself was wrong and shouldn't be relied on if this question
+comes up again.
+
+**Not yet revisited:** the two items the roadmap explicitly gates on this
+milestone — the "no custom handler classes" integration principle, and the
+"Accompanying agent skill" checklist item — since both benefit from seeing
+more than one gem's worth of evidence first. Left for a later run or a
+cross-run correlation pass in `devdocs/Dogfood.md`.
 
 ## Implementation
 
