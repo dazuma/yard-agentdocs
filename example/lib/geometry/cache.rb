@@ -7,7 +7,10 @@ module Geometry
   # class" concept — but flagged `@private` since it's an implementation
   # detail, not part of the stable public API. Exercises how a
   # `@private`-tagged *class* renders, as opposed to a `@private`-tagged
-  # method (`Stopwatch#raw_elapsed_s`).
+  # method ({Stopwatch#raw_elapsed_s}) — also, since that reference is two
+  # full namespace hops away from its target (`Geometry::Cache` up to
+  # `Geometry` up to the top level), exercises the lexical cross-reference
+  # resolution cap workaround.
   #
   # @private
   #

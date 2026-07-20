@@ -75,6 +75,13 @@ describe ::YARD::AgentDocs::MethodSignature do
         # @return [Point]
         def -@
         end
+
+        def label=(value)
+        end
+
+        # @return [Boolean]
+        def ==(other)
+        end
       end
     RUBY
     agentdocs_holder(
@@ -208,6 +215,34 @@ describe ::YARD::AgentDocs::MethodSignature do
     end
   end
 
+  describe "#assignment_call?" do
+    it "is true for an explicit name= method not paired via attr_*" do
+      assert(holder.assignment_call?(meth(:label=)))
+    end
+
+    it "is false for a comparison operator that happens to end in =" do
+      refute(holder.assignment_call?(meth(:==)))
+    end
+
+    it "is false for #[]=, already handled by #bracket_call?" do
+      refute(holder.assignment_call?(meth(:[]=)))
+    end
+
+    it "is false for the constructor" do
+      refute(holder.assignment_call?(meth(:initialize)))
+    end
+
+    it "is true at class scope too, not just instance scope" do
+      holder = holder_for(<<~RUBY, "Widget")
+        class Widget
+          def self.target=(value)
+          end
+        end
+      RUBY
+      assert(holder.assignment_call?(holder.object.meths.find { |m| m.name.to_s == "target=" }))
+    end
+  end
+
   describe "#signature_text" do
     it "renders the synthetic constructor entry using the class's own name" do
       assert_equal("Point.new(x, y) → Point", holder.signature_text(meth(:initialize)))
@@ -244,6 +279,25 @@ describe ::YARD::AgentDocs::MethodSignature do
 
     it "renders a unary operator method in prefix form" do
       assert_equal("-point → Point", holder.signature_text(meth(:-@)))
+    end
+
+    it "renders an explicit name= method in plain assignment form, with no arrow" do
+      assert_equal("point.label = value", holder.signature_text(meth(:label=)))
+    end
+
+    it "renders a comparison operator ending in = in infix form, not assignment form" do
+      assert_equal("point == other → Boolean", holder.signature_text(meth(:==)))
+    end
+
+    it "renders a class-scoped name= method against the class receiver" do
+      holder = holder_for(<<~RUBY, "Widget")
+        class Widget
+          def self.target=(value)
+          end
+        end
+      RUBY
+      meth = holder.object.meths.find { |m| m.name.to_s == "target=" }
+      assert_equal("Widget.target = value", holder.signature_text(meth))
     end
   end
 

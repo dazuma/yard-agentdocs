@@ -291,6 +291,44 @@ describe ::YARD::AgentDocs::CrossReferencing do
     end
   end
 
+  describe "#resolve_references — lexical cross-reference resolution cap" do
+    it "resolves a method reference one namespace hop away without needing the fallback" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz
+            def qux; end
+          end
+
+          class Bar; end
+        end
+      RUBY
+      assert_equal("[`Baz#qux`](Baz.md)", holder.resolve_references("{Baz#qux}"))
+    end
+
+    it "resolves a method reference two namespace hops away via the fallback " \
+       "(YARD's own resolver caps a plain lookup at one hop)" do
+      holder = holder_for(<<~RUBY, "Foo::Baz")
+        module Foo
+          class Baz; end
+        end
+
+        class Target
+          def m; end
+        end
+      RUBY
+      assert_equal("[`Target#m`](../Target.md)", holder.resolve_references("{Target#m}"))
+    end
+
+    it "leaves a genuinely unresolvable method reference untouched even after climbing to the root" do
+      holder = holder_for(<<~RUBY, "Foo::Baz")
+        module Foo
+          class Baz; end
+        end
+      RUBY
+      assert_equal("{Bogus#m}", holder.resolve_references("{Bogus#m}"))
+    end
+  end
+
   describe "#resolve_references — {file:...} guide references" do
     it "renders a resolved unlabeled file reference as a markdown link using the guide's title" do
       holder = holder_with_files("class Foo; end", "Foo", guide_fixture("guide.md", "guide", "The Guide"))

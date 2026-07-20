@@ -10,7 +10,10 @@ elsewhere in this namespace. Kept public — Ruby has no native "private
 class" concept — but flagged `@private` since it's an implementation
 detail, not part of the stable public API. Exercises how a
 `@private`-tagged *class* renders, as opposed to a `@private`-tagged
-method (`Stopwatch#raw_elapsed_s`).
+method ([`Stopwatch#raw_elapsed_s`](../Stopwatch.md)) — also, since that reference is two
+full namespace hops away from its target (`Geometry::Cache` up to
+`Geometry` up to the top level), exercises the lexical cross-reference
+resolution cap workaround.
 
 ## Member Summary
 
@@ -44,4 +47,4 @@ transitive tags, unlike `@since`/`@api`.
 
 - `Object` — the cached value
 
-* **Defined in:** `example/lib/geometry/cache.rb:26`
+* **Defined in:** `example/lib/geometry/cache.rb:29`

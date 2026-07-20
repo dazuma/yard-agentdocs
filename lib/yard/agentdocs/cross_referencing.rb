@@ -63,7 +63,7 @@ module YARD
             buffer << scanner.getch
             next
           end
-          resolved = ::YARD::Registry.resolve(object, token, true, false)
+          resolved = resolve_name(token)
           unless resolved && resolved != object
             buffer << token
             next
@@ -107,7 +107,7 @@ module YARD
       #
       def see_ref(tag)
         name = tag.name
-        resolved = ::YARD::Registry.resolve(object, name, true, false)
+        resolved = resolve_name(name)
         return "`#{name}`" if resolved.nil? || self_reference?(resolved)
         "[`#{name}`](#{link_path(resolved)})"
       end
@@ -214,6 +214,42 @@ module YARD
 
       private
 
+      # Resolves +name+ against the object currently being rendered, then —
+      # if that fails — retries from each successively higher lexical
+      # ancestor until one succeeds or the root namespace is exhausted.
+      #
+      # Works around a real YARD limitation: `RegistryResolver#lookup_by_path`
+      # caps *lexical* (non-inheritance) method lookups at exactly one
+      # namespace hop from wherever resolution started, silently discarding
+      # an otherwise-valid match found further up (see "Lexical
+      # cross-reference resolution cap" under "Decisions" in
+      # `devdocs/DESIGN.md`). A plain single `Registry.resolve(object, ...)`
+      # call inherits that cap relative to +object+'s own position. Retrying
+      # with a *different* starting namespace doesn't lift the cap directly
+      # (this deliberately never reaches into `RegistryResolver`'s private
+      # internals to do that) — instead, each retry is a fresh top-level
+      # call, whose own internal hop count resets to zero relative to its
+      # own start, so a retry from close enough to the real target always
+      # lands within the one-hop allowance on its own. Verified against
+      # YARD's own source to recover every real case the plain single call
+      # misses, with no false positives — see "Lexical cross-reference
+      # resolution cap" under "Decisions".
+      #
+      # @param name [String]
+      # @return [::YARD::CodeObjects::Base, nil]
+      #
+      def resolve_name(name)
+        resolved = ::YARD::Registry.resolve(object, name, true, false)
+        return resolved if resolved
+        namespace = object&.namespace
+        while namespace
+          resolved = ::YARD::Registry.resolve(namespace, name, true, false)
+          return resolved if resolved
+          namespace = namespace.namespace
+        end
+        nil
+      end
+
       # The directory {#link_path} resolves a relative path from — the
       # directory of the file currently being rendered. Defaults to
       # {#object}'s own file location, which is correct for every
@@ -285,7 +321,7 @@ module YARD
           return render_file_reference(name.delete_prefix(FILE_REFERENCE_PREFIX), label, match[0])
         end
         object_name = object_reference_name(name)
-        resolved = ::YARD::Registry.resolve(object, object_name, true, false)
+        resolved = resolve_name(object_name)
         return match[0] if resolved.nil?
         return label || "`#{object_name}`" if self_reference?(resolved)
         "[#{label || "`#{object_name}`"}](#{link_path(resolved)})"

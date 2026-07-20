@@ -435,7 +435,7 @@ whether agents actually exercise those pointers.
       almost certainly renders identically to the block form, but it's a
       distinct parse path in YARD and a one-line fixture proves it.
       Flagged by the July 2026 coverage review
-- [ ] (mech, pre-dogfood) Explicit assignment method (`def name=(value)`) not
+- [x] (mech, pre-dogfood) Explicit assignment method (`def name=(value)`) not
       paired via `attr_*` — YARD treats it as a plain method named `name=`,
       not an attribute, so it takes the method-entry path; the
       assignment-form rendering settled for `#[]=` (natural `obj[i] = v`
@@ -448,13 +448,25 @@ whether agents actually exercise those pointers.
       a meaningless `→` arrow on an assignment) and found the pattern
       genuinely common on the intended dogfood target: 36 occurrences in
       YARD's own source (e.g. `Verifier#expressions=`,
-      `SourceParser.parser_type=`). Fix: generalize the existing
-      `bracket_call?`/`bracket_call_text` machinery (or a sibling
-      `assignment_call?`) to any method whose name ends in `=` and isn't
-      already one of `OPERATOR_METHOD_NAMES`' comparison operators
-      (`==`/`!=`/`<=`/`>=`/`=~`), rendering `obj.name = value` with no
-      arrow — same shape `#[]=` already gets, just not keyed to bracket
-      names specifically
+      `SourceParser.parser_type=`). Fixed exactly as scoped: a new
+      `MethodSignature#assignment_call?`/`#assignment_call_text` pair,
+      checked in `signature_text` alongside `bracket_call?`, matches any
+      method whose name ends in `=` and isn't in `OPERATOR_METHOD_NAMES`
+      (covers the comparison exclusions for free — `==`/`!=`/`<=`/`>=` are
+      members so `end_with?("=")` never reaches them, and `=~` is excluded
+      by `end_with?("=")` itself, since it ends in `~`). Deliberately not
+      restricted to instance scope like `bracket_call?`/`prefix_call?` are —
+      a class-level setter (`SourceParser.parser_type=`) is real and common,
+      and `receiver_name` already renders the class receiver correctly for
+      it. No arrow-suppression code added, matching `#[]=`'s own precedent
+      (an unfixed, acknowledged gap — see "Remaining operator forms" under
+      "Decisions"): the `example/` fixture's assignment methods simply carry
+      no `@return` tag, and the existing "no tag → no arrow" behavior
+      handles it for free. Exercised via `Stopwatch#tag=` (instance scope)
+      and `Stopwatch.log_target=` (class scope, alongside a paired
+      `.log_target` getter), both hand-written instead of `attr_writer`
+      specifically to validate before storing — the realistic reason a gem
+      author writes one of these by hand
 
 ### Visibility
 
@@ -726,7 +738,7 @@ whether agents actually exercise those pointers.
       references, and code-span/fenced-block exclusion. See "Inline
       cross-references in prose" under "Decisions" for the full scope and
       rendering rules.
-- [ ] (mech, pre-dogfood) Inline `{Class#method}` reference (and, since it
+- [x] (mech, pre-dogfood) Inline `{Class#method}` reference (and, since it
       shares the identical `Registry.resolve` call, `@see` targeting a
       method) more than one namespace hop away from a method target —
       `RegistryResolver#lookup_by_path` caps *lexical* (non-inheritance)
@@ -747,15 +759,55 @@ whether agents actually exercise those pointers.
       an uncapped resolver found **30 of 555 real inline references (5.4%)**
       would silently degrade to plain unlinked text, e.g. `{Handlers::
       Base#push_state}` from `Handlers::Ruby::Legacy::Base`, `{Registry.
-      root}` from `CodeObjects::Base`. Every failing case found was a
-      `::`-qualified reference, never a bare unqualified name, suggesting a
-      targeted fix: on a failed lexical resolve, retry once from the root
-      namespace, but only when the given name contains `::` — preserving
-      YARD's original cap (presumably an anti-false-positive guard) for
-      bare/ambiguous names, which this project has no independent evidence
-      against. Needs a unit test proving the boundary (one hop resolves,
-      two hops doesn't, a `::`-qualified two-hop reference does via the
-      fallback) plus an `example/` appearance
+      root}` from `CodeObjects::Base`.
+
+      **Correction (second 2026-07-20 pass):** the review's proposed fix —
+      "retry once from the root namespace, but only when the given name
+      contains `::`" — doesn't hold up under direct testing and rests on a
+      claim ("every failing case found was a `::`-qualified reference")
+      that a fresh probe against the same YARD checkout contradicts: of 29
+      reproduced failures (555→548, 30→29, presumably from minor source
+      drift since the first pass), only 15 (52%) are `::`-qualified;
+      14 — including both cited examples, `{Registry.root}` and (on
+      inspection) most of the rest — are bare/unqualified. Worse, the
+      literal fix as written (a single `Registry.resolve(:root, name, ...)`
+      jump) resolves only 1 of the 29, since these names are lexically
+      *relative*, not root-qualified, so jumping straight to root and
+      searching for the literal string almost always misses. The intended
+      fix — actually run the resolve loop's *own* lexical climb further, no
+      one-hop cap — dropped entirely because implementing it directly means
+      subclassing `RegistryResolver` and overriding a private method, not
+      something worth doing just to avoid a public-API retry loop.
+
+      **Actual fix, verified against the same corpus:** no `::` gating at
+      all. On a failed `Registry.resolve(object, name, true, false)`, retry
+      with the *same* call but a different starting `namespace` — walking
+      `object.namespace`, then `.namespace` again, up to the root — stopping
+      at the first non-nil result. This needs no access to `RegistryResolver`
+      internals: each retry is an ordinary public `Registry.resolve` call,
+      and its own internal hop-count resets to zero relative to *its own*
+      starting namespace, so a retry from close enough to the real target
+      always lands within the original one-hop allowance on its own.
+      Recovers **29 of 29** reproduced failures, with **zero** cases where it
+      resolves something the fully-uncapped resolver wouldn't (checked
+      against all 548 references, not just the 29 failures) — i.e. no
+      measured false-positive cost to dropping the `::` gate.
+
+      **Implementation:** `CrossReferencing#resolve_name`, a new private
+      helper, replaces the three direct `Registry.resolve(object, name,
+      true, false)` call sites (`type_ref`, `see_ref`, `render_reference`)
+      — one shared retry loop rather than three copies. `test/
+      test_cross_referencing.rb`'s "lexical cross-reference resolution cap"
+      describe block proves the boundary directly: a one-hop reference
+      resolves without the fallback ever running, a two-hop reference
+      resolves only via it, and a genuinely-unresolvable name still returns
+      nil after climbing all the way to root (no false positive, no
+      infinite loop). `example/` appearance: `Geometry::Cache`'s docstring
+      — previously a plain, unlinked `` `Stopwatch#raw_elapsed_s` `` code
+      span, worked around exactly because of this gap (see "Class-level
+      `@private`/`@api private`" under "Decisions") — now uses a real
+      `{Stopwatch#raw_elapsed_s}` reference, two full namespace hops away,
+      resolving correctly
 - [x] `Hash{K => V}` compound type — the `=>`/`{`/`}` tokens needed no scanner
       changes (`type_ref` was already written to buffer any punctuation
       generically, not just `Array`'s `<`/`>`; see "Compound-type

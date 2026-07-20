@@ -354,6 +354,38 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [Boolean] whether +meth+ should render in plain assignment
+      #   form (`obj.name = value`, or `Klass.name = value` at class scope)
+      #   — any explicit `def name=(value)` not paired via `attr_*` (so not
+      #   already an {AttributeInfo}), and not one of the comparison
+      #   operators that happen to end in `=` (`==`, `!=`, `<=`, `>=`) or
+      #   {BRACKET_METHOD_NAMES}' own `[]=` (both already in
+      #   {OPERATOR_METHOD_NAMES}, so excluded by the same membership check;
+      #   `=~` needs no special-casing since it doesn't end in `=` at all).
+      #   Unlike {#bracket_call?}/{#prefix_call?}, not restricted to
+      #   instance scope — a hand-written class-level setter (e.g. YARD's
+      #   own `SourceParser.parser_type=`) is a real, common pattern.
+      #
+      def assignment_call?(meth)
+        name = meth.name.to_s
+        !meth.constructor? && name.end_with?("=") && !OPERATOR_METHOD_NAMES.include?(name)
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @param params [Array<String>] as returned by {#param_names} — always
+      #   exactly one element, since Ruby only ever allows a single required
+      #   positional parameter on a `name=` method
+      # @return [String] the assignment fragment, e.g. `point.label = value`
+      #   — never a `→ Type` arrow (see {#bracket_call_text}'s `#[]=` note:
+      #   same Ruby assignment-expression semantics apply here)
+      #
+      def assignment_call_text(meth, params)
+        "#{receiver_name(meth)}.#{meth.name.to_s.chomp('=')} = #{params.first}"
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
       # @param params [Array<String>] as returned by {#param_names}
       # @return [String] the bracket-call fragment, e.g. `point[i]` for
       #   `#[]`, or `point[i] = v` for `#[]=` (the last param is the
@@ -400,6 +432,8 @@ module YARD
         call =
           if bracket_call?(meth)
             bracket_call_text(meth, params)
+          elsif assignment_call?(meth)
+            assignment_call_text(meth, params)
           elsif prefix_call?(meth, params)
             "#{name[0]}#{receiver_name(meth)}"
           elsif infix_call?(meth, params)
