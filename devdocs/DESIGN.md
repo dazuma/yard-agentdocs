@@ -453,13 +453,16 @@ whether agents actually exercise those pointers.
       unlike Ruby-scope privacy, these render but are flagged (`**Private
       API.**` full-entry line, `(private API)` Member Summary suffix) —
       see "Visibility policy" under "Decisions"
-- [ ] (mech, pre-dogfood) `@api` with non-private values (`@api public`, `@api
+- [x] (mech, pre-dogfood) `@api` with non-private values (`@api public`, `@api
       internal`) — `VisibilityInfo` only special-cases `text == "private"`,
       so any other value vanishes entirely today; and `@api` is one of
       YARD's two transitive tags (see the `@since` discussion under
       "Splitting the flag block" in "Decisions"), so a class-level tag
-      covers every method. Decide render-vs-drop. Flagged by the July 2026
-      coverage review
+      covers every method. Confirmed mechanical, zero template changes:
+      settled on dropping non-private values, matching YARD's own default
+      template's behavior (only `@api private` ever renders) — see "`@api`
+      with non-private values" under "Decisions". Originally flagged by the
+      July 2026 coverage review
 - [ ] (mech, pre-dogfood) Class-level `@private` (or `@api private`) on a class/module —
       tag-based privacy was settled and exercised on methods only; whether
       a `@private`-tagged class gets a file, gets flagged on its own page,
@@ -4191,6 +4194,40 @@ collision-avoidance scheme: no existing mechanism in this format
 addresses analogous collisions elsewhere, and inventing one
 speculatively isn't warranted absent real evidence (e.g. from the
 dogfood milestone) that it happens in practice.
+
+### `@api` with non-private values: drop, matching YARD's own template and today's accidental behavior
+
+Settles the "`@api` with non-private values" checklist item. Traced rather
+than assumed: grepped the bundled `yard` gem's own default HTML template and
+confirmed `@api private` is the *only* value it ever renders visibly
+(`header.erb`/`item_summary.erb`'s "Private" badge, `docstring/setup.rb`'s
+warning paragraph) — every other value (`public`, `internal`, anything else)
+exists purely for CLI-level filtering (`--api`/`--hide-api`/`--query`) and
+never reaches the rendered page. Cross-checked against real-world usage
+(grepped installed gems): `@api private` (1091 occurrences) and `@api public`
+(511) dominate; other values are vanishingly rare (`internal` × 1,
+`semipublic` × 1). `@api public` on an already Ruby-public method is a
+no-op for an agent's purposes — it doesn't convey anything `private`-vs-not
+doesn't already say.
+
+**Decision: drop, matching precedent.** `VisibilityInfo#private_api?` already
+only special-cases `text == "private"`, so this needed zero template
+changes — the checklist gap was that this was accidental (an untested
+side effect), not a deliberate, proven choice. Confirmed via direct probing
+(not just source-reading) that `@api` is transitive exactly like `@since`
+(propagates from a class-level tag to every method that doesn't redeclare
+it, including `class << self`-defined ones), and that a method's own
+`@private` tag still flags it correctly even when it inherits an unrelated
+`@api public` from its class — the two checks are independent `||` branches.
+
+Exercised via `Stopwatch`, which now carries a class-level `@api public` tag
+(proving the transitive, non-private case renders nothing, including on
+`.verbose`/`.clock_resolution`, its `class << self`-defined members that
+don't redeclare it) and `Stopwatch#add`, tagged `@api internal` (proving it's
+not literally checking for the string `"public"` — any non-`"private"` value
+drops the same way). `example/doc/Stopwatch.md` needed no content changes at
+all, only `**Defined in:**` line-number bumps from the two added comment
+lines — the whole point of the fixture.
 
 ## Implementation
 

@@ -16,6 +16,7 @@
 #   output should say so explicitly, or just look identical to a running
 #   one — a second paragraph purely to exercise a multi-paragraph tag
 #   (blank line and all) instead of a single wrapped one.
+# @api public
 #
 class Stopwatch
   ##
@@ -70,6 +71,7 @@ class Stopwatch
   #
   # @param seconds [Float] the number of seconds to add
   # @return [Float] the new total elapsed time
+  # @api internal
   #
   def add(seconds)
     @elapsed += seconds
