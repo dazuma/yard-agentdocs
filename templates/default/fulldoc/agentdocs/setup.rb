@@ -9,7 +9,23 @@ def init
   options.serializer.extension = "md" if options.serializer
   objects = run_verifier(options.objects).reject(&:root?)
   serialize_index(objects)
+  serialize_readme(options.readme) if options.readme
   objects.each { |object| serialize(object) }
+end
+
+# Renders the project README (if any) onto its own page, named after
+# YARD's own `file.<name>.html` convention for extra files. Dialect
+# conversion and inline `{Name}` reference resolution reuse the same
+# `markdownify` pipeline docstrings go through, but with heading demotion
+# disabled — see `Markdownify#markdownify`'s `demote_headings` param.
+# Resolution context is pinned at the root namespace (a README isn't
+# "about" any one class/module); {#current_dir} is already pinned at the
+# doc root unconditionally for this whole template (see below), so no
+# further override is needed here.
+def serialize_readme(file)
+  self.object = ::YARD::Registry.root
+  content = markdownify(file.contents, demote_headings: false)
+  Templates::Engine.with_serializer("file.#{file.name}.md", options.serializer) { content }
 end
 
 def serialize_index(objects)

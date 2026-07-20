@@ -29,6 +29,10 @@
   instead, and stack with no blank line between them — a deliberate marker
   change so they never render as part of the preceding content list.
 
+## Guides
+
+- [`README`](file.README.md)
+
 ## Classes & modules
 
 - [`Geometry`](Geometry.md) — A small toy geometry namespace, used as a worked example and test case for the `yard-agentdocs` output format.

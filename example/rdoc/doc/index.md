@@ -29,6 +29,10 @@
   instead, and stack with no blank line between them — a deliberate marker
   change so they never render as part of the preceding content list.
 
+## Guides
+
+- [`README`](file.README.md)
+
 ## Classes & modules
 
 - [`Greeter`](Greeter.md) — Builds a greeting string.

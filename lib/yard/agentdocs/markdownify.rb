@@ -34,11 +34,20 @@ module YARD
       ##
       # @param text [String, ::YARD::Docstring, nil] prose in the dialect
       #   declared by `options.markup`
+      # @param demote_headings [Boolean] whether a colliding `#`/`##`/`###`
+      #   heading gets demoted (see {#demote_headings}). Defaults to `true`,
+      #   correct for every docstring/tag-text call site, where the
+      #   converted text is embedded into a page that already owns those
+      #   heading levels structurally. Pass `false` for text rendered onto
+      #   its own standalone page (an extra file's contents — see
+      #   `fulldoc/agentdocs/setup.rb`), where there's no structural
+      #   heading to collide with and demoting would just flatten the
+      #   file's own heading hierarchy.
       # @return [String] equivalent Markdown, stripped of surrounding
-      #   whitespace, with any colliding heading demoted and inline
-      #   `{Name}` cross-references resolved
+      #   whitespace, with any colliding heading demoted (unless disabled)
+      #   and inline `{Name}` cross-references resolved
       #
-      def markdownify(text)
+      def markdownify(text, demote_headings: true)
         text = text.to_s
         converted =
           case options.markup
@@ -51,7 +60,9 @@ module YARD
                        "(only :markdown and :rdoc are supported) — passing prose through unconverted"
             text
           end
-        resolve_references(demote_headings(converted.strip))
+        converted = converted.strip
+        converted = self.demote_headings(converted) if demote_headings
+        resolve_references(converted)
       end
 
       private

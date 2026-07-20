@@ -21,6 +21,7 @@ describe "agentdocs template" do
         "-f", "agentdocs",
         "--markup", "markdown",
         "--title", "yard-agentdocs example — API Reference",
+        "--readme", "example/README.md",
         *files
       )
     end
@@ -40,6 +41,7 @@ describe "agentdocs template" do
         "-f", "agentdocs",
         "--markup", "rdoc",
         "--title", "yard-agentdocs rdoc-dialect fixture — API Reference",
+        "--readme", "example/rdoc/README.rdoc",
         "example/rdoc/lib/greeter.rb"
       )
     end

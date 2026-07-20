@@ -764,15 +764,16 @@ whether agents actually exercise those pointers.
       project invokes the template per-dependency, where output lands)
       that dogfooding will settle — writing it earlier means guessing.
       See "Navigation guidance: preamble plus skill" under "Decisions"
-- [ ] (design) README and extra files (guides) — YARD's human output leads
-      with the README and `--files` guides; agentdocs renders only code
-      objects, so an agent arriving fresh gets reference granularity with
-      no conceptual on-ramp. Directly affects "ease of understanding how
-      to use the library for a particular application", the weakest of the
-      July 2026 agent-usefulness evaluation's three framing questions, and
-      the July 2026 coverage review's biggest *content* (vs. rendering)
-      gap. Interacts with the navigation-preamble item above — both
-      compete for `index.md` real estate
+- [x] (design) README and extra files (guides) — scoped to the README only;
+      arbitrary `--files` guides remain unaddressed. See "README rendering:
+      own page via `options.readme`, no heading demotion" under "Decisions".
+- [ ] (mech) Arbitrary `--files` guides (beyond the README) — extend
+      `serialize_readme`/the `## Guides` index section to iterate
+      `options.files` generically instead of special-casing
+      `options.readme` alone. The hard calls (own page, filename
+      convention, no heading demotion) are already settled by the README
+      item above; this should mostly be "loop instead of one file," plus
+      deciding `## Guides` list ordering for more than one entry.
 - [x] (mech→design, pre-dogfood) `index.md`'s per-entry summary doesn't go
       through `markdownify` or inline-reference resolution —
       `Geometry::ThreeD::Point`'s summary now reads "...analogous to
@@ -3881,6 +3882,89 @@ sets `self.object = object` (`Template`'s own `Helpers::BaseHelper` accessor
 — distinct from, but kept in sync with, `options.object`) before calling
 `summary_suffix`, so resolution/self-reference still uses that row's own
 object while the path comes out root-relative regardless of nesting depth.
+
+### README rendering: own page via `options.readme`, no heading demotion
+
+Settles the "README and extra files (guides)" checklist item under
+"Indexing & discovery" — scoped to the README only; arbitrary `--files`
+guides are tracked as a separate follow-up item, expected to mostly reuse
+what's decided here. `fulldoc/agentdocs/setup.rb` never touched
+`options.readme`/`options.files` before this; there was no prior
+"Decisions" entry to extend.
+
+**Separate page, not inlined into `index.md`.** YARD's own HTML template
+mirrors README content *onto* the index page (replacing it, with the class
+list living in a separate sidebar). `agentdocs` has no sidebar —
+`index.md`'s `## Classes & modules` section is the only lookup table, kept
+deliberately short and grep-able (same reasoning that capped the nav
+preamble at ~15 lines). Inlining arbitrary README prose would dilute that.
+This is the "structured search cost" divergence dimension from "Design
+heuristic: agent reference needs mirror human reference needs" overriding
+the mirror-human-docs default. Landed shape: a new `## Guides` section in
+`index.md`, between the nav preamble and `## Classes & modules`, linking
+out — `- [`README`](file.README.md)`, no summary suffix (extra files carry
+no YARD docstring summary; same bare-link treatment already used for
+summary-less classes like `Geometry::Segment`).
+
+**Filename: `file.<name>.md`**, mirroring YARD's own HTML `file.<name>.html`
+convention for extra files exactly (`file.README.md` here), rather than a
+plain `README.md` at doc root — chosen over the plainer option so the same
+convention generalizes cleanly once arbitrary `--files` guides land.
+
+**Heading demotion must be skippable — reusing `markdownify` unmodified
+was wrong.** `Markdownify#demote_headings` exists only because docstring
+prose gets *embedded* into a page that already owns `##`/`###`
+structurally (`## Member Summary`, `### #method`); demoting a
+prose-embedded heading avoids collision. A README rendered onto its own
+standalone page has no such competing structure — demoting its `#
+Title`/`## Usage` hierarchy to a flat `####` would have flattened a real
+README's own heading structure for a collision that can't happen on that
+page. `markdownify` now takes a `demote_headings:` keyword (default
+`true`, unchanged for every docstring/tag-text call site); the README path
+calls `markdownify(file.contents, demote_headings: false)`. Dialect
+conversion and inline `{Name}` reference resolution still apply
+unchanged — both `example/README.md` (`:markdown` dialect) and
+`example/rdoc/README.rdoc` (`:rdoc` dialect, added specifically to prove
+this) exercise a heading staying undemoted, alongside a resolved
+`{Name}` reference and RDoc inline formatting (`*bold*`, `+tt+`)
+converting normally.
+
+**No `**Defined in:**` line, no synthetic title wrapper.** Every
+class/module page adds both (a title line, a source pointer), but a
+README page's rendered content already *is* effectively its own source
+(just dialect-converted and reference-resolved) — unlike a class page,
+there's no implementation detail the docs omit that `**Defined in:**`
+would usefully point back to, and the file's own top-level heading already
+serves as the page title.
+
+**Resolution context: pinned to `Registry.root`.** A README isn't "about"
+any one class/module, so `serialize_readme` sets `self.object =
+::YARD::Registry.root` before calling `markdownify` (same
+`self.object = ` pattern `index_summary_suffix` already uses) — a `{Name}`
+reference resolves as it would from top-level, and is never treated as a
+self-reference. `current_dir` needed no separate override: `fulldoc/
+agentdocs/setup.rb` already pins it to the doc root unconditionally for
+the whole template (see "`index.md` per-entry summaries" above), which is
+also correct for a page that, like `index.md`, always lives at the doc
+root regardless of `object`.
+
+**Test-fixture wrinkle: CWD-based README auto-detection had to be
+defeated explicitly, twice.** `test_agentdocs_template.rb`'s `generate`/
+`generate_rdoc` both `chdir` to the real project root without an explicit
+`--readme` flag (needed for correct relative `**Defined in:**` paths, so
+not changeable). YARD's CLI auto-detects any `README*` file in the CWD
+when `--readme` isn't given, with no flag to suppress it — so once
+`options.readme` started being honored, both fixture runs would otherwise
+have silently picked up *this repo's own real* `README.md` instead of a
+fixture-controlled file. Both `generate` and `generate_rdoc` now pass
+`--readme` explicitly (`example/README.md`, `example/rdoc/README.rdoc`
+respectively) to short-circuit the auto-detect (`options.readme ||= ...`
+only fires when unset). This is why the `:rdoc`-dialect fixture — whose
+whole point is staying minimal (see "Docstring markup dialect" above) —
+ended up with its own small README fixture rather than staying
+README-free: there was no available way to opt out once the mechanism
+existed, and it doubled as the only coverage of `demote_headings: false`
+under RDoc-to-Markdown conversion rather than Markdown passthrough.
 
 ## Implementation
 
