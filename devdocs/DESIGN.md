@@ -599,6 +599,25 @@ may follow; that doc tracks status across all of them.
       @constant.docstring.empty?`, owning its own leading blank line) —
       see "Attribute `**Type:**` fallback for a plain, comment-less
       `attr_*`" under "Decisions", which covers both fixes together
+- [ ] (design) Attribute description entirely inside a `@!attribute`'s
+      `@return [Type] Description` tag, with no separate free-text
+      docstring — renders `**Type:**` correctly (`attribute_type` already
+      falls back to `tag(:return)&.types`, per the fallback item above) but
+      silently drops the description in both `## Member Summary` and the
+      full entry, since `attribute_docstring`/`attribute_docstring_summary`
+      (`lib/yard/agentdocs/attribute_info.rb`) read `source_method.docstring`
+      directly with no equivalent fallback to `tag(:return)&.text`. Confirmed
+      on `HermesAgent::Client::Transport::Result` (a
+      `Data.define(:body, :headers)` documented via `@!attribute [r] body` /
+      `@return [Hash, Enumerator] The parsed JSON body...`): both `#body`/
+      `#headers` render their type but the description is blank everywhere.
+      Distinct from the fallback item above — that case has no `@return` tag
+      at all; here one exists with real descriptive text, just not surfaced.
+      Flagged by the 2026-07-21 `hermes-client` dogfood run (see
+      devdocs/Dogfood.md). Needs an `example/lib` fixture: an attribute
+      (`@!attribute`, or a bare `Struct.new`/`Data.define` accessor) whose
+      only description lives inside `@return [Type] Description`, no
+      separate free-text docstring
 - [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
@@ -817,6 +836,28 @@ may follow; that doc tracks status across all of them.
       class/module (`Geometry::Segment`, including an undocumented
       `#initialize`); settled the no-flag, blank-render policy — see
       "Intentionally undocumented objects" under "Decisions"
+- [ ] (design) `Docstring#summary`'s abbreviation-blind truncation — YARD's
+      own `Docstring#summary` (`yard/docstring.rb`, used for every
+      `index.md`/`## Member Summary` one-liner) scans for the first `.`
+      followed by whitespace/end-of-string with no abbreviation exclusion,
+      so a first sentence built around `"...e.g. \`val1\`, \`val2\`."` renders
+      as a dangling `"...e.g."` with nothing after it in every cheap-summary
+      view — the full entry lower in the same file always has the complete
+      sentence, so no information is truly lost, just hidden from the cheap
+      read. Not hypothetical or rare: 43 occurrences across 22 of 63
+      rendered files (~35%) on the `hermes-client` dogfood run, mostly the
+      common `` "$FIELD, e.g. `val1`, `val2`." `` one-line idiom for
+      enum-like string fields. YARD's own default template inherits the
+      identical bug (confirmed directly), so this isn't an agentdocs-
+      specific regression, but it undermines the cheap-summary-first read
+      this format's whole design is built around — a dangling "e.g." reads
+      as broken, not just terse. Flagged by the 2026-07-21 `hermes-client`
+      dogfood run (see devdocs/Dogfood.md). Needs an `example/lib` fixture
+      (a class/method docstring whose first sentence contains a mid-
+      sentence "e.g."/"i.e." followed by concrete examples) and a design
+      review of whether/how to mitigate — a smarter first-sentence
+      extractor vs. accepting it as an inherited YARD limitation this
+      format doesn't diverge from
 
 ### Cross-referencing scenarios
 

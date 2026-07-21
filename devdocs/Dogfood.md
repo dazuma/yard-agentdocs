@@ -24,28 +24,69 @@ first.
 | Gem | Status | Notes |
 |---|---|---|
 | YARD (self-run) | Done — findings promoted to DESIGN.md | 2 findings (1 crash) |
-| `hermes-client` | Queued (2026-07-21) | Markdown dialect at real scale |
+| `hermes-client` | Done (2026-07-21) — 2 checklist items promoted to DESIGN.md | 2 findings, no crash |
 | `rubocop` | Queued (2026-07-21) | Scale + macro-defined methods |
 | `parser` | Queued (2026-07-21) | Racc-generated mega-classes |
+| `toys` | Queued (2026-07-21) | Human-written docs, embedded `toys-core` copy, large `--files` guide, installed-gem generation |
 
 ## Queued candidates
 
-Recommended 2026-07-21 (asked in a separate future session, not run yet),
-each targeting an axis DESIGN.md's dogfood milestone flagged but the YARD
-run didn't cover. Order not prescribed — pick whichever's most convenient
-to start; each stands alone.
+`rubocop`/`parser` recommended 2026-07-21 (asked in a separate future
+session, not run yet); `toys` added 2026-07-21 after the `hermes-client` run
+completed (see "Runs" below), replacing it in the queue. Each targets an
+axis DESIGN.md's dogfood milestone flagged but the YARD run didn't cover.
+Order not prescribed — pick whichever's most convenient to start; each
+stands alone.
 
-### `hermes-client`
+### `toys`
 
-**Why this gem:** the user's own gem, local at `../hermes-client`
-(resource/entity/transport-layered API client — a `.yardopts` with
-`--markup=markdown` confirms real Markdown-dialect docstrings throughout).
-The YARD run only stress-tested `:rdoc` at real scale; Markdown is this
-project's primary/default dialect but has only ever been verified against
-the toy `example/` fixture. Also structurally unlike YARD (API-client
-layering vs. a parser/generator), so likely to surface different shapes —
-e.g. `@example` blocks showing client call chains. ~144KB / 25 files, a
-genuine mid-size fit; no fetch/pin needed (already on disk).
+**Why this gem:** the user's own gem (reasons below given directly by the
+user, verified against the local checkout at
+`~/Documents/Development/oss/toys/toys` and the installed `toys-0.22.0`
+gem before queuing):
+
+1. Familiar territory — the user's own gem, like `hermes-client`.
+2. **Documentation is human-written**, unlike `hermes-client`'s
+   almost-entirely-agent-written docstrings — a useful contrast on the same
+   axis (own-gem familiarity) but the opposite authorship source, which may
+   surface different prose habits (verified: `hermes-client`'s docstrings
+   were confirmed agent-authored during that run's write-up; `toys`'
+   predate this project's agent-assisted workflow).
+3. **Large `--files` entries exercising links/size/prose at scale.**
+   Confirmed via `toys/.yardopts`: extra files are `README.md` (381 lines),
+   `LICENSE.md` (21 lines), `CHANGELOG.md` (725 lines), and
+   `docs/guide.md` — **4,748 lines**, by far the largest guide file this
+   template has ever rendered (dwarfing the toy fixture's one-file
+   `example/docs/point_cloud.md`), a real stress test of the "arbitrary
+   `--files` guides" checklist item's inline-reference/size handling at a
+   scale nothing has hit yet.
+4. **Embeds another gem's source purely for documentation.** `.yardopts`
+   points at `./core-docs/toys/**/*.rb` and `./core-docs/toys-core.rb` —
+   a vendored copy of `toys-core`'s `lib/` (51 files, 584KB, confirmed
+   present verbatim, each file headed by a `**_Defined in the toys-core
+   gem_**` note) kept alongside `toys`' own `lib/toys/**/*.rb` (12 files,
+   140KB) purely so `toys`' own generated docs include `toys-core`'s API
+   without a cross-gem multi-run setup. Untested shape: two source trees
+   for two different gems, parsed into one shared registry/output corpus,
+   with `toys-core`'s own classes/modules appearing under their own
+   namespace but attributed to a different gem's source paths.
+
+**Generate from the installed gem, not the local checkout** — this is the
+point of running `toys` at all, per the user: confirms the whole
+`--files`/embedded-source/`.yardopts` setup survives being generated from
+a real end-user install, not just the dev repo. Verified this is meaningful
+to test, not redundant with the local checkout: the gemspec's `spec.files`
+deliberately packages `core-docs/**/*.rb`, `docs/*.md`, and `.yardopts`
+into the shipped gem (confirmed present in the installed `toys-0.22.0` at
+`~/.local/share/mise/installs/ruby/4.0.5/lib/ruby/gems/4.0.0/gems/toys-0.22.0`:
+`core-docs/` — 51 files, `docs/guide.md`, `.yardopts`, `lib/toys/` — 12
+files — all match the local checkout's counts), specifically so an
+installed `toys` gem can regenerate its own docs standalone — this run is
+the first time anything here would exercise that path rather than assuming
+it works. Total installed gem size ~1.0MB.
+
+**Not yet run** — queued only, per the user's explicit instruction not to
+start it in this session.
 
 ### `rubocop`
 
@@ -292,3 +333,195 @@ live agent doing a real lookup task, which is out of scope for a diff-read.
    plain… `attr_*`" under "Attributes & constants". Needs an `example/lib`
    fixture with a plain, undocumented `attr_reader`/`attr_writer`/
    `attr_accessor` (not Struct/Data-based).
+
+### 2. `hermes-client`
+
+**Status:** run complete (2026-07-21); the two checklist action items below
+promoted to DESIGN.md 2026-07-21. The "what works"/measurement findings stay
+here only, per the procedure's step 5 split (only durable, actionable items
+graduate to DESIGN.md; confirmations and measurements are analysis, not
+decisions).
+
+**Why this gem:** see "Queued candidates" above — the user's own gem, real
+Markdown-dialect docstrings throughout (`--markup=markdown` in its own
+`.yardopts`), and structurally unlike YARD (a thin, layered API client
+rather than a parser/generator), so likely to exercise different rendering
+paths.
+
+**Setup:** generated with `--markup markdown` against the 25 `.rb` files
+under `~/Documents/Development/oss/hermes-client/lib/` (`lib/hermes_agent/**/*.rb`
+plus `lib/hermes-client.rb`, mirroring the gem's own `.yardopts` file list),
+run from within the gem's own directory (so `**Defined in:**` paths came out
+relative to it), with its `README.md` as the readme and `LICENSE.md`/
+`CHANGELOG.md` as extra `--files`. Disposable script:
+`/private/tmp/.../scratchpad/dogfood_hermes.rb` (not committed). Result: 63
+output files (58 classes/modules + 3 guide pages + `index.md`) from
+144,347 bytes of source across 25 files. No crash — the run completed
+cleanly on the first try, unlike the YARD run.
+
+**Findings:**
+
+1. **Pervasive gap, newly quantified: `Docstring#summary`'s "e.g."/"i.e."
+   mid-sentence truncation is common in real code, not just a
+   fixture-writing hazard.** [[project_yard_summary_abbreviation_truncation]]
+   already flagged this as a YARD quirk to avoid when hand-authoring
+   `example/lib` fixture prose — but this run is the first real-scale
+   evidence of how often idiomatic Ruby docstrings trip it. Confirmed by
+   direct probe against `YARD::Docstring#summary`
+   (`yard-0.9.44/lib/yard/docstring.rb:173`): it scans for the first `.`
+   followed by whitespace/end-of-string with **no abbreviation
+   exclusion at all** — `"e.g."`'s period ends the "sentence" exactly like a
+   real one would. **43 occurrences across 22 of the 63 rendered files
+   (~35%)** — e.g. `Entities::Job#deliver`'s Member Summary bullet reads
+   `` - `#deliver` — The delivery target, e.g. `` with nothing after "e.g."
+   (full text: `` The delivery target, e.g. `"local"`, `"origin"`,
+   `"telegram"`, or `"platform:chat_id"`. Defaults to `"local"`. ``, correctly
+   shown in full further down in `#deliver`'s own `## Instance Methods`
+   entry). Only `.summary`-based one-liners are affected —
+   `index.md`'s per-entry bullets and every `## Member Summary` line — the
+   full-entry text lower in the same file always has the complete sentence,
+   so no information is truly lost, just made hard to find from the cheap
+   summary view. This reads as **worse than merely terse**: a summary
+   bullet trailing off at a dangling "e.g." with zero examples after it
+   looks broken to an agent scanning the Member Summary, not just
+   abbreviated. Given the idiom's ubiquity (`"$FIELD, e.g. \`val1\`, \`val2\`."`
+   is a common one-line docstring shape for enum-like string fields — 9 of
+   the 22 affected files hit it exactly once, the rest 2–4 times each, up to
+   4 in `HealthDetails`/`RunEvent`/`Features`), this is a stronger case for
+   template-side mitigation (e.g. a smarter
+   first-sentence extractor that doesn't split on known abbreviations) than
+   the original fixture-avoidance framing implied, though whether/how to fix
+   it is a (design) question for its own review — YARD's own default
+   template has the identical bug (confirmed: `Docstring#summary` is used
+   unconditionally, dialect-independent), so this isn't an agentdocs-
+   specific regression, just newly load-bearing here since this format's
+   whole pitch is a cheap-summary-first read.
+
+2. **New, confirmed bug: an attribute documented via `@!attribute` whose
+   description lives entirely inside its `@return [Type] Description` tag
+   (not as separate free-text prose) renders the type correctly but drops
+   the description silently, in both `## Member Summary` and the full
+   entry.** Found on `Transport::Result` (`lib/hermes_agent/client/transport.rb:44`),
+   a `Data.define(:body, :headers)` documented via:
+   ```
+   # @!attribute [r] body
+   #   @return [Hash, Enumerator] The parsed JSON body, or the chunk
+   #       enumerator for a streaming request.
+   ```
+   Rendered output: `` ### #body `` / `` - **Type:** `Hash, Enumerator` `` /
+   `` - **Read-only.** `` then **two blank lines where the description
+   should be** — same gap on `#headers`. Root cause, confirmed by direct
+   probe (not inferred): the reader method's own `docstring` is empty
+   (`""`) — the description text lives only in `tag(:return).text`
+   (confirmed present: `"The parsed JSON body, or the chunk\nenumerator for
+   a streaming request."`). `AttributeInfo#attribute_type`
+   (`lib/yard/agentdocs/attribute_info.rb`) already falls back to
+   `tag(:return)&.types` when there's no separate type info — that's the
+   existing, already-shipped fix for the sibling "plain `attr_*`" gap the
+   YARD run found. But `attribute_docstring`/`attribute_docstring_summary`
+   in the same file read `attr.source_method.docstring` directly, with
+   **no equivalent fallback to `tag(:return)&.text`** — so when a
+   `@!attribute` directive's entire description lives in the `@return`
+   tag's text (a natural way to write one, and the only way YARD's own
+   `AttributeDirective` docs suggest), the description vanishes from both
+   the summary line and the full entry, while the type survives. This is a
+   different case from the already-tracked "Attribute `**Type:**` fallback
+   for a plain… `attr_*`" item (that one has *no* `@return` tag at all,
+   here one exists with real content) — a distinct, newly-discovered gap.
+   Only 2 occurrences in this gem (the one `@!attribute`-using file), but
+   the shape (any attribute whose docstring is blank while its `@return`
+   tag carries text) isn't hermes-client-specific.
+
+**What works, no changes recommended** (confirms existing decisions/probes
+hold up on a second, structurally different real gem):
+
+- **Duck-type `@param [#each]` resolving as a same-scope cross-reference
+  link is expected, not a bug** — closes the previously-unexercised half of
+  the "`@param` including duck-type syntax" checklist item. `Stream.new`'s
+  `chunks [#each]` param (genuine duck
+  typing: "anything responding to `#each`") renders as
+  `` [`#each`](Stream.md) `` — a real link to `Stream#each`, since `Stream`
+  itself happens to define an `#each` method in scope. Verified this is
+  **not** an agentdocs-specific mis-resolution: generated the same file
+  through YARD's own stock `-f`/`-t default` (HTML) template side by side —
+  it produces the identical ambiguous link
+  (`<a href="#each-instance_method" title="HermesAgent::Client::Stream#each (method)">each</a>`).
+  `type_ref`/`resolve_name` (`lib/yard/agentdocs/cross_referencing.rb`)
+  make no distinction between a `#name` duck-type token and a real method
+  reference — matching YARD's own behavior exactly, which is the
+  established bar (no custom handler classes / don't diverge from stock
+  resolution).
+- **Markdown dialect passthrough at real scale, beyond `@example`/code
+  fences (neither actually used in this gem, contrary to the queued
+  candidate's guess):** `Conversation`'s class docstring uses a bare
+  4-space-indented usage example (not an `@example` tag) followed by a
+  Markdown bullet list with inline `**bold**` and `` `code` `` spans —
+  both render correctly untouched (`:markdown` is passthrough, per the
+  "Docstring markup dialect" decision), including the list surviving
+  adjacent to plain prose paragraphs above and below it.
+  `stream.rb`/`job.rb` also use plain markdown bullet lists in prose
+  (`- **id-tracking mode**...`, `- \`"once"\` — a one-shot run...`) with the
+  same clean result.
+- **Default values that are namespaced constant references** —
+  `Client.new`'s keyword defaults `Configuration::DEFAULT_BASE_URL` and
+  `Configuration::DEFAULT_KEEP_ALIVE_TIMEOUT` (not bare constants like the
+  existing `Stopwatch#reset(to = DEFAULT_ELAPSED)` fixture) — render
+  correctly in the signature line via the same raw-source-text passthrough
+  the "Optional param default rendering" decision already established; no
+  new template logic needed.
+- **No new stock-handler gaps.** This gem has none of the metaprogramming
+  shapes (`prepend`, `refine`, `define_method`, `method_missing`,
+  `class_eval`) that would exercise the "no custom handler classes"
+  principle differently from the YARD run — grepped and confirmed absent.
+  Not new evidence either way; just nothing to report here (`rubocop`'s
+  `def_node_matcher` macros remain the next real test of that principle).
+- **No empty/broken output files**, no crash, and no unresolved-alias
+  crash (this gem's aliasing is all real `def` pairs, e.g. `Entity#eql?`
+  delegating to `#==` — nothing hitting the YARD run's `alias_original`
+  gap).
+
+**Measurements:**
+
+| Measurement | Toy fixture (`example/`) | YARD dogfood run | `hermes-client` dogfood run |
+|---|---|---|---|
+| Doc corpus vs. source size | 38.9KB / 28.5KB = **+37%** | 771,369B / 1,024,370B = **‑24.7%** | 193,909B / 144,347B = **+34.3%** |
+| Per-entry `**Defined in:**` overhead | 3,543B / 41,422B = **8.6%** | 84,454B / 771,369B = **~11.0%** | 22,756B / 193,909B = **~11.7%** |
+| `Docstring#summary` "e.g."/"i.e." truncation | not probed | not probed (would need a re-check) | **43 occurrences / 22 of 63 files (~35%)** |
+
+**Correction to the emerging "docs shrink on real gems" narrative:** the
+YARD run's ‑24.7% looked like it confirmed DESIGN.md's expectation that the
+toy fixture's +37% was a fixture artifact that would flip on real code. This
+run's **+34.3%** — nearly matching the toy fixture's ratio, on a genuinely
+real, independently-authored gem — shows that was the wrong generalization.
+Token economy tracks a codebase's **docs-to-code density**, not
+toy-vs.-real: YARD is a parser/generator with meaty method bodies relative
+to its comments; `hermes-client` (like the toy fixture) is a thin
+API-client wrapper — mostly one-line field readers and thin delegating
+methods — with deliberately thorough per-method prose. Whether generated
+docs are cheaper than source is a property of the *target codebase's
+writing style*, not something this format can promise in general. The
+`**Defined in:**` overhead measurement, by contrast, replicates cleanly a
+second time (~11.0% → ~11.7%, both up from the toy fixture's 8.6%),
+reinforcing the YARD run's correction to DESIGN.md's stated expectation
+that the fraction would shrink on real gems.
+
+**Checklist items harvested — added to DESIGN.md 2026-07-21:**
+
+1. **(design)** `Docstring#summary`'s abbreviation-blind truncation, now
+   that real-scale evidence shows it's common (not a rare fixture hazard)
+   and actively misleading (dangling "e.g." with nothing after) rather than
+   merely terse. Added under "Documentation content / prose patterns". Needs
+   a fixture (a class/method docstring whose first sentence contains a
+   mid-sentence "e.g."/"i.e." followed by concrete examples) and a design
+   review of whether/how to mitigate (custom first-sentence extraction vs.
+   accepting it as an inherited YARD limitation, same as the duck-typing
+   ambiguity this run confirmed is unchanged from stock YARD).
+2. **(design)** `AttributeInfo#attribute_docstring`/
+   `#attribute_docstring_summary` fallback to `tag(:return)&.text` when
+   `source_method.docstring` is empty but a `@return` tag carries
+   descriptive text — mirroring `attribute_type`'s existing
+   `tag(:return)&.types` fallback. Added under "Attributes & constants",
+   right after the sibling "Attribute `**Type:**` fallback" item. Needs an
+   `example/lib` fixture: an attribute (via `@!attribute` or a bare
+   `Struct.new`/`Data.define` accessor) whose only description lives inside
+   `@return [Type] Description`, no separate free-text docstring.
