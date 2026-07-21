@@ -35,7 +35,13 @@ Computes the centroid (average position) of one or more points.
 - `ArgumentError, NoMethodError` — if `points` is empty, or if an
   element doesn't respond to `#x`/`#y`
 
-* **Defined in:** `example/lib/geometry/computations.rb:29`
+**See also:**
+
+- [`Point`](Point.md) — the class centroid values are returned as
+- [`Point#distance_to`](Point.md) — a related method, for measuring distance from a centroid
+- [`https://en.wikipedia.org/wiki/Centroid`](<https://en.wikipedia.org/wiki/Centroid>) — the Wikipedia definition of a centroid
+
+* **Defined in:** `example/lib/geometry/computations.rb:32`
 
 ### .distance
 
@@ -56,7 +62,9 @@ Computes the distance between two points.
 
 - `Float` — the distance between the two points
 
-**See also:** [`Point#distance_to`](Point.md)
+**See also:**
+
+- [`Point#distance_to`](Point.md)
 
 * **Defined in:** `example/lib/geometry/computations.rb:17`
 
@@ -80,4 +88,4 @@ Yields each of the given points in turn.
 
 - `Integer` — the number of points yielded
 
-* **Defined in:** `example/lib/geometry/computations.rb:42`
+* **Defined in:** `example/lib/geometry/computations.rb:45`

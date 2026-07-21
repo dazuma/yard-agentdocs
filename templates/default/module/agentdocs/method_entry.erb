@@ -140,7 +140,11 @@
 <%- end -%>
 <%- unless @method.tags(:see).empty? -%>
 
-**See also:** <%= @method.tags(:see).map { |t| see_ref(t) }.join(', ') %>
+**See also:**
+
+<%- @method.tags(:see).each do |t| -%>
+- <%= dash_join(see_ref(t), t.text) %>
+<%- end -%>
 <%- end -%>
 <%- trailing = trailing_annotation_lines(@method) -%>
 <%- if trailing.empty? -%>

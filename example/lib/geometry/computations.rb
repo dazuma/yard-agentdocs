@@ -25,6 +25,9 @@ module Geometry
     # @return [Point] the centroid of the given points
     # @raise [ArgumentError, NoMethodError] if `points` is empty, or if an
     #   element doesn't respond to `#x`/`#y`
+    # @see Point the class centroid values are returned as
+    # @see Point#distance_to a related method, for measuring distance from a centroid
+    # @see https://en.wikipedia.org/wiki/Centroid the Wikipedia definition of a centroid
     #
     def self.centroid(*points)
       raise ArgumentError, "centroid requires at least one point" if points.empty?

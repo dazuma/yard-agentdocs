@@ -268,7 +268,11 @@ than modify the receiver, `#[]=` mutates this point in place.
 
 - `ArgumentError` — if `index` isn't `0` or `1`
 
-* **Defined in:** `example/lib/geometry/point.rb:212`
+**See also:**
+
+- `#[]` — the corresponding getter
+
+* **Defined in:** `example/lib/geometry/point.rb:213`
 
 ### #distance_to
 
@@ -371,4 +375,4 @@ point.zero?() → Boolean
 
 - `Boolean`
 
-* **Defined in:** `example/lib/geometry/point.rb:220`
+* **Defined in:** `example/lib/geometry/point.rb:221`

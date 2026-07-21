@@ -689,10 +689,14 @@ may follow; that doc tracks status across all of them.
       `ArgumentError`/`TypeError`); settled the always-bulleted `**Raises:**`
       list format — see "`@raise`: always-bulleted `**Raises:**` list" under
       "Decisions"
-- [ ] (mech) `@see` — linking to another method, another class, and an
-      external URL, plus the trailing-description form
-      (`@see Foo#bar Some label`); only the "another method" case is
-      exercised so far (see also the cross-referencing scenarios below)
+- [x] (mech, escalated to design) `@see` — linking to another method,
+      another class, and an external URL, plus the trailing-description form
+      (`@see Foo#bar Some label`); only the "another method" case was
+      exercised before this item. Surfaced two real gaps: the trailing
+      description was silently dropped for every target type, and a bare
+      URL rendered as a dead, unlinked backtick instead of a real link —
+      see "`@see`: bulleted `**See also:**` list, target and description
+      dash-joined" under "Decisions"
 - [x] `@example` — both a bare example (`Point#distance_to`) and a titled
       example (`@example Some title` — `Geometry::Circle`, class-level), and
       a method with more than one `@example` (`Point.of`, reusing its
@@ -907,7 +911,14 @@ may follow; that doc tracks status across all of them.
       proven by any existing case. Unit-test coverage in
       `test/test_cross_referencing.rb` plus at least one `example/`
       appearance.
-- [ ] (mech) `@see` pointing at another method in the same class
+- [x] (mech) `@see` pointing at another method in the same class —
+      `Geometry::Point#[]=`'s new `@see #[] the corresponding getter`;
+      confirmed mechanical with zero template changes: `self_reference?`
+      already treats any target resolving into the page's own class as a
+      same-page self-reference (the same policy that keeps `Point::ORIGIN`'s
+      `**Type:**` an unlinked backtick), so it renders as `` `#[]` `` — a
+      description-carrying bullet, just with no link, since a same-file link
+      has no anchor to point at in this one-file-per-class output format
 - [x] `@see` pointing at a method in a different class/namespace —
       `Geometry.distance`'s `@see Point#distance_to`
 - [x] A subclass method that overrides a documented parent method
@@ -2637,6 +2648,41 @@ mode for one method):
   separate single-type tags instead, judged the more common real-world
   pattern. Revisit if the dogfood milestone turns up the multi-type-per-tag
   form in the wild.
+
+### `@see`: bulleted `**See also:**` list, target and description dash-joined
+
+Escalated from (mech) to (design) on the spot (per "Prioritization and
+roadmap"'s guidance for a (mech) item that surprises): `see_ref` turned out
+to completely ignore `tag.text` (the optional trailing description, e.g.
+`@see Foo#bar Some label`) for every already-checked-in `@see` tag, and had
+no bare-URL handling at all — an unresolvable-as-an-object URL fell through
+to a plain, unlinked backtick instead of a real link. Exercised by
+`Geometry::Computations.centroid` (three new `@see` tags: `Point`, a bare
+class reference; `Point#distance_to`, a method reference; and an external
+Wikipedia URL — each with a trailing label) alongside the existing
+label-less `Geometry::Computations.distance` (`@see Point#distance_to`,
+now also exercising the bulleted form on a single label-less entry):
+
+- `**See also:**` escalates from a single comma-joined line to a bulleted
+  list — one `` - <target> — description `` line per `@see` tag, dash-joined
+  the same way `@raise`/`@param`/etc. already split "reference, then
+  description" — always, even for a single label-less tag, per `@raise`'s
+  own always-bulleted precedent (see "`@raise`: always-bulleted
+  `**Raises:**` list" above). Chosen over folding the label into the link's
+  own display text (the way an inline `{url label}` prose reference does):
+  that would read fine for a short label but degrades once the description
+  runs long, and diverges from every other multi-entry tag's rendering for
+  no real benefit.
+- `see_ref` (`CrossReferencing`) gained the same bare-URL handling
+  {`#render_url_reference`} already gives an inline `{url}` prose
+  reference — a `@see` target containing `://` (or starting with
+  `mailto:`) renders as a real link (backtick display text, since
+  `see_ref` itself never sees the label) rather than falling through
+  `resolve_name` to a dead plain backtick. `see_ref` deliberately still
+  ignores `tag.text` itself; `dash_join(see_ref(t), t.text)` in
+  `method_entry.erb` supplies the description separately, matching every
+  other bullet-list tag's split between "resolve the reference" and
+  "append the description."
 
 ### Custom exception class: no special handling; surfaced the empty-`## Member Summary` gap
 

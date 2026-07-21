@@ -208,6 +208,7 @@ module Geometry
     # @param index (see #[])
     # @param value [Numeric] the new coordinate value
     # @raise (see #[])
+    # @see #[] the corresponding getter
     #
     def []=(index, value)
       case index

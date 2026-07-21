@@ -98,15 +98,26 @@ module YARD
       end
 
       ##
-      # Resolves a `@see` tag to either a plain backtick (unresolved, or
-      # pointing back into the object currently being rendered) or a
-      # markdown link to the target's own file.
+      # Resolves a `@see` tag's target to a markdown link — the same
+      # bare-URL handling {#render_url_reference} gives an inline `{url}`
+      # reference, or a plain backtick (unresolved, or pointing back into
+      # the object currently being rendered) or link to the target's own
+      # file for an object name. Deliberately ignores +tag.text+ (the
+      # optional trailing description, e.g. `@see Foo#bar Some label`) —
+      # the caller dash-joins that separately, the same "reference, then
+      # ` — description`" split every other multi-entry tag
+      # (`@raise`/`@param`/...) already uses, rather than folding the
+      # description into the link's own display text the way an inline
+      # `{url label}` reference does. See "`@see`: bulleted `**See
+      # also:**` list, target and description dash-joined" under
+      # "Decisions".
       #
       # @param tag [::YARD::Tags::Tag]
       # @return [String] markdown
       #
       def see_ref(tag)
         name = tag.name
+        return render_url_reference(name, nil) if url_reference?(name)
         resolved = resolve_name(name)
         return "`#{name}`" if resolved.nil? || self_reference?(resolved)
         "[`#{name}`](#{link_path(resolved)})"
