@@ -36,10 +36,22 @@ class Stopwatch
   private_constant :CLOCK
 
   ##
+  # How many `Stopwatch` instances have been created. YARD registers this as
+  # a first-class `classvariable` code object, but `yard-agentdocs` has no
+  # section for class variables and deliberately omits them from its
+  # output — modern Ruby style avoids `@@` variables, so a class using one
+  # doesn't get agent-facing documentation for it. Exercises that omission.
+  #
+  # @return [Integer]
+  #
+  @@instance_count = 0
+
+  ##
   # Creates a stopwatch with no elapsed time yet recorded.
   #
   def initialize
     @elapsed = DEFAULT_ELAPSED
+    @@instance_count += 1
   end
 
   class << self

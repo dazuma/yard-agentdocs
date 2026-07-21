@@ -639,12 +639,15 @@ may follow; that doc tracks status across all of them.
 - [x] (mech) Private constant (`private_constant`) — `Stopwatch::CLOCK`,
       backing `#current_time`; confirmed omitted with zero template changes,
       same policy as instance/class-method privacy
-- [ ] (stretch) Class variables (`@@foo`) — YARD registers them as
-      first-class code objects; the template has no section for them, so
-      they're silently dropped today. Modern Ruby style avoids them, so
-      deliberate omission is probably the right outcome — but that should
-      be a recorded decision, not an accident. Flagged by the July 2026
-      coverage review
+- [x] (stretch) Class variables (`@@foo`) — YARD registers them as
+      first-class `classvariable` code objects, but they live outside
+      `NamespaceObject#constants`/`#attributes`/`#meths`, which is all
+      `MemberListing` ever queries; confirmed omitted with zero template
+      changes, same as `private_constant` above. `Stopwatch::@@instance_count`
+      exercises it. Deliberate omission settled as the right outcome: modern
+      Ruby style avoids `@@` variables, so a class using one simply gets no
+      agent-facing documentation for it. Flagged by the July 2026 coverage
+      review
 
 ### YARD tags
 
