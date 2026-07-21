@@ -371,6 +371,50 @@ may follow; that doc tracks status across all of them.
       devdocs/Dogfood.md. Root cause and fix turned out broader than the
       missing `**Returns:**` bullet alone — see "A 2+-`@overload` method's
       own top-level `@return`" under "Decisions"
+- [ ] (design) Per-overload `@yield`/`@yieldparam`/`@yieldreturn`,
+      `@raise`, and `@see` — the same "own tag wins, else fall back to the
+      method's shared one" treatment just settled for `@return`, extended
+      to the rest of the tag family `method_entry.erb` still reads only at
+      the method level (`@method.tags(:yieldparam)`,
+      `@method.tag(:yieldreturn)`, `@method.tags(:raise)`,
+      `@method.tags(:see)` — never `ov.tags(...)`), so an overload-specific
+      instance of any of these is silently dropped entirely today, not
+      just rendered redundantly. Confirmed real for `@yieldreturn`:
+      `functions_framework`'s `Function::Callable#set_global` has two
+      overloads (`set_global(key, value)` / `set_global(key, &block)`);
+      only the block-accepting one declares `@yieldreturn [Object] The
+      value`, and it's completely absent from the generated doc — the
+      method has no method-level yield tags at all, so nothing yield-
+      related renders. `@yield`/`@yieldparam` bundled in with
+      `@yieldreturn` rather than split out separately, since a block that
+      yields differently likely returns differently too — fixing one
+      without the other would be a half-fix within the same tag family.
+      `@raise`/`@see` have no real-world example yet (unlike `@yield`), but
+      are included on the same footing by explicit human decision: plausible
+      and expected to exist (a hash-form overload could raise a validation
+      error a positional-form overload can't, for instance), worth building
+      now rather than waiting for a concrete case, overriding this project's
+      usual wait-for-evidence default for once
+- [ ] (design) Per-overload `@overload` prose (the free-text description
+      written under a specific `@overload` line, before its nested tags) —
+      currently dropped unconditionally: `method_prose.erb` only ever
+      renders `@method.docstring` (the method's own shared, top-level
+      text), never `ov.docstring` for any individual overload. Confirmed
+      real and, unlike the tag-level gaps above, present in *every*
+      multi-overload method found in two real gems (`toys-core`'s
+      `Middleware.spec`/`Context#set`/`Tool.static`/`Tool.set`,
+      `functions_framework`'s `Function::Callable#set_global`) — each
+      overload in every one of these carries its own descriptive
+      paragraph (sometimes with an inline code example) distinguishing
+      that call shape from the others, entirely separate from this
+      checklist's other 2+-overload items. Concretely,
+      `Toys::Middleware.spec`'s array-form overload's whole explanation of
+      what the 1-4-element array means is lost, leaving only the shared
+      "Create a middleware spec." — likely the more consequential of the
+      two `@overload`-related gaps found in this review, since it's
+      universal rather than occasional. Needs a design decision on where
+      this text goes relative to the existing per-overload bold-signature-
+      label group (see "Prose-vs-signature ordering" under "Decisions")
 - [x] (design) Settle prose-vs-signature ordering as one uniform rule — the
       2+-overload shape led with the shared docstring and `@example`s
       (`Point.of`'s two examples rendered before *any* signature), while
