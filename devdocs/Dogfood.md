@@ -28,6 +28,7 @@ first.
 | `rubocop` | Queued (2026-07-21) | Scale + macro-defined methods |
 | `parser` | Queued (2026-07-21) | Racc-generated mega-classes |
 | `toys` | Queued (2026-07-21) | Human-written docs, embedded `toys-core` copy, large `--files` guide, installed-gem generation |
+| `google-cloud-secret_manager-v1` | Queued (2026-07-21) | Protobuf-generated client; `@example`/`@overload`/`@yield` at scale |
 
 ## Queued candidates
 
@@ -117,6 +118,47 @@ than the "mid-size" bar the other three clear, but interesting for a
 different, so-far-untested reason: it leans on RDoc's `:nodoc:`/
 `:stopdoc:`/`:startdoc:` visibility directives, which nothing has
 exercised at all. Kept as a reserve pick rather than a fourth queued run.
+
+### `google-cloud-secret_manager-v1`
+
+**Why this gem:** requested directly by the user (2026-07-21) as a
+mechanically generated gem — automatically converted to Ruby from a
+protobuf/gRPC service definition (Google's `gapic-generator-ruby`), unlike
+every other queued/run candidate so far, all of which are hand-written.
+Per [[user_google_api_client_background]] the user has direct hands-on
+experience with this generated-docs style, so is well positioned to judge
+whether the rendered output looks right. Local checkout confirmed at
+`~/Documents/Development/oss/google-cloud-ruby/google-cloud-secret_manager-v1`
+(not currently Bundler-vendored in this project; `google-cloud-secret_manager-v1`
+`1.9.0` is published on rubygems.org, so either the local checkout or a
+fresh install would work). The user named three specific axes to expect:
+
+1. **`@example` usage at scale** — confirmed: 47 occurrences across `lib/`.
+2. **`@overload`** — confirmed: present in 3 files (`secret_manager_service/paths.rb`,
+   `secret_manager_service/client.rb`, `secret_manager_service/rest/client.rb`)
+   — the generator emits both an RPC-request-object calling convention and a
+   flattened-keyword-args convenience convention as alternate signatures on
+   the same method, a shape none of the run/queued gems so far use.
+3. **`@yield`** — confirmed: present in 3 files (the same `client.rb`/
+   `rest/client.rb` plus `rest/service_stub.rb`) — generated RPC methods
+   yield the raw response/operation for streaming or custom-call use.
+4. **"Potentially awkward formatting because it was automatically
+   converted"** — the user's framing, not yet independently verified by
+   reading actual rendered output; that's exactly what this run needs to
+   check (per the general procedure below) rather than something to
+   pre-judge from source alone.
+
+**Setup notes for the eventual run:** `.yardopts` specifies
+`--markup markdown --markup-provider redcarpet` and points at
+`./lib/**/*.rb` **and** `./proto_docs/**/*.rb`, with `--exclude _pb\.rb$`.
+`lib/` is 15 files / ~348KB; `proto_docs/` (protobuf message-class doc
+stubs, no real logic — likely almost pure docstrings) is a further 17
+files / ~143KB — both trees need to be included to match how this gem
+documents itself, unlike every prior candidate's single source tree.
+Extra `--files`: `README.md` (154 lines), `AUTHENTICATION.md` (122 lines),
+`LICENSE.md` (201 lines).
+
+**Not yet run** — queued only.
 
 ## Procedure (applies to every run)
 
