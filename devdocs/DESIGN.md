@@ -447,30 +447,13 @@ may follow; that doc tracks status across all of them.
       method outside the parsed corpus" item just below for the comment-
       carrying variant, found by probing while fixing this one but left
       unfixed
-- [ ] (design) Alias with its own comment, targeting a method outside the
-      parsed corpus — `alias_own_prose(meth)` returns `nil` whenever
-      `alias_original(meth)` does (its `return nil unless original` guard),
-      silently dropping any real commentary written directly on the
-      `alias`/`alias_method` statement itself. Unlike the resolved case,
-      where `alias_own_prose` diffs `meth.docstring` against the original's
-      copied docstring to isolate just the new text, an unresolved alias's
-      docstring is never a copy-plus-append in the first place — YARD's
-      `AliasHandler` only concatenates the original's docstring onto the
-      alias's own comment when it actually resolves `old_obj`; when it
-      doesn't, `meth.docstring` is exactly the alias statement's own
-      comment, verbatim (confirmed by direct probe, not inferred). So the
-      likely fix direction is: `alias_own_prose` should return the whole
-      `meth.docstring.to_s` (trimmed) as-is when `alias_original(meth)` is
-      `nil` and the docstring is non-empty, rather than bailing out via the
-      `original` guard. Marked (design), not (mech): it revisits "Aliased
-      method: minimal pointer entry"'s assumption (under "Decisions") that
-      an alias's "own prose" is always a diff against a real original's
-      docstring. Not exercised by the `Stopwatch#stringify` fixture (kept
-      deliberately comment-free, to isolate the "Alias targeting a method
-      outside the parsed corpus" item's crash-only variable) — needs its
-      own `example/lib` variant, an alias to an external/unresolved target
-      that also carries its own comment. Flagged while fixing that item,
-      2026-07-20
+- [x] (design) Alias with its own comment, targeting a method outside the
+      parsed corpus — `Stopwatch#introspect` (`alias_method :introspect,
+      :inspect`, aliasing inherited `Object#inspect`, with its own comment);
+      settled on falling back to the raw (trimmed) docstring when
+      `alias_original` can't resolve the original — see "Alias with its own
+      comment, targeting a method outside the parsed corpus" under
+      "Decisions"
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [x] (mech, pre-dogfood) Class methods defined via `class << self` — should render
@@ -1381,6 +1364,37 @@ Summary's `#accrue` bullet is unaffected — still the fixed `**Alias for:**`
 one-liner regardless of whether the alias has its own extra prose, keeping
 every alias's Member Summary line the same predictable shape; the extra
 commentary is only visible once the full entry is open.
+
+### Alias with its own comment, targeting a method outside the parsed corpus: fall back to the raw docstring
+
+Follow-up to "Aliased method with its own comment" above, and to "Alias
+targeting a method outside the parsed corpus" (see the checklist above),
+covering the combination of both: an alias statement with its own comment,
+whose original can't be resolved. Exercised via `Stopwatch#introspect`
+(`alias_method :introspect, :inspect`, aliasing inherited `Object#inspect`,
+with its own one-paragraph comment).
+
+`alias_own_prose`'s prefix-diff approach (see above) inherently needs a
+resolved `original` to diff against — `alias_original(meth)` returning
+`nil` meant the old `return nil unless original` guard silently dropped any
+real commentary written on the alias statement itself, distinct from the
+already-fixed crash in `alias_original_heading`/`member_heading(nil)`. But
+unlike the resolved case, an unresolved alias's docstring was never a
+copy-plus-append in the first place: `AliasHandler` only concatenates the
+original's docstring onto the alias's own comment when it actually resolves
+`old_obj` — when it doesn't, `meth.docstring` is exactly the alias
+statement's own comment, verbatim (confirmed by direct probe, not
+inferred).
+
+**The decision:** `alias_own_prose(meth)` now checks `meth.is_alias?` up
+front (rather than inferring alias-ness from `alias_original` returning
+non-`nil`, which conflated "not an alias" with "unresolved alias"), then
+delegates to a new `unresolved_alias_own_prose(meth)` when
+`alias_original(meth)` is `nil`: returns `meth.docstring.to_s.strip` as-is,
+or `nil` if empty. No template change needed — `method_entry.erb`'s alias
+branch already renders whatever `alias_own_prose` returns through the same
+`markdownify(text)` call, so this reuses the resolved case's rendering path
+for free.
 
 ### Mixin content strategy (direct `include`): link out, not duplicate
 

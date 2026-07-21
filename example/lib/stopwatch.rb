@@ -133,6 +133,12 @@ class Stopwatch
   alias_method :stringify, :to_s
 
   ##
+  # Older name for `#inspect`, from an earlier diagnostics helper. Prefer
+  # `#inspect` in new code.
+  #
+  alias_method :introspect, :inspect
+
+  ##
   # Runs the given block and adds how long it took to this stopwatch's
   # elapsed time.
   #

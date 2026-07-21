@@ -43,6 +43,7 @@ Call the reset method to start over.
 - `#accrue` — **Alias for:** `#add`
 - `#add` — Adds to the elapsed time.
 - `#describe` — Builds a descriptive label for this stopwatch.
+- `#introspect` — **Alias for:** `#inspect`
 - `#measure` — Runs the given block and adds how long it took to this stopwatch's elapsed time.
 - `#raw_elapsed_s` (private API) — Formats the elapsed time for internal diagnostic tooling.
 - `#reset` — Resets the elapsed time.
@@ -163,7 +164,7 @@ makes the same choice).
 
 - `Integer` — -1, 0, or 1
 
-* **Defined in:** `example/lib/stopwatch.rb:195`
+* **Defined in:** `example/lib/stopwatch.rb:201`
 
 ### #accrue
 
@@ -229,7 +230,20 @@ formatting API.
 
 - `String` — the assembled label
 
-* **Defined in:** `example/lib/stopwatch.rb:167`
+* **Defined in:** `example/lib/stopwatch.rb:173`
+
+### #introspect
+
+```ruby
+stopwatch.introspect()
+```
+
+* **Alias for:** `#inspect`
+
+Older name for `#inspect`, from an earlier diagnostics helper. Prefer
+`#inspect` in new code.
+
+* **Defined in:** `example/lib/stopwatch.rb:139`
 
 ### #measure
 
@@ -252,7 +266,7 @@ elapsed time.
 
 - `Object` — the block's return value
 
-* **Defined in:** `example/lib/stopwatch.rb:143`
+* **Defined in:** `example/lib/stopwatch.rb:149`
 
 ### #raw_elapsed_s
 
@@ -270,7 +284,7 @@ part of the stable public API.
 
 - `String` — the elapsed time, in seconds, as a plain string
 
-* **Defined in:** `example/lib/stopwatch.rb:182`
+* **Defined in:** `example/lib/stopwatch.rb:188`
 
 ### #reset
 
@@ -327,7 +341,7 @@ entries. `nil` until explicitly set.
 
 - `String, nil`
 
-* **Defined in:** `example/lib/stopwatch.rb:205`
+* **Defined in:** `example/lib/stopwatch.rb:211`
 
 ### #tag=
 
@@ -347,4 +361,4 @@ validate — an explicit `def name=(value)` not registered via
 
 - `ArgumentError` — if `value` is empty
 
-* **Defined in:** `example/lib/stopwatch.rb:217`
+* **Defined in:** `example/lib/stopwatch.rb:223`

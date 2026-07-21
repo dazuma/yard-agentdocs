@@ -207,21 +207,45 @@ module YARD
       # tags fall structurally), so an alias's own commentary can be shown
       # once, on its own, without repeating the original's.
       #
+      # When {#alias_original} can't resolve the original (outside the
+      # parsed corpus — external gem/stdlib, or otherwise not a plain `def`),
+      # there's nothing to diff against — but there's also nothing to diff
+      # *away*: `AliasHandler` only performs that copy-plus-append when it
+      # actually resolves `old_obj`, so an unresolved alias's +docstring+ is
+      # exactly its own statement's comment, verbatim (confirmed by direct
+      # probe against YARD, not inferred from the handler source). So this
+      # falls back to +meth.docstring+ as-is in that case, rather than
+      # bailing out the way the resolved branch's prefix-diff would.
+      #
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [String, nil] +meth+'s own additional prose, still in its
       #   original (unconverted) markup dialect — render it through
       #   {Markdownify#markdownify} like any other docstring text, not
-      #   spliced in raw — or `nil` if +meth+ isn't an alias, has no
-      #   original to diff against, or has no text beyond what it copied
+      #   spliced in raw — or `nil` if +meth+ isn't an alias, or has no text
+      #   beyond what it copied (resolved case) / no text at all (unresolved
+      #   case)
       #
       def alias_own_prose(meth)
+        return nil unless meth.is_alias?
         original = alias_original(meth)
-        return nil unless original
+        return unresolved_alias_own_prose(meth) unless original
         full = meth.docstring.to_s
         prefix = original.docstring.to_s
         return nil unless full.start_with?(prefix)
         extra = full[prefix.length..].sub(/\A\n+/, "")
         extra.empty? ? nil : extra
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject] an alias
+      #   ({::YARD::CodeObjects::MethodObject#is_alias?}) whose
+      #   {#alias_original} is `nil`
+      # @return [String, nil] +meth.docstring+ verbatim (trimmed), or `nil`
+      #   if empty — see {#alias_own_prose}
+      #
+      def unresolved_alias_own_prose(meth)
+        text = meth.docstring.to_s.strip
+        text.empty? ? nil : text
       end
 
       ##
