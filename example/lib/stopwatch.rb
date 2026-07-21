@@ -80,6 +80,45 @@ class Stopwatch
     end
 
     ##
+    # Configures {.verbose} and {.log_target} together in one call.
+    #
+    # Exercises per-overload `@option`, `@deprecated`, and `@note` — a
+    # legacy hash-options call form migrating to a keyword-args one, kept
+    # side by side during a deprecation window, the way many gems handled
+    # the Ruby 2.7/3.0 keyword-argument separation. No real-world precedent
+    # for any of these nested inside a specific `@overload` was found in the
+    # gems reviewed so far; included anyway by explicit human decision (see
+    # DESIGN.md's per-overload checklist item).
+    #
+    # @overload configure(opts = {})
+    #   The original, hash-based calling form, kept for backward
+    #   compatibility.
+    #
+    #   @deprecated Use the keyword form instead.
+    #   @param opts [Hash] the settings to apply
+    #   @option opts [Boolean] :verbose (false) whether to log diagnostic output
+    #   @option opts [IO] :log_target ($stderr) where to write it
+    #   @return [void]
+    #
+    # @overload configure(verbose: false, log_target: $stderr)
+    #   The current, keyword-based calling form.
+    #
+    #   @note Unlike the hash form, an unrecognized keyword raises
+    #     immediately instead of being silently ignored.
+    #   @param verbose [Boolean] whether to log diagnostic output
+    #   @param log_target [IO] where to write it
+    #   @return [void]
+    #
+    def configure(opts = nil, verbose: false, log_target: $stderr)
+      if opts
+        verbose = opts.fetch(:verbose, false)
+        log_target = opts.fetch(:log_target, $stderr)
+      end
+      self.verbose = verbose
+      self.log_target = log_target
+    end
+
+    ##
     # Where {.verbose} diagnostic output is written. `$stderr` until
     # changed.
     #

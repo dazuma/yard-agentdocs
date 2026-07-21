@@ -44,6 +44,16 @@
 <%- overloads.each do |ov| -%>
 
 **`<%= signature_text(@method, overload: ov) %>`**
+<%- ov_deprecated = deprecated_line(ov) -%>
+<%- if ov_deprecated -%>
+
+<%= ov_deprecated %>
+<%- end -%>
+<%- ov_note = note_line(ov) -%>
+<%- if ov_note -%>
+
+<%= ov_note %>
+<%- end -%>
 <%- ov_docstring = ov.docstring -%>
 <%- unless ov_docstring.empty? -%>
 
@@ -56,6 +66,17 @@
 
 <%- ov_param_tags.each do |p| -%>
 - `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
+<%- end -%>
+<%- ov_option_tags = ov.tags(:option) -%>
+<%- ov_param_tags.each do |p| -%>
+<%- ov_opts = ov_option_tags.select { |o| o.name == p.name } -%>
+<%- next if ov_opts.empty? -%>
+
+**Options (`<%= p.name %>`):**
+
+<%- ov_opts.each do |o| -%>
+<%= option_line(o) %>
+<%- end -%>
 <%- end -%>
 <%- end -%>
 <%- ov_yield = ov.tag(:yield) -%>
@@ -127,7 +148,7 @@
 <%- param_tags.each do |p| -%>
 - `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
-<%- option_tags = @method.tags(:option) -%>
+<%- option_tags = (primary || @method).tags(:option) -%>
 <%- param_tags.each do |p| -%>
 <%- opts = option_tags.select { |o| o.name == p.name } -%>
 <%- next if opts.empty? -%>

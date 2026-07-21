@@ -417,6 +417,19 @@ may follow; that doc tracks status across all of them.
       universal rather than occasional. Needs a design decision on where
       this text goes relative to the existing per-overload bold-signature-
       label group — see "Per-overload `@overload` prose" under "Decisions"
+- [x] (design) Per-overload `@option`/`@deprecated`/`@note` — three more
+      tags `method_entry.erb` still reads only at the method level
+      (`@option` via `@method.tags(:option)`, unconditionally, and only in
+      the 0/1-overload branch — the 2+-overload branch doesn't render
+      `@option` at all; `@deprecated`/`@note` via `annotation_lines(@method)`,
+      rendered once in the shared prose slot). No real-world precedent found
+      for any of the three nested inside a specific `@overload` in the gems
+      checked so far (`toys-core`, `functions_framework`,
+      `google-cloud-secret_manager-v1`'s gapic clients); included anyway by
+      explicit human decision, same footing as the `@raise`/`@see` item
+      above. Human-picked next item, explicitly requested ahead of any new
+      real-world evidence — see "Per-overload `@option`/`@deprecated`/
+      `@note`" under "Decisions"
 - [x] (design) Settle prose-vs-signature ordering as one uniform rule — the
       2+-overload shape led with the shared docstring and `@example`s
       (`Point.of`'s two examples rendered before *any* signature), while
@@ -3150,6 +3163,67 @@ rather than also implicitly probing "a code block embedded in overload
 prose" — untested territory (plain-Markdown 4-space-indent should pass
 through `markdownify` unchanged, but that's unproven) left for a future
 item if real evidence calls for it.
+
+### Per-overload `@option`/`@deprecated`/`@note`: `@option` scoped like `@param`, `@deprecated`/`@note` additive rather than own-wins-else-fallback
+
+Settles the checklist item of the same name — human-picked ahead of any new
+real-world evidence, same footing as the earlier `@raise`/`@see` item.
+Two different treatments, not one rule mechanically extended three times,
+because the three tags don't share the same relationship to their method:
+
+- **`@option` is scoped exactly like `@param`, with no independent fallback
+  concept.** An `@option` tag only means anything paired with a specific
+  `@param`'s name, so it was never rendered in the method-level shared tail
+  to begin with (nested under that param's own `**Params:**` bullet,
+  always) — there's no "shared, once" position for it to fall back to.
+  Fix: both branches now read options from whichever scope owns the active
+  param list — `(overload || @method).tags(:option)` — instead of
+  `@method.tags(:option)` unconditionally:
+  - **2+-overload branch:** previously didn't render `@option` *at all*
+    (only the 0/1-overload branch had the loop). Added the identical
+    per-param-name-filter loop already used there, scoped to `ov`.
+  - **0/1-overload branch:** previously read `@method.tags(:option)`
+    even when `primary` was present and declared its own — silently
+    ignoring an overload-scoped `@option` the same way the pre-fix
+    `@yieldreturn` case did. Fixed by symmetry with the `primary`
+    fallback `@param` itself already gets one line above; no fixture pairs
+    a single `@overload` with its own `@option`, so this half stays
+    unproven, same status as the other "fixed by symmetry" cases logged
+    above.
+- **`@deprecated`/`@note` are additive, not "own wins, else fall back."**
+  Deliberately *not* the `@return`/`@yield`/`@raise`/`@see` pattern.
+  Reasoning: for those tags, an overload's own instance is a more specific
+  *replacement* for the same fact the method-level tag would otherwise
+  supply (what does this call return, what can it raise) — genuinely
+  redundant if both were shown, hence suppressing the shared one. A
+  method-level `@deprecated`/`@note` and an overload-level one aren't
+  the same fact at different granularity, though — "the whole method is
+  going away" and "this specific calling form is going away, use the
+  other one" are independent, non-conflicting statements, and both can be
+  true at once (or only the overload-level one, the more common real
+  shape — see the fixture below). So both render, independently: the
+  method-level ones exactly as before (`annotation_lines(@method)`,
+  unconditionally, in the shared top slot), and an overload's own
+  (`deprecated_line(ov)`/`note_line(ov)`, reusing the existing private
+  helpers — `OverloadTag#has_tag?`/`#tag` already forward to its own
+  nested docstring, so they work unmodified) as its own flag line inside
+  that overload's own group. Position: right after the bold label, before
+  that overload's own prose — mirroring the top-level flags-before-prose
+  order one level down, the same recursive echo the per-overload-prose
+  decision above already established.
+
+**Fixture:** `Stopwatch.configure`, a new class method modeling the
+hash-options-to-keyword-args migration idiom many gems went through around
+the Ruby 2.7/3.0 keyword-argument separation — no single gem source cited
+(none of the gems checked for this item happened to nest these three tags
+inside an `@overload`), but a broadly recognized, realistic shape. Two
+overloads: `configure(opts = {})`, the legacy hash form, carries its own
+`@deprecated` and two `@option`s (`:verbose`, `:log_target`); `configure(verbose:
+false, log_target: $stderr)`, the current keyword form, carries its own
+`@note` about stricter validation. Chosen over extending an existing
+overload fixture (`Cache#set`, `Point.of`) to keep this decision's fixture
+self-contained and thematically clear (configuring two already-existing
+`Stopwatch` class attributes, `.verbose`/`.log_target`).
 
 ### Auxiliary one-line tags: `@deprecated`/`@note` as flag lines, `@since` as trailing metadata
 
