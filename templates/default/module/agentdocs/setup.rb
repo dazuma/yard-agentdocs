@@ -150,6 +150,15 @@ def constant_summary_line(const)
   "- `#{const.name}`#{summary_suffix(const.docstring.summary)}"
 end
 
+# Same `**Type:**` fallback as {AttributeInfo#attribute_type}: a constant
+# with no `@return` tag (or one with no declared types) — a bare, comment-
+# less assignment — falls back to `"Object"` rather than rendering blank,
+# matching YARD's own human-facing template default for the same case.
+def constant_type(const)
+  types = const.tag(:return)&.types
+  types.nil? || types.empty? ? "Object" : types.join(", ")
+end
+
 def attribute_summary_line(attr)
   suffix = attribute_annotation_short(attr)
   "- `#{attribute_heading(attr)}`#{" (#{suffix})" if suffix}#{summary_suffix(attribute_docstring_summary(attr))}"

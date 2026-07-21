@@ -592,16 +592,26 @@ may follow; that doc tracks status across all of them.
       declared types), matching YARD's own human-facing template default
       for the identical case — see "Attribute `**Type:**` fallback for a
       plain, comment-less `attr_*`" under "Decisions"
-- [ ] (mech) The same `**Type:**` fallback gap, but for a constant with no
-      `@return` tag — `constant_entry.erb`'s `type_ref_first(@constant.tag(:return))`
-      has the identical unconditional-line shape as the just-fixed
-      attribute case (confirmed: every constant in the current fixture set
-      has a manual `@return` tag, so this exact path is unexercised), and
-      the same fallback-to-`` `Object` `` disposition should apply by the
-      same reasoning. Needs an `example/lib` fixture with a bare,
-      comment-less constant (a plain assignment with no doc comment at
-      all) to exercise it. Spotted while fixing the attribute case above,
-      not yet fixed itself
+- [x] The same `**Type:**` fallback gap, but for a constant with no
+      `@return` tag — `Geometry::Segment::ENDPOINT_COUNT`, a new bare,
+      comment-less `= 2` assignment on the same fixture. Fixed the same
+      way: a new `constant_type` helper (`module/agentdocs/setup.rb`,
+      alongside the already-inline `constant_summary_line` — too small to
+      warrant its own `lib/` mixin, per "Extracting generic logic into
+      `lib/` mixins") defaults to `"Object"`, and `constant_entry.erb` now
+      calls `type_ref(constant_type(@constant))` instead of
+      `type_ref_first(@constant.tag(:return))` directly. A second,
+      previously-unexercised bug surfaced building the fixture (every
+      constant until now had a docstring, so it never tripped): unlike
+      `page.erb`/`method_entry.erb`, `constant_entry.erb` interpolated
+      `markdownify(@constant.docstring)` unconditionally, so a truly
+      undocumented constant rendered an extra blank line before
+      `**Defined in:**` — the same class of bug "Intentionally undocumented
+      objects" fixed elsewhere, just never applied here since no fixture
+      had exercised it. Fixed identically (`unless
+      @constant.docstring.empty?`, owning its own leading blank line) —
+      see "Attribute `**Type:**` fallback for a plain, comment-less
+      `attr_*`" under "Decisions", which covers both fixes together
 - [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
@@ -4678,15 +4688,40 @@ and `Docstring#summary` normalizes either into a properly-punctuated
 summary sentence either way), but worth recording in case a future
 byte-for-byte comparison between the two paths is tempting again.
 
-**New gap spotted, not fixed here (see the new unchecked checklist item
-under "Attributes & constants"):** `constant_entry.erb` renders its own
-`**Type:**` line just as unconditionally
-(`type_ref_first(@constant.tag(:return))`), and every constant in the
-current fixture set happens to carry a manual `@return` tag, so the
-identical blank-`Type:` bug is unexercised there. Same fix shape is likely
-(default to `` `Object` `` for a tagless constant), but needs its own
-fixture rather than assuming — left for a separate TDD-loop pass per this
-project's "defer cleanup to a separate pass" convention.
+**Follow-up, same session: the identical gap for a constant, fixed too.**
+`constant_entry.erb` rendered its own `**Type:**` line just as
+unconditionally (`type_ref_first(@constant.tag(:return))`), and every
+constant in the fixture set until now happened to carry a manual `@return`
+tag, so this exact path was unexercised. Exercised via
+`Geometry::Segment::ENDPOINT_COUNT = 2` — bare, comment-less, no doc tag
+at all — added to the same fixture.
+
+- **The fix:** a new `constant_type(const)` helper
+  (`templates/default/module/agentdocs/setup.rb`, next to the already-
+  inline `constant_summary_line` — a one-line nil-check doesn't clear the
+  "nontrivial enough to deserve isolated unit tests" bar "Extracting
+  generic logic into `lib/` mixins" sets for promoting a helper into its
+  own `lib/` module) mirrors `attribute_type` exactly: `"Object"` when
+  there's no `@return` tag or one with no declared types.
+  `constant_entry.erb` now calls `type_ref(constant_type(@constant))`
+  instead of `type_ref_first(@constant.tag(:return))` directly.
+- **A second, previously-latent bug the same fixture caught in passing:**
+  `constant_entry.erb` interpolated `markdownify(@constant.docstring)`
+  unconditionally — no `unless @constant.docstring.empty?` guard, unlike
+  `page.erb`/`method_entry.erb` — so `ENDPOINT_COUNT`'s totally blank
+  docstring produced an extra blank line before `**Defined in:**`. This is
+  the exact bug class "Intentionally undocumented objects" (above) already
+  fixed for object/method prose; it was simply never applied to
+  `constant_entry.erb`, since no constant fixture had ever been fully
+  undocumented before now. Fixed identically: the docstring interpolation
+  moved behind `unless @constant.docstring.empty?`, owning its own leading
+  blank line.
+- Both fixes verified together against the full `example/lib`/`example/doc`
+  suite, byte-for-byte, with no regressions to any other constant
+  (`Point::DIMENSIONS`/`::ORIGIN`, `Angles::NAMED_ANGLES`,
+  `Stopwatch::DEFAULT_ELAPSED`/`::CLOCK`) — all five already carry a real
+  `@return` tag and a real docstring, so neither fallback path changes
+  their output.
 
 ## Implementation
 

@@ -5,6 +5,10 @@
 
 ## Member Summary
 
+**Constants**
+
+- `ENDPOINT_COUNT`
+
 **Instance Attributes**
 
 - `#end_point` (read-only) — Returns the value of attribute end_point.
@@ -18,6 +22,15 @@
 
 - `#length`
 
+## Constants
+
+### ENDPOINT_COUNT
+
+- **Type:** `Object`
+- **Value:** `2`
+
+* **Defined in:** `example/lib/geometry/segment.rb:5`
+
 ## Instance Attributes
 
 ### #end_point
@@ -27,7 +40,7 @@
 
 Returns the value of attribute end_point.
 
-* **Defined in:** `example/lib/geometry/segment.rb:10`
+* **Defined in:** `example/lib/geometry/segment.rb:12`
 
 ### #start_point
 
@@ -36,7 +49,7 @@ Returns the value of attribute end_point.
 
 Returns the value of attribute start_point.
 
-* **Defined in:** `example/lib/geometry/segment.rb:10`
+* **Defined in:** `example/lib/geometry/segment.rb:12`
 
 ## Class Methods
 
@@ -48,7 +61,7 @@ Returns the value of attribute start_point.
 Segment.new(start_point, end_point) → Segment
 ```
 
-* **Defined in:** `example/lib/geometry/segment.rb:5`
+* **Defined in:** `example/lib/geometry/segment.rb:7`
 
 ## Instance Methods
 
@@ -58,4 +71,4 @@ Segment.new(start_point, end_point) → Segment
 segment.length()
 ```
 
-* **Defined in:** `example/lib/geometry/segment.rb:12`
+* **Defined in:** `example/lib/geometry/segment.rb:14`

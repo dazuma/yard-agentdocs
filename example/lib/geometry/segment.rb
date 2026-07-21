@@ -2,6 +2,8 @@
 
 module Geometry
   class Segment
+    ENDPOINT_COUNT = 2
+
     def initialize(start_point, end_point)
       @start_point = start_point
       @end_point = end_point
