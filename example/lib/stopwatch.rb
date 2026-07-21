@@ -130,6 +130,7 @@ class Stopwatch
     @elapsed = to
   end
   alias_method :restart, :reset
+  alias_method :stringify, :to_s
 
   ##
   # Runs the given block and adds how long it took to this stopwatch's

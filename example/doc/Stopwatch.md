@@ -47,6 +47,7 @@ Call the reset method to start over.
 - `#raw_elapsed_s` (private API) — Formats the elapsed time for internal diagnostic tooling.
 - `#reset` — Resets the elapsed time.
 - `#restart` — **Alias for:** `#reset`
+- `#stringify` — **Alias for:** `#to_s`
 - `#tag` — A short identifier for this stopwatch, useful for grouping related log entries.
 - `#tag=` — Sets `#tag`.
 
@@ -162,7 +163,7 @@ makes the same choice).
 
 - `Integer` — -1, 0, or 1
 
-* **Defined in:** `example/lib/stopwatch.rb:194`
+* **Defined in:** `example/lib/stopwatch.rb:195`
 
 ### #accrue
 
@@ -228,7 +229,7 @@ formatting API.
 
 - `String` — the assembled label
 
-* **Defined in:** `example/lib/stopwatch.rb:166`
+* **Defined in:** `example/lib/stopwatch.rb:167`
 
 ### #measure
 
@@ -251,7 +252,7 @@ elapsed time.
 
 - `Object` — the block's return value
 
-* **Defined in:** `example/lib/stopwatch.rb:142`
+* **Defined in:** `example/lib/stopwatch.rb:143`
 
 ### #raw_elapsed_s
 
@@ -269,7 +270,7 @@ part of the stable public API.
 
 - `String` — the elapsed time, in seconds, as a plain string
 
-* **Defined in:** `example/lib/stopwatch.rb:181`
+* **Defined in:** `example/lib/stopwatch.rb:182`
 
 ### #reset
 
@@ -303,6 +304,16 @@ stopwatch.restart(to = DEFAULT_ELAPSED) → Float
 
 * **Defined in:** `example/lib/stopwatch.rb:132`
 
+### #stringify
+
+```ruby
+stopwatch.stringify()
+```
+
+* **Alias for:** `#to_s`
+
+* **Defined in:** `example/lib/stopwatch.rb:133`
+
 ### #tag
 
 ```ruby
@@ -316,7 +327,7 @@ entries. `nil` until explicitly set.
 
 - `String, nil`
 
-* **Defined in:** `example/lib/stopwatch.rb:204`
+* **Defined in:** `example/lib/stopwatch.rb:205`
 
 ### #tag=
 
@@ -336,4 +347,4 @@ validate — an explicit `def name=(value)` not registered via
 
 - `ArgumentError` — if `value` is empty
 
-* **Defined in:** `example/lib/stopwatch.rb:216`
+* **Defined in:** `example/lib/stopwatch.rb:217`

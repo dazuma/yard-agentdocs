@@ -413,7 +413,7 @@ may follow; that doc tracks status across all of them.
       its own top-level Markdown paragraph(s), still run through
       `markdownify` (heading demotion included) — see "Aliased method with
       its own comment" under "Decisions"
-- [ ] (design) Alias targeting a method outside the parsed corpus (external
+- [x] (design) Alias targeting a method outside the parsed corpus (external
       gem/stdlib, or otherwise not a plain `def` YARD's registry resolves) —
       `alias_original(meth)` returns `nil` in this case, and nothing
       downstream guards it: `member_heading(nil)` (called from both
@@ -432,7 +432,45 @@ may follow; that doc tracks status across all of them.
       back to the raw `meth.namespace.aliases[meth]` symbol instead of a
       resolved object, a display case none of the existing unresolved-
       reference handling covers. Flagged by the 2026-07-20 YARD dogfood run
-      (see devdocs/Dogfood.md)
+      (see devdocs/Dogfood.md). **Resolved (2026-07-20):** new
+      `alias_original_heading(meth)` in `lib/yard/agentdocs/method_signature.rb`
+      falls back to `#{meth.scope == :class ? '.' : '#'}#{meth.namespace.aliases[meth]}`
+      when `alias_original(meth)` is `nil`, replacing the direct
+      `member_heading(alias_original(meth))` calls in both crash sites. Since
+      the alias target was already rendered as a plain, unlinked backtick
+      regardless of resolution (see "Aliased method: minimal pointer entry"
+      below), the fallback text is indistinguishable from the resolved case —
+      this was purely a crash fix, not a format change. Exercised by
+      `Stopwatch#stringify` (`alias_method :stringify, :to_s`, aliasing
+      inherited `Object#to_s`), deliberately left comment-free to isolate this
+      one variable — see the new "Alias with its own comment, targeting a
+      method outside the parsed corpus" item just below for the comment-
+      carrying variant, found by probing while fixing this one but left
+      unfixed
+- [ ] (design) Alias with its own comment, targeting a method outside the
+      parsed corpus — `alias_own_prose(meth)` returns `nil` whenever
+      `alias_original(meth)` does (its `return nil unless original` guard),
+      silently dropping any real commentary written directly on the
+      `alias`/`alias_method` statement itself. Unlike the resolved case,
+      where `alias_own_prose` diffs `meth.docstring` against the original's
+      copied docstring to isolate just the new text, an unresolved alias's
+      docstring is never a copy-plus-append in the first place — YARD's
+      `AliasHandler` only concatenates the original's docstring onto the
+      alias's own comment when it actually resolves `old_obj`; when it
+      doesn't, `meth.docstring` is exactly the alias statement's own
+      comment, verbatim (confirmed by direct probe, not inferred). So the
+      likely fix direction is: `alias_own_prose` should return the whole
+      `meth.docstring.to_s` (trimmed) as-is when `alias_original(meth)` is
+      `nil` and the docstring is non-empty, rather than bailing out via the
+      `original` guard. Marked (design), not (mech): it revisits "Aliased
+      method: minimal pointer entry"'s assumption (under "Decisions") that
+      an alias's "own prose" is always a diff against a real original's
+      docstring. Not exercised by the `Stopwatch#stringify` fixture (kept
+      deliberately comment-free, to isolate the "Alias targeting a method
+      outside the parsed corpus" item's crash-only variable) — needs its
+      own `example/lib` variant, an alias to an external/unresolved target
+      that also carries its own comment. Flagged while fixing that item,
+      2026-07-20
 - [x] Singleton/class method (`def self.foo`) alongside instance methods on the
       same class — `Point.parse`/`Point.new` alongside `Point#+`/`#distance_to`
 - [x] (mech, pre-dogfood) Class methods defined via `class << self` — should render
@@ -1258,9 +1296,16 @@ YARD's own `MethodObject#aliases`/`#is_alias?`), not a docstring tag.
   `meth.is_alias?` is true but the `.find` comes up empty (the original is
   outside the parsed corpus), and unlike this decision's own examples, no
   caller guards against it: `member_heading(alias_original(meth))` crashes
-  the whole run. See the new "Alias targeting a method outside the parsed
-  corpus" checklist item under "Methods — shapes & signatures" — not yet
-  fixed.
+  the whole run. See the "Alias targeting a method outside the parsed
+  corpus" checklist item under "Methods — shapes & signatures" — **fixed
+  2026-07-20** via the new `alias_original_heading(meth)` (below).
+- `alias_original_heading(meth)` — `nil` unless `meth.is_alias?`; otherwise
+  `member_heading(alias_original(meth))` when that resolves, or else a
+  fallback built directly from `meth`'s own scope (for the `.`/`#` sigil)
+  and the raw name `meth.namespace.aliases[meth]` still recorded even when
+  the resolved `MethodObject` isn't. The two crash sites (`method_entry.erb`'s
+  `**Alias for:**` line and `method_summary_line`) now call this instead of
+  `member_heading(alias_original(meth))` directly.
 - `also_known_as_line(meth)` — `nil` if `meth.aliases` (YARD's own reverse
   list) is empty, otherwise the `**Also known as:**` line, comma-joining
   every alias.

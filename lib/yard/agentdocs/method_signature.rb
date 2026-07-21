@@ -158,6 +158,32 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [String, nil] `nil` if +meth+ isn't an alias; otherwise the
+      #   `.name`/`#name` heading for what it's aliasing — {#member_heading}
+      #   on the resolved original when {#alias_original} finds one, or the
+      #   same sigil-plus-name form built directly from the raw name YARD's
+      #   own alias bookkeeping recorded (`meth.namespace.aliases[meth]`)
+      #   when it doesn't (the original is outside the parsed corpus —
+      #   external gem/stdlib, or otherwise not a plain `def`): unlike an
+      #   unresolved mixin/superclass (still a `Proxy` with a real `.name`),
+      #   {#alias_original} returning `nil` loses the original's name too, so
+      #   {#member_heading} has no `MethodObject` to work with — this falls
+      #   back to +meth+'s own scope for the `.`/`#` sigil instead (aliasing
+      #   is always same-scope, per {#alias_original}'s own lookup). Since
+      #   the alias target is never linked either way (see "Aliased method:
+      #   minimal pointer entry" under "Decisions" in devdocs/DESIGN.md),
+      #   this fallback renders identically to the resolved case — the fix
+      #   is only about not crashing, not about a different display.
+      #
+      def alias_original_heading(meth)
+        return nil unless meth.is_alias?
+        original = alias_original(meth)
+        return member_heading(original) if original
+        "#{meth.scope == :class ? '.' : '#'}#{meth.namespace.aliases[meth]}"
+      end
+
+      ##
+      # @param meth [::YARD::CodeObjects::MethodObject]
       # @return [String, nil] `"- **Also known as:** `#restart`"` listing
       #   every alias of +meth+ (comma-joined), or `nil` if it has none
       #
