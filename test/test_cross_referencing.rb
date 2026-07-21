@@ -86,6 +86,37 @@ describe ::YARD::AgentDocs::CrossReferencing do
       )
     end
 
+    it "links a resolvable name inside a parenthesized fixed-length-array type" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal(
+        "`Array(`[`Baz`](Baz.md)`, `[`Baz`](Baz.md)`)`",
+        holder.type_ref("Array(Baz, Baz)")
+      )
+    end
+
+    it "collapses a parenthesized fixed-length-array type to a single backtick span when nothing resolves" do
+      holder = holder_for("class Foo; end", "Foo")
+      assert_equal("`Array(Bogus, Bogus)`", holder.type_ref("Array(Bogus, Bogus)"))
+    end
+
+    it "links a resolvable name nested two levels deep in a compound type" do
+      holder = holder_for(<<~RUBY, "Foo::Bar")
+        module Foo
+          class Baz; end
+          class Bar; end
+        end
+      RUBY
+      assert_equal(
+        "`Array<Hash{`[`Baz`](Baz.md)` => `[`Baz`](Baz.md)`}>`",
+        holder.type_ref("Array<Hash{Baz => Baz}>")
+      )
+    end
+
     it "never resolves a duck-type reference to a link" do
       holder = holder_for("class Foo; end", "Foo")
       assert_equal("`#to_s`", holder.type_ref("#to_s"))

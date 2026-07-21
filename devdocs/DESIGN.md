@@ -905,12 +905,20 @@ may follow; that doc tracks status across all of them.
       (`Hash{Baz => Baz}`) and nothing-resolves (`Hash{Symbol => Numeric}`)
       cases, plus `Geometry::Point#translate`'s `Hash{Symbol => Numeric}`-typed
       `@param` as the `example/` appearance.
-- [ ] (mech) Remaining compound-type variants — parenthesized
+- [x] (mech) Remaining compound-type variants — parenthesized
       `Array(Float, Float)`, nested generics (e.g. `Array<Hash{Symbol =>
       Point}>`): the `(`/`)` tokens and multi-level nesting still aren't
       proven by any existing case. Unit-test coverage in
       `test/test_cross_referencing.rb` plus at least one `example/`
-      appearance.
+      appearance. Confirmed mechanical with zero scanner changes, same
+      "already-generic punctuation buffering" precedent as `Hash{K => V}`
+      — three new unit tests (parenthesized-type resolving, parenthesized-
+      type collapsing when unresolved, and a name resolving two levels deep
+      in `Array<Hash{...}>`), plus `Geometry::Point#to_a` (`@return
+      [Array(Numeric, Numeric)]`, unresolved since `Numeric` isn't a
+      documented class) and `Geometry::Computations.group_by_quadrant`
+      (`@return [Hash{Symbol => Array<Point>}]`, `Point` resolving and
+      linking two collection-levels deep) as the `example/` appearances
 - [x] (mech) `@see` pointing at another method in the same class —
       `Geometry::Point#[]=`'s new `@see #[] the corresponding getter`;
       confirmed mechanical with zero template changes: `self_reference?`

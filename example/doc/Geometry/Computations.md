@@ -11,6 +11,7 @@ Utility computations on `Point` values.
 - `.centroid` — Computes the centroid (average position) of one or more points.
 - `.distance` (deprecated) — Computes the distance between two points.
 - `.each_point` — Yields each of the given points in turn.
+- `.group_by_quadrant` — Groups the given points by which quadrant of the coordinate plane they fall in, relative to the origin.
 
 ## Class Methods
 
@@ -89,3 +90,26 @@ Yields each of the given points in turn.
 - `Integer` — the number of points yielded
 
 * **Defined in:** `example/lib/geometry/computations.rb:45`
+
+### .group_by_quadrant
+
+```ruby
+Computations.group_by_quadrant(points) → Hash{Symbol => Array<Point>}
+```
+
+Groups the given points by which quadrant of the coordinate plane
+they fall in, relative to the origin. Exercises a nested compound
+type: an `Array` of `Point`, grouped into a `Hash` keyed by
+quadrant name.
+
+**Params:**
+
+- `points` (`Array<`[`Point`](Point.md)`>`) — the points to group
+
+**Returns:**
+
+- `Hash{Symbol => Array<`[`Point`](Point.md)`>}` — the points, bucketed by
+  quadrant name (`:northeast`, `:northwest`, `:southeast`,
+  `:southwest`)
+
+* **Defined in:** `example/lib/geometry/computations.rb:61`

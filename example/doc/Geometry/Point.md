@@ -35,6 +35,7 @@ comparable with `<=>`.
 - `#distance_to` — Computes the Euclidean distance to another point.
 - `#label` — Returns a short label for this point, formatted `"x,y"` by default (the same format `.parse` understands).
 - `#round` — Rounds this point's coordinates to the given decimal precision.
+- `#to_a` — Returns this point's coordinates as a two-element array, `[x, y]`.
 - `#translate` — Shifts this point by the given coordinate deltas.
 - `#zero?`
 
@@ -340,6 +341,21 @@ Rounds this point's coordinates to the given decimal precision.
 - `Point` — a new point with rounded coordinates
 
 * **Defined in:** `example/lib/geometry/point.rb:170`
+
+### #to_a
+
+```ruby
+point.to_a() → Array(Numeric, Numeric)
+```
+
+Returns this point's coordinates as a two-element array, `[x, y]`.
+Exercises YARD's parenthesized fixed-length-array type syntax.
+
+**Returns:**
+
+- `Array(Numeric, Numeric)` — the coordinates
+
+* **Defined in:** `example/lib/geometry/point.rb:231`
 
 ### #translate
 

@@ -48,6 +48,27 @@ module Geometry
     end
 
     ##
+    # Groups the given points by which quadrant of the coordinate plane
+    # they fall in, relative to the origin. Exercises a nested compound
+    # type: an `Array` of `Point`, grouped into a `Hash` keyed by
+    # quadrant name.
+    #
+    # @param points [Array<Point>] the points to group
+    # @return [Hash{Symbol => Array<Point>}] the points, bucketed by
+    #   quadrant name (`:northeast`, `:northwest`, `:southeast`,
+    #   `:southwest`)
+    #
+    def self.group_by_quadrant(points)
+      points.group_by do |point|
+        if point.y >= 0
+          point.x >= 0 ? :northeast : :northwest
+        else
+          point.x >= 0 ? :southeast : :southwest
+        end
+      end
+    end
+
+    ##
     # Averages an array of numbers. Shared by {.centroid}'s x/y averaging,
     # kept out of the public API since it isn't specific to points.
     #

@@ -221,5 +221,15 @@ module Geometry
     def zero?
       x.zero? && y.zero?
     end
+
+    ##
+    # Returns this point's coordinates as a two-element array, `[x, y]`.
+    # Exercises YARD's parenthesized fixed-length-array type syntax.
+    #
+    # @return [Array(Numeric, Numeric)] the coordinates
+    #
+    def to_a
+      [x, y]
+    end
   end
 end
