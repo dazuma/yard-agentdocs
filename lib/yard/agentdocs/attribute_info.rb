@@ -87,14 +87,13 @@ module YARD
       # @return [String] Same `@return`-tag-text fallback as
       #   {#attribute_docstring}, truncated to its first sentence the same
       #   way every other Member Summary bullet's source text is (via
-      #   `Docstring#summary`)
+      #   {DocstringSummary#smart_summary})
       #
       def attribute_docstring_summary(attr)
         docstring = attr.source_method.docstring
-        return docstring.summary unless docstring.empty?
+        return smart_summary(docstring) unless docstring.empty?
 
-        text = attr.source_method.tag(:return)&.text
-        text ? ::YARD::Docstring.new(text).summary : ""
+        smart_summary(attr.source_method.tag(:return)&.text)
       end
 
       ##

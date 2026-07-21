@@ -51,6 +51,9 @@ class Stopwatch
   #
   def initialize
     @elapsed = DEFAULT_ELAPSED
+    @log_level = "info"
+    @rounding_mode = :up
+    @label_style = "plain"
     @@instance_count += 1
   end
 
@@ -257,6 +260,41 @@ class Stopwatch
     raise ArgumentError, "tag can't be empty" if value.empty?
     @tag = value
   end
+
+  ##
+  # The severity level to log at, e.g. `"debug"`, `"info"`, or `"warn"`.
+  # Defaults to `"info"`.
+  #
+  # Exercises `Docstring#summary`'s abbreviation skip-list: a naive scan
+  # would otherwise treat "e.g."'s period as the sentence's end.
+  #
+  # @return [String]
+  #
+  attr_accessor :log_level
+
+  ##
+  # Which way to round elapsed time when display precision truncates a
+  # fractional second, i.e. `:up` or `:down`. Defaults to `:up`.
+  #
+  # Same skip-list as {#log_level}, but for `"i.e."` instead of `"e.g."` —
+  # proves the fix applies to every abbreviation on the list.
+  #
+  # @return [Symbol]
+  #
+  attr_accessor :rounding_mode
+
+  ##
+  # The formatting style applied when rendering `#tag` for display —
+  # `"plain"`, `"bold"`, `"colored"`, etc. Additional styles may be
+  # added later.
+  #
+  # Unlike {#log_level}/{#rounding_mode}, `"etc."` is deliberately not
+  # on the skip-list — it can legitimately end a sentence, so this
+  # summary should still stop right after it.
+  #
+  # @return [String]
+  #
+  attr_accessor :label_style
 
   protected
 

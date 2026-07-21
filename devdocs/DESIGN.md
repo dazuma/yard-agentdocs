@@ -825,28 +825,18 @@ may follow; that doc tracks status across all of them.
       class/module (`Geometry::Segment`, including an undocumented
       `#initialize`); settled the no-flag, blank-render policy — see
       "Intentionally undocumented objects" under "Decisions"
-- [ ] (design) `Docstring#summary`'s abbreviation-blind truncation — YARD's
-      own `Docstring#summary` (`yard/docstring.rb`, used for every
-      `index.md`/`## Member Summary` one-liner) scans for the first `.`
-      followed by whitespace/end-of-string with no abbreviation exclusion,
-      so a first sentence built around `"...e.g. \`val1\`, \`val2\`."` renders
-      as a dangling `"...e.g."` with nothing after it in every cheap-summary
-      view — the full entry lower in the same file always has the complete
-      sentence, so no information is truly lost, just hidden from the cheap
-      read. Not hypothetical or rare: 43 occurrences across 22 of 63
-      rendered files (~35%) on the `hermes-client` dogfood run, mostly the
-      common `` "$FIELD, e.g. `val1`, `val2`." `` one-line idiom for
-      enum-like string fields. YARD's own default template inherits the
-      identical bug (confirmed directly), so this isn't an agentdocs-
-      specific regression, but it undermines the cheap-summary-first read
-      this format's whole design is built around — a dangling "e.g." reads
-      as broken, not just terse. Flagged by the 2026-07-21 `hermes-client`
-      dogfood run (see devdocs/Dogfood.md). Needs an `example/lib` fixture
-      (a class/method docstring whose first sentence contains a mid-
-      sentence "e.g."/"i.e." followed by concrete examples) and a design
-      review of whether/how to mitigate — a smarter first-sentence
-      extractor vs. accepting it as an inherited YARD limitation this
-      format doesn't diverge from
+- [x] (design) `Docstring#summary`'s abbreviation-blind truncation — YARD's
+      own `Docstring#summary` scans for the first `.` followed by
+      whitespace/end-of-string with no abbreviation exclusion, so a first
+      sentence built around `"...e.g. \`val1\`, \`val2\`."` rendered as a
+      dangling `"...e.g."` in every cheap-summary view (`index.md`/`##
+      Member Summary`). Measured, not hypothetical: 43 occurrences across
+      22 of 63 rendered files (~35%) on the `hermes-client` dogfood run —
+      see devdocs/Dogfood.md. Fixed with a template-side reimplementation
+      (`DocstringSummary#smart_summary`) rather than accepted as an
+      inherited YARD limitation — see "`Docstring#summary`'s abbreviation-
+      blind truncation: a ported, abbreviation-aware reimplementation"
+      under "Decisions"
 
 ### Cross-referencing scenarios
 
@@ -4901,7 +4891,11 @@ empty — the same emptiness check `attribute_type` already uses for the
 sibling `types` fallback. `attribute_docstring_summary`'s fallback is
 truncated to its first sentence via `::YARD::Docstring.new(text).summary`,
 matching how every other Member Summary bullet's source text is
-truncated.
+truncated. **Superseded:** that truncation call is now
+`DocstringSummary#smart_summary(text)` instead — see "`Docstring#summary`'s
+abbreviation-blind truncation: a ported, abbreviation-aware
+reimplementation" under "Decisions"; the fallback behavior described here
+(what triggers it, what it falls back to) is unchanged.
 
 **Rendering choice: the fallback text renders verbatim, not wrapped.**
 YARD's own human-facing template has the identical fallback
@@ -4922,6 +4916,70 @@ site.
 Verified against the full `example/lib`/`example/doc` suite, byte-for-byte,
 with no regressions to `#size` (still exercises the indented-paragraph
 path) or any other attribute.
+
+### `Docstring#summary`'s abbreviation-blind truncation: a ported, abbreviation-aware reimplementation
+
+Settles the "`Docstring#summary`'s abbreviation-blind truncation" checklist
+item under "Documentation content / prose patterns", flagged by the
+2026-07-21 `hermes-client` dogfood run (see devdocs/Dogfood.md).
+
+**The skip-list.** Discussed directly with the user rather than inferred:
+an abbreviation belongs on the list only if its *meaning* requires prose to
+follow it (an example, a restatement, a comparison target) — never merely
+because it's grammatically incomplete alone. That test lands on `"e.g."`,
+`"i.e."`, `"cf."`, `"vs."`, `"a.k.a."`, and `"viz."`. It deliberately
+excludes `"etc."`/`"et al."`: both routinely close out a list, and that
+list can legitimately be the end of a sentence, so treating their period as
+always non-terminal would over-extend summaries in the common case instead
+of fixing a broken one.
+
+**The fix: `DocstringSummary#smart_summary`
+(`lib/yard/agentdocs/docstring_summary.rb`), not a patch over
+`Docstring#summary`.** YARD's own scan (`docstring.rb`) has no seam to
+hook an abbreviation exception into without reimplementing it — the
+character-by-character loop that finds the sentence-ending `.` *is* the
+whole method — so this is a from-scratch, deliberately byte-for-byte port
+of that loop (same paren/bracket depth-counting simplification, same
+paragraph-break fallback, same `{include:...}`-directive no-trailing-period
+rule), with exactly one addition: a "." only ends the scan if it's
+not the final character of a skip-listed abbreviation, matched case-
+insensitively at a word boundary (so an unrelated word ending the same way
+can't false-positive, and a same-case-insensitive `"E.g."` at the very
+start of a sentence is still caught). The paragraph-break branch is
+deliberately left unextended — no fixture or dogfood evidence has ever
+shown a paragraph ending mid-abbreviation, so gating it too would be
+speculative.
+
+Replaces all four `.summary` call sites: `nested_summary_line`,
+`constant_summary_line`, `method_summary_line`
+(`templates/default/module/agentdocs/setup.rb`),
+`attribute_docstring_summary` (`lib/yard/agentdocs/attribute_info.rb`, both
+branches — the `@!attribute`/`@return`-fallback branch no longer needs a
+throwaway `::YARD::Docstring.new(text)` just to reach `#summary`, since
+`smart_summary` accepts a plain `String` directly), and `index_summary_suffix`
+(`templates/default/fulldoc/agentdocs/setup.rb`). `DocstringSummary` is
+mixed into both the `module/agentdocs` and `fulldoc/agentdocs` template
+objects alongside `TextLayout`, the same pattern every other shared
+template helper module uses.
+
+**Testing: parity, not just the new behavior.** Per explicit request, the
+"no worse than YARD" requirement is verified directly rather than assumed:
+`test/test_docstring_summary.rb` ports every scenario in YARD's own
+`docstring_spec.rb` `#summary` block (empty docstrings, paragraph breaks,
+paren/bracket nesting, decimal numbers, ellipses, the `{include:...}`
+directive, embedded `{Class#method}` references, unbalanced-parenthesis
+paragraph fallbacks) and asserts `smart_summary` agrees with the real,
+currently-installed `Docstring#summary` on every one, in addition to the
+literal expected value — so a future `yard` gem upgrade that changes
+`#summary`'s behavior would surface as a mismatch here, not just as a
+silent divergence. Separate cases cover the new skip-list behavior itself
+(one per abbreviation, plus case-insensitivity, start-of-string, and a
+word-boundary false-positive guard) and a regression guard proving
+`"etc."`/`"et al."` still end a sentence exactly as before.
+
+Verified against the full `example/lib`/`example/doc` suite, byte-for-byte
+(the `Stopwatch#log_level`/`#rounding_mode`/`#label_style` fixture
+attributes), plus `toys rubocop`/`toys yardoc` clean.
 
 ## Implementation
 

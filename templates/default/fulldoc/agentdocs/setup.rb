@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 include ::YARD::AgentDocs::CrossReferencing
+include ::YARD::AgentDocs::DocstringSummary
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::TextLayout
@@ -52,7 +53,7 @@ end
 # file, not onto +object+'s own page.
 def index_summary_suffix(object)
   self.object = object
-  summary_suffix(object.docstring.summary)
+  summary_suffix(smart_summary(object.docstring))
 end
 
 def serialize(object)

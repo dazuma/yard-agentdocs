@@ -3,6 +3,7 @@
 include ::YARD::AgentDocs::AttributeInfo
 include ::YARD::AgentDocs::AuxiliaryTags
 include ::YARD::AgentDocs::CrossReferencing
+include ::YARD::AgentDocs::DocstringSummary
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::ExampleTags
 include ::YARD::AgentDocs::Markdownify
@@ -143,11 +144,12 @@ end
 
 def nested_summary_line(nested)
   suffix = private_api_annotation_short(nested)
-  "- [`#{nested.name}`](#{link_path(nested)})#{" (#{suffix})" if suffix}#{summary_suffix(nested.docstring.summary)}"
+  link = "[`#{nested.name}`](#{link_path(nested)})"
+  "- #{link}#{" (#{suffix})" if suffix}#{summary_suffix(smart_summary(nested.docstring))}"
 end
 
 def constant_summary_line(const)
-  "- `#{const.name}`#{summary_suffix(const.docstring.summary)}"
+  "- `#{const.name}`#{summary_suffix(smart_summary(const.docstring))}"
 end
 
 # Same `**Type:**` fallback as {AttributeInfo#attribute_type}: a constant
@@ -166,6 +168,6 @@ end
 
 def method_summary_line(meth)
   suffix = (annotation_lines_short(meth) + [overrides_annotation_short(meth)].compact).join(", ")
-  summary = meth.is_alias? ? "**Alias for:** `#{alias_original_heading(meth)}`" : meth.docstring.summary
+  summary = meth.is_alias? ? "**Alias for:** `#{alias_original_heading(meth)}`" : smart_summary(meth.docstring)
   "- `#{member_heading(meth)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(summary)}"
 end

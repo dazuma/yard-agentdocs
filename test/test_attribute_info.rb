@@ -5,14 +5,16 @@ require "helper"
 describe ::YARD::AgentDocs::AttributeInfo do
   # Parses +source+ into a fresh registry, builds a holder (with
   # {::YARD::AgentDocs::AttributeInfo}, {::YARD::AgentDocs::CrossReferencing},
-  # {::YARD::AgentDocs::Markdownify} mixed in) whose +object+ is
-  # +namespace_path+, and returns the holder alongside the
+  # {::YARD::AgentDocs::DocstringSummary}, {::YARD::AgentDocs::Markdownify}
+  # mixed in) whose +object+ is +namespace_path+, and returns the holder
+  # alongside the
   # {::YARD::AgentDocs::Attribute} for +name+ built from that same
   # still-populated registry — the same value
   # {::YARD::AgentDocs::MemberListing#attribute_objects} builds.
   def build_holder_and_attr(source, namespace_path, name)
     holder = agentdocs_holder(
-      ::YARD::AgentDocs::AttributeInfo, ::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::Markdownify,
+      ::YARD::AgentDocs::AttributeInfo, ::YARD::AgentDocs::CrossReferencing, ::YARD::AgentDocs::DocstringSummary,
+      ::YARD::AgentDocs::Markdownify,
       source: source, at: namespace_path, markup: :markdown
     )
     rw = holder.object.attributes[:instance][name.to_sym]
