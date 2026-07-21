@@ -10,6 +10,16 @@ module Geometry
   #
   class Rectangle
     ##
+    # The corner point new rectangles in this example are anchored at.
+    # Exercises a constant whose type cross-references a different
+    # documented class, unlike `Point::ORIGIN`'s self-reference to the
+    # class it's defined on.
+    #
+    # @return [Point]
+    #
+    DEFAULT_CORNER = Point.new(0, 0)
+
+    ##
     # Creates a rectangle from its width and height.
     #
     # @param width [Float] the width

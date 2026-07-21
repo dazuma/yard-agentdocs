@@ -626,10 +626,16 @@ may follow; that doc tracks status across all of them.
       inline `` **Value:** `...` `` span to a `` ```ruby `` fence, mirroring
       `@example`'s own raw-code fence — see "Structured constant: multiline
       value escalates to a `` ```ruby `` fence" under "Decisions"
-- [ ] (mech) Constant that references another documented class (e.g.
+- [x] (mech) Constant that references another documented class (e.g.
       `DEFAULT_HANDLER = SomeClass.new`) — `Point::ORIGIN = new(0, 0)` is close
       but is a *self*-reference (an instance of the class it's defined on, not
-      another one), so it exercises the value/type machinery but not this case
+      another one), so it exercises the value/type machinery but not this case.
+      Added `Geometry::Rectangle::DEFAULT_CORNER = Point.new(0, 0)`; confirmed
+      mechanical with zero template changes — `type_ref`'s existing
+      self-reference check (`resolved != object`) already handles the
+      cross-class case correctly, rendering `**Type:**` as a link to
+      `Point.md` rather than the plain backtick `Point::ORIGIN` gets on its
+      own page
 - [x] (mech) Private constant (`private_constant`) — `Stopwatch::CLOCK`,
       backing `#current_time`; confirmed omitted with zero template changes,
       same policy as instance/class-method privacy
