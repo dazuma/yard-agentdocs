@@ -96,13 +96,55 @@ module YARD
       #   signature, e.g. `"to"`, `"to = DEFAULT_ELAPSED"`, or `"b: 1"` for
       #   an optional keyword arg (YARD includes the trailing `:` in the
       #   name itself, so a keyword default reads `name: default`, not
-      #   `name: = default`)
+      #   `name: = default`); for a real method (not an `overload`) whose
+      #   own parameters are Ruby's `...` forwarding shorthand or a fully
+      #   anonymous `*, **, &`, falls back to {#forwarding_param_names} —
+      #   see there for why
       #
       def param_names(meth, overload: nil)
-        (overload || alias_original(meth) || meth).parameters.map do |name, default|
+        target = overload || alias_original(meth) || meth
+        params = target.parameters
+        if params.empty? && !overload
+          forwarded = forwarding_param_names(target)
+          return forwarded if forwarded
+        end
+        params.map do |name, default|
           next name.to_s unless default
           name.end_with?(":") ? "#{name} #{default}" : "#{name} = #{default}"
         end
+      end
+
+      ##
+      # {::YARD::CodeObjects::MethodObject#parameters} reports nothing at
+      # all for Ruby's `...` argument-forwarding shorthand or a fully
+      # anonymous `*, **, &` parameter list — confirmed by direct probe:
+      # YARD's own `MethodHandler#format_args` never adds an entry for
+      # `args_forward` or an anonymous splat/double-splat/block, only
+      # checks `args_forward` to decide whether to skip the block param.
+      # {::YARD::CodeObjects::MethodObject#signature}, built straight from
+      # the parameter list's own source text, still has it, though — e.g.
+      # `"def bar(...)"` or `"def baz(*, **, &)"` — so this recovers the
+      # forwarding tokens from there instead, when +meth.parameters+ came
+      # back empty because of this gap.
+      #
+      # Guards against papering over some other cause of an empty
+      # +parameters+ (a genuine zero-arg method, or an unresolved alias
+      # whose +signature+ is just `"def name"`, no parens at all) by only
+      # returning a fallback when the parenthesized text is composed
+      # purely of forwarding tokens — never a partial/best-effort parse of
+      # arbitrary parameter text.
+      #
+      # @param meth [::YARD::CodeObjects::MethodObject]
+      # @return [Array<String>, nil] the forwarding tokens (e.g. `["..."]`
+      #   or `["*", "**", "&"]`), or `nil` if +meth.signature+ doesn't
+      #   parenthesize purely forwarding tokens
+      #
+      def forwarding_param_names(meth)
+        match = meth.signature.to_s.match(/\((.*)\)\z/)
+        return nil unless match
+        tokens = match[1].split(",").map(&:strip)
+        return nil if tokens.empty? || tokens.any? { |t| !["...", "*", "**", "&"].include?(t) }
+        tokens
       end
 
       ##

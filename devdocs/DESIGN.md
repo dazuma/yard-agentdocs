@@ -470,13 +470,13 @@ may follow; that doc tracks status across all of them.
       (`private_class_method`-marked, backing `.centroid`'s x/y averaging);
       confirmed omitted with zero template changes, same policy as instance
       `private`/`protected`
-- [ ] (mech) Argument forwarding and anonymous params — `def foo(...)` and
-      `def foo(*, **, &)` (Ruby 3.0–3.2, well within the gem's `>= 3.4`
-      floor and increasingly idiomatic): `param_names` renders whatever
-      YARD's `parameters` reports for these, which nobody has inspected —
-      the natural-call-syntax line might come out fine (`obj.foo(...)`) or
-      mangled. Escalate to (design) if the raw report needs cleanup.
-      Flagged by the July 2026 coverage review
+- [x] (mech, escalated to design) Argument forwarding and anonymous params —
+      `def foo(...)` and `def foo(*, **, &)` — `Stopwatch#add_forwarded`/
+      `#add_forwarded_anon`; confirmed by direct probe that YARD's
+      `parameters` reports nothing at all for either form, so the raw
+      report needed cleanup after all — see "Argument forwarding and
+      anonymous params: recover forwarding tokens from `signature`" under
+      "Decisions". Flagged by the July 2026 coverage review
 - [ ] (mech) Endless method definition (`def area = width * height`) —
       almost certainly renders identically to the block form, but it's a
       distinct parse path in YARD and a one-line fixture proves it.
@@ -1213,6 +1213,53 @@ override a realistic thing to exercise. `Point#[]=` is also notable as the
 first *mutating* method in an otherwise value-object-style API (every other
 `Point` method returns a new instance) — called out explicitly in its own
 docstring rather than left as a silent inconsistency for a reader to notice.
+
+### Argument forwarding and anonymous params: recover forwarding tokens from `signature`
+
+Settles the "Argument forwarding and anonymous params" checklist item.
+Exercised via `Stopwatch#add_forwarded` (`def add_forwarded(...)`) and
+`#add_forwarded_anon` (`def add_forwarded_anon(*, **, &)`), both forwarding
+to `#add`.
+
+Escalated from (mech) to (design) as the checklist item allowed: confirmed
+by direct probe (`YARD.parse_string` against both forms, not inferred from
+reading the handler) that `MethodObject#parameters` reports nothing at all
+for either — `[]` in both cases. Reading YARD's own
+`Handlers::Ruby::MethodHandler#format_args` explains why: it never adds an
+entry for `args.args_forward` (the `...` case) or for an anonymous splat/
+double-splat/block, only checks `args_forward` to decide whether to *skip*
+adding a block param. So `param_names` mapping straight over
+`meth.parameters`, as it did before this fix, rendered both forms as a bare
+`add_forwarded()`/`add_forwarded_anon()` — silently dropping the fact that
+the method accepts and forwards arguments at all.
+
+`MethodObject#signature` (a separate raw-source-derived string,
+independently set via `CodeObjects::Base#source=` from the parameter
+list's own AST node source) still has the right text, unaffected by
+`format_args`'s gap — confirmed `"def add_forwarded(...)"` and
+`"def add_forwarded_anon(*, **, &)"` respectively, parens included. New
+`forwarding_param_names(meth)` (`lib/yard/agentdocs/method_signature.rb`)
+regexes the parenthesized text off the end of `meth.signature` and returns
+it as tokens (split on `,`, whitespace-stripped) only when every token is
+one of `...`/`*`/`**`/`&` — never a partial/best-effort parse of arbitrary
+parameter text, so it can't paper over some other cause of an empty
+`parameters` (a genuine zero-arg method, whose signature also has empty or
+absent parens, or an unresolved alias, whose `signature` is just
+`"def name"` with no parens at all — both correctly fall through to the
+pre-existing empty-array behavior). `param_names` calls this fallback only
+when `meth.parameters` came back empty and `overload` is `nil` (an
+`@overload` tag's own hand-written parameter list is a different data
+source entirely — a `Tags::OverloadTag`, not a `CodeObjects::Base`, so it
+has no `.signature` to fall back to, and doesn't need one).
+
+No changes needed anywhere else: `signature_text`'s generic call-building
+branch already does `params.join(', ')` inside the parens regardless of
+where `params` came from, so `add_forwarded(...)` and
+`add_forwarded_anon(*, **, &)` fall out for free once `param_names` returns
+the recovered tokens. Neither method gets a `**Params:**` block, correctly
+— there's nothing nameable to attach an `@param` tag to, and `meth.tags` is
+empty for the fallback tokens (`ordered_param_tags` wasn't touched, since
+neither fixture has a stray `@param` tag to reorder or drop).
 
 ### Aliased method: minimal pointer entry, not full duplication or omission
 

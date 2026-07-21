@@ -112,6 +112,27 @@ class Stopwatch
   alias_method :accrue, :add
 
   ##
+  # Forwards every argument (and any block) it's called with to {#add},
+  # using Ruby's `...` argument-forwarding shorthand.
+  #
+  # @return [Float] see {#add}
+  #
+  def add_forwarded(...)
+    add(...)
+  end
+
+  ##
+  # Forwards its arguments and block to {#add}, the same as
+  # {#add_forwarded}, but spelled with Ruby's fully anonymous
+  # splat/double-splat/block parameters (`*, **, &`) instead of `...`.
+  #
+  # @return [Float] see {#add}
+  #
+  def add_forwarded_anon(*, **, &)
+    add(*, **, &)
+  end
+
+  ##
   # Resets the elapsed time.
   #
   # @param to [Float] the elapsed time to reset to; defaults to

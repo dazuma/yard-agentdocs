@@ -42,6 +42,8 @@ Call the reset method to start over.
 - `#<=>` — Compares this stopwatch's elapsed time to another's, per Ruby's `<=>` convention.
 - `#accrue` — **Alias for:** `#add`
 - `#add` — Adds to the elapsed time.
+- `#add_forwarded` — Forwards every argument (and any block) it's called with to `#add`, using Ruby's `...` argument-forwarding shorthand.
+- `#add_forwarded_anon` — Forwards its arguments and block to `#add`, the same as `#add_forwarded`, but spelled with Ruby's fully anonymous splat/double-splat/block parameters (`*, **, &`) instead of `...`.
 - `#describe` — Builds a descriptive label for this stopwatch.
 - `#introspect` — **Alias for:** `#inspect`
 - `#measure` — Runs the given block and adds how long it took to this stopwatch's elapsed time.
@@ -164,7 +166,7 @@ makes the same choice).
 
 - `Integer` — -1, 0, or 1
 
-* **Defined in:** `example/lib/stopwatch.rb:201`
+* **Defined in:** `example/lib/stopwatch.rb:222`
 
 ### #accrue
 
@@ -203,6 +205,37 @@ Adds to the elapsed time.
 
 * **Defined in:** `example/lib/stopwatch.rb:100`
 
+### #add_forwarded
+
+```ruby
+stopwatch.add_forwarded(...) → Float
+```
+
+Forwards every argument (and any block) it's called with to `#add`,
+using Ruby's `...` argument-forwarding shorthand.
+
+**Returns:**
+
+- `Float` — see `#add`
+
+* **Defined in:** `example/lib/stopwatch.rb:120`
+
+### #add_forwarded_anon
+
+```ruby
+stopwatch.add_forwarded_anon(*, **, &) → Float
+```
+
+Forwards its arguments and block to `#add`, the same as
+`#add_forwarded`, but spelled with Ruby's fully anonymous
+splat/double-splat/block parameters (`*, **, &`) instead of `...`.
+
+**Returns:**
+
+- `Float` — see `#add`
+
+* **Defined in:** `example/lib/stopwatch.rb:131`
+
 ### #describe
 
 ```ruby
@@ -230,7 +263,7 @@ formatting API.
 
 - `String` — the assembled label
 
-* **Defined in:** `example/lib/stopwatch.rb:173`
+* **Defined in:** `example/lib/stopwatch.rb:194`
 
 ### #introspect
 
@@ -243,7 +276,7 @@ stopwatch.introspect()
 Older name for `#inspect`, from an earlier diagnostics helper. Prefer
 `#inspect` in new code.
 
-* **Defined in:** `example/lib/stopwatch.rb:139`
+* **Defined in:** `example/lib/stopwatch.rb:160`
 
 ### #measure
 
@@ -266,7 +299,7 @@ elapsed time.
 
 - `Object` — the block's return value
 
-* **Defined in:** `example/lib/stopwatch.rb:149`
+* **Defined in:** `example/lib/stopwatch.rb:170`
 
 ### #raw_elapsed_s
 
@@ -284,7 +317,7 @@ part of the stable public API.
 
 - `String` — the elapsed time, in seconds, as a plain string
 
-* **Defined in:** `example/lib/stopwatch.rb:188`
+* **Defined in:** `example/lib/stopwatch.rb:209`
 
 ### #reset
 
@@ -306,7 +339,7 @@ Resets the elapsed time.
 
 - `Float` — the new elapsed time
 
-* **Defined in:** `example/lib/stopwatch.rb:129`
+* **Defined in:** `example/lib/stopwatch.rb:150`
 
 ### #restart
 
@@ -316,7 +349,7 @@ stopwatch.restart(to = DEFAULT_ELAPSED) → Float
 
 * **Alias for:** `#reset`
 
-* **Defined in:** `example/lib/stopwatch.rb:132`
+* **Defined in:** `example/lib/stopwatch.rb:153`
 
 ### #stringify
 
@@ -326,7 +359,7 @@ stopwatch.stringify()
 
 * **Alias for:** `#to_s`
 
-* **Defined in:** `example/lib/stopwatch.rb:133`
+* **Defined in:** `example/lib/stopwatch.rb:154`
 
 ### #tag
 
@@ -341,7 +374,7 @@ entries. `nil` until explicitly set.
 
 - `String, nil`
 
-* **Defined in:** `example/lib/stopwatch.rb:211`
+* **Defined in:** `example/lib/stopwatch.rb:232`
 
 ### #tag=
 
@@ -361,4 +394,4 @@ validate — an explicit `def name=(value)` not registered via
 
 - `ArgumentError` — if `value` is empty
 
-* **Defined in:** `example/lib/stopwatch.rb:223`
+* **Defined in:** `example/lib/stopwatch.rb:244`
