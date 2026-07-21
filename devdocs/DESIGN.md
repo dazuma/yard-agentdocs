@@ -583,30 +583,25 @@ may follow; that doc tracks status across all of them.
       "`attr_accessor`/`attr_writer` with doc comments" under "Decisions",
       which also closes out the undocumented-attribute boilerplate revisit
       this item was carrying
-- [ ] (design) Attribute `**Type:**` fallback for a plain, comment-less
+- [x] Attribute `**Type:**` fallback for a plain, comment-less
       `attr_reader`/`attr_writer`/`attr_accessor` with no `@attr*` tag —
-      reopens part of the boilerplate-revisit claim the item above closed.
-      That claim ("YARD's `Struct`/`Data` handlers and `AttributeHandler`
-      generate the same boilerplate text through the same `AttributeInfo`
-      rendering path") holds for the docstring *text* half
-      ("Returns the value of attribute `name`" — genuinely shared, both
-      handlers populate the same generic docstring), but not the *type*
-      half: `` **Type:** `Object` `` on `Circle#radius`/`Vector#dx` comes
-      from a real `@return [Object]` tag YARD's `Struct.new`/`Data.define`
-      handlers synthesize on the accessor — confirmed directly
-      (`tag(:return).types == ["Object"]`) — which plain `AttributeHandler`
-      (backing ordinary `attr_*`) never adds (`tag(:return) == nil`).
-      `attribute_type` passes that `nil` through and `type_ref(nil)`
-      returns `""`, so a plain `attr_*`'s `**Type:**` line renders visibly
-      blank instead of falling back to `` `Object` ``, reading as a
-      rendering bug rather than a terse-but-valid entry. Pervasive on real
-      code: 245 occurrences across 89 of 286 classes/modules (~31%) in the
-      2026-07-20 YARD dogfood run (see devdocs/Dogfood.md) — every
-      undocumented plain `attr_accessor`. Needs an `example/lib` fixture
-      with a bare, comment-less `attr_reader`/`writer`/`accessor` (not
-      Struct/Data-based, which is already covered by `Circle`/`Vector`) to
-      settle whether the fix is defaulting to `` `Object` `` to match the
-      Struct/Data case, or something else
+      `Geometry::Segment#start_point`/`#end_point`, a new bare
+      `attr_reader` pair added to the fixture already used for
+      "Intentionally undocumented objects". Fixed: `attribute_type`
+      defaults to `"Object"` when there's no `@return` tag (or one with no
+      declared types), matching YARD's own human-facing template default
+      for the identical case — see "Attribute `**Type:**` fallback for a
+      plain, comment-less `attr_*`" under "Decisions"
+- [ ] (mech) The same `**Type:**` fallback gap, but for a constant with no
+      `@return` tag — `constant_entry.erb`'s `type_ref_first(@constant.tag(:return))`
+      has the identical unconditional-line shape as the just-fixed
+      attribute case (confirmed: every constant in the current fixture set
+      has a manual `@return` tag, so this exact path is unexercised), and
+      the same fallback-to-`` `Object` `` disposition should apply by the
+      same reasoning. Needs an `example/lib` fixture with a bare,
+      comment-less constant (a plain assignment with no doc comment at
+      all) to exercise it. Spotted while fixing the attribute case above,
+      not yet fixed itself
 - [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
@@ -4623,6 +4618,75 @@ milestone — the "no custom handler classes" integration principle, and the
 "Accompanying agent skill" checklist item — since both benefit from seeing
 more than one gem's worth of evidence first. Left for a later run or a
 cross-run correlation pass in `devdocs/Dogfood.md`.
+
+### Attribute `**Type:**` fallback for a plain, comment-less `attr_*`: default to `` `Object` ``
+
+Settles the "Attribute `**Type:**` fallback" checklist item under
+"Attributes & constants", reopened by the dogfood run above. Exercised via
+two new attributes on `Geometry::Segment` (already the "fully undocumented
+class" fixture for "Intentionally undocumented objects") —
+`attr_reader :start_point, :end_point`, plain and comment-less, no
+`@attr*` tag anywhere.
+
+**The fix:** `attribute_type` (`lib/yard/agentdocs/attribute_info.rb`) now
+returns `"Object"` when the attribute's source method has no `@return` tag
+or one with no declared types, instead of passing `nil`/`""` through to
+`type_ref`. One-line change; no template (`.erb`) edits needed, since
+`attribute_entry.erb` already unconditionally renders a `**Type:**` line
+and just needed a non-blank value to put on it.
+
+**Confirmed `` `Object` `` (not omitting the line, and not some other
+placeholder) is the right call by probing YARD's own human-facing HTML
+template directly, not by re-trusting the dogfood run's inference:**
+generated real yardoc for a scratch `attr_accessor` with zero doc comment
+and, separately, a scratch plain method with zero doc comment and no `?`
+suffix — both render `⇒ Object` in the signature line. So `` `Object` ``
+is YARD's own general convention for "no declared return type," not
+something specific to `Struct`/`Data`'s synthesized tag, and this project's
+existing "agent reference needs mirror human reference needs" heuristic
+(already the basis for "Intentionally undocumented objects" below) settles
+it: match that default rather than inventing a bespoke one. This also
+directly confirms the dogfood-run finding's own framing was right, closing
+the loop from "an earlier decision had concluded [`Object`] was
+`Struct`/`Data`-specific" to "it's actually general, as first suspected."
+
+**Deliberately not touched: the method-signature arrow's own no-`@return`
+behavior.** `signature_text` (`lib/yard/agentdocs/method_signature.rb`)
+omits the `→ Type` arrow entirely when `signature_return_type` returns
+`nil` — asymmetric with the human template's own `⇒ Object` default just
+confirmed above, and with this fix. Left as-is: the two sites aren't
+equivalent the way `Struct`/`Data` attributes and plain attributes are —
+`attribute_entry.erb`'s `**Type:**` line is unconditional structure (always
+present, like the `**Value:**` line beside it), while the signature arrow
+is itself optional content (present only when there's something to show),
+matching how every other optional method section (`**Params:**`,
+`**Returns:**`, etc.) already omits itself rather than rendering blank. No
+fixture motivates revisiting that now; flagged here only so the asymmetry
+reads as a deliberate distinction, not an oversight, if it comes up again.
+
+**A genuine new wrinkle, not just the type gap the dogfood run flagged:**
+tracing the docstring text confirmed `Struct.new`/`Data.define`'s
+synthesized docstring and plain `AttributeHandler`'s generated docstring
+are *not* byte-identical, correcting a detail (not the conclusion) of the
+"`attr_accessor`/`attr_writer` with doc comments" decision's "same
+boilerplate text" claim: `Circle#radius` (`Struct.new`) renders "Returns
+the value of attribute radius" with **no trailing period**, while
+`Segment#start_point` (plain `attr_reader`) renders "Returns the value of
+attribute start_point." **with one** — confirmed directly
+(`docstring.to_s` on each). Harmless here (both markdownify identically,
+and `Docstring#summary` normalizes either into a properly-punctuated
+summary sentence either way), but worth recording in case a future
+byte-for-byte comparison between the two paths is tempting again.
+
+**New gap spotted, not fixed here (see the new unchecked checklist item
+under "Attributes & constants"):** `constant_entry.erb` renders its own
+`**Type:**` line just as unconditionally
+(`type_ref_first(@constant.tag(:return))`), and every constant in the
+current fixture set happens to carry a manual `@return` tag, so the
+identical blank-`Type:` bug is unexercised there. Same fix shape is likely
+(default to `` `Object` `` for a tagless constant), but needs its own
+fixture rather than assuming — left for a separate TDD-loop pass per this
+project's "defer cleanup to a separate pass" convention.
 
 ## Implementation
 

@@ -7,6 +7,8 @@ module Geometry
       @end_point = end_point
     end
 
+    attr_reader :start_point, :end_point
+
     def length
       @start_point.distance_to(@end_point)
     end

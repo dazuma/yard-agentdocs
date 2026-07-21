@@ -20,15 +20,22 @@ module YARD
 
       ##
       # @param attr [Attribute]
-      # @return [String, nil] every type the attribute's declared `@return`
-      #   tag lists, comma-joined — same union policy as
+      # @return [String] every type the attribute's declared `@return` tag
+      #   lists, comma-joined — same union policy as
       #   {MethodSignature#signature_return_type}, extended here since this
       #   helper doesn't funnel through {CrossReferencing#type_ref_first}
       #   (see "Union types on the remaining first-type-only tag sites"
+      #   under "Decisions" in devdocs/DESIGN.md). Falls back to `"Object"`
+      #   when there's no `@return` tag (or one with no declared types) —
+      #   a plain, comment-less `attr_reader`/`writer`/`accessor` never gets
+      #   one, unlike `Struct.new`/`Data.define`'s synthesized accessors —
+      #   matching YARD's own human-facing template default for the same
+      #   case (see "Attribute `**Type:**` fallback for a plain… `attr_*`"
       #   under "Decisions" in devdocs/DESIGN.md)
       #
       def attribute_type(attr)
-        attr.source_method.tag(:return)&.types&.join(", ")
+        types = attr.source_method.tag(:return)&.types
+        types.nil? || types.empty? ? "Object" : types.join(", ")
       end
 
       ##
