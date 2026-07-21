@@ -91,17 +91,28 @@
 <%- end -%>
 <%- end -%>
 <%- end -%>
+<%-
+  # 2+ overloads: every section from here on is method-level and shared
+  # across every overload, rendered once rather than repeated per overload
+  # — but it directly follows the last overload's own Params (and, if it
+  # declared one, its own Returns), with nothing else marking where the
+  # per-overload group ends and the shared method-level tail begins. Each
+  # heading below names its own scope explicitly (" (every overload)")
+  # to disambiguate, rather than relying on a single transition marker to
+  # carry that meaning for every tag type that follows it.
+-%>
+<%- tag_scope_suffix = overloads.size >= 2 ? " (every overload)" : "" -%>
 <%- yt = yield_tag(@method) -%>
 <%- if yt -%>
 <%- yt_names = yt.types || [] -%>
 
-**Yields:**
+**Yields<%= tag_scope_suffix %>:**
 
 - <%= dash_join(yt_names.empty? ? "" : yt_names.map { |n| "`#{n}`" }.join(', '), yt.text) %>
 <%- end -%>
 <%- unless @method.tags(:yieldparam).empty? -%>
 
-**Yield Params:**
+**Yield Params<%= tag_scope_suffix %>:**
 
 <%- @method.tags(:yieldparam).each do |p| -%>
 - `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
@@ -110,7 +121,7 @@
 <%- yieldreturn_tags = @method.tags(:yieldreturn) -%>
 <%- unless yieldreturn_tags.empty? -%>
 
-**Yield Returns:**
+**Yield Returns<%= tag_scope_suffix %>:**
 
 <%- yieldreturn_tags.each do |yrt| -%>
 - <%= dash_join(type_ref(yrt.types && yrt.types.join(", ")), yrt.text) %>
@@ -127,7 +138,7 @@
 <%- return_tags = overloads.size < 2 ? (primary ? primary.tags(:return) : method_return_tags(@method)) : (overloads.any? { |ov| !ov.tags(:return).empty? } ? [] : method_return_tags(@method)) -%>
 <%- unless return_tags.empty? -%>
 
-**Returns:**
+**Returns<%= tag_scope_suffix %>:**
 
 <%- return_tags.each do |rt| -%>
 - <%= dash_join(type_ref(rt.types && rt.types.join(", ")), rt.text) %>
@@ -135,7 +146,7 @@
 <%- end -%>
 <%- unless @method.tags(:raise).empty? -%>
 
-**Raises:**
+**Raises<%= tag_scope_suffix %>:**
 
 <%- @method.tags(:raise).each do |r| -%>
 - <%= dash_join(type_ref_first(r), r.text) %>
@@ -143,7 +154,7 @@
 <%- end -%>
 <%- unless @method.tags(:see).empty? -%>
 
-**See also:**
+**See also<%= tag_scope_suffix %>:**
 
 <%- @method.tags(:see).each do |t| -%>
 - <%= dash_join(see_ref(t), t.text) %>

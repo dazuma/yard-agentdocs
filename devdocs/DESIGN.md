@@ -2917,6 +2917,56 @@ overloads intentionally have *differing* per-overload return types, a
 distinct scenario already settled) to keep the two decisions cleanly
 separated.
 
+**Reopened same-day: the shared tail is ambiguous about what it applies
+to.** Human review of the `BoundingBox.enclosing` fixture caught that the
+shared `**Returns:**`/`**Raises:**` tail directly follows the *last*
+overload's own `**Params:**` (and, when present, its own `**Returns:**`),
+with nothing marking the transition from "this overload's own content" to
+"shared across every overload" — a reader could easily attribute the
+shared tail to the last-listed overload alone. Checked against stock
+YARD's own HTML template for precedent (`yard/templates/default/tags/html/overload.erb`,
+`YARD::Tags::Library.visible_tags`): stock YARD has the identical
+data-sharing model (an `OverloadTag`'s `#tag`/`#tags` delegate only to its
+own nested docstring, no fallback — `yard/lib/yard/tags/overload_tag.rb`),
+and also renders shared `@return`/`@raise`/`@yield` once, not per
+overload — but the ambiguity doesn't arise for stock YARD because HTML
+gives the overload list a real structural box (`<ul class="overload">`)
+that visually ends before the shared tag sections begin. Markdown has no
+equivalent, so the ambiguity is a real gap in *this* format's
+Markdown-specific presentation, not evidence that shared-once is the
+wrong data model — confirms the fix belongs in presentation, not in
+switching to per-overload duplication.
+
+Considered and rejected: duplicating `**Returns:**`/`**Raises:**`/
+`**Yields:**` under every overload (self-contained groups, no ambiguity,
+and would incidentally lay groundwork for genuine per-overload variation
+in the future) — rejected for now since every real case found so far
+(this fixture, the dogfood gems) shares these identically across
+overloads, so duplication would be pure repeated bytes with no
+information gain; revisit only if real evidence of genuine per-overload
+`@raise`/`@yield`/`@return` variation surfaces (plausible in principle —
+`Enumerable#each`-style dual-mode methods were raised as a hypothetical
+— but not yet seen). Also considered and rejected: a single transition
+marker line (e.g. a `---` rule or *"(the following apply to every
+overload above)"*) right before the shared tail — rejected because one
+marker has to carry the disambiguating meaning for every tag type that
+follows it, whereas per-heading labels are self-contained and correct
+even if only a subset of the shared tags is present.
+
+**Landed:** each shared-tail heading names its own scope inline,
+parenthesized before the colon — `**Returns (every overload):**`,
+`**Raises (every overload):**`, `**Yields (every overload):**`, `**Yield
+Params (every overload):**`, `**Yield Returns (every overload):**`,
+`**See also (every overload):**` — mirroring the existing `**Options
+(`param`):**` parenthetical-qualifier convention. Applies only when
+`overloads.size >= 2` (a `tag_scope_suffix` local in
+`method_entry.erb`, empty string otherwise); the 0/1-overload path
+(`Point#label`) is unambiguous as-is (one leading signature, one set of
+tags right after it) and renders unchanged. An overload's own inline
+`**Returns:**` (when that overload declares its own, e.g. `Point.of`)
+also stays unlabeled — unambiguous already, since it sits directly under
+that overload's own bold signature label.
+
 ### Prose-vs-signature ordering: one leading multi-line signature block, bold inline-code labels per overload group
 
 Settles the "Settle prose-vs-signature ordering as one uniform rule"

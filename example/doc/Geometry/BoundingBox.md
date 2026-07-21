@@ -69,11 +69,11 @@ calling conventions vary only in how the points are supplied.
 
 - `path` ([`Path`](Path.md)) — a path whose points to enclose
 
-**Returns:**
+**Returns (every overload):**
 
 - `BoundingBox` — the smallest box containing every point
 
-**Raises:**
+**Raises (every overload):**
 
 - `ArgumentError` — if there are no points to enclose
 
