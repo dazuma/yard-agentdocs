@@ -65,18 +65,36 @@ module YARD
 
       ##
       # @param attr [Attribute]
-      # @return [String] Markdown
+      # @return [String] Markdown. Falls back to the source method's
+      #   `@return` tag text, verbatim (no re-casing or "Returns" wrapping —
+      #   matches how every other tag's raw text is rendered elsewhere in
+      #   this template, e.g. {TextLayout#dash_join}), when there's no
+      #   separate free-text docstring — a `@!attribute` directive whose
+      #   entire description lives inside `@return [Type] Description` has
+      #   an empty `docstring` despite having real descriptive text; see
+      #   "Attribute description entirely inside a `@!attribute`'s
+      #   `@return`" under "Decisions" in devdocs/DESIGN.md
       #
       def attribute_docstring(attr)
-        markdownify(attr.source_method.docstring)
+        docstring = attr.source_method.docstring
+        return markdownify(docstring) unless docstring.empty?
+
+        markdownify(attr.source_method.tag(:return)&.text)
       end
 
       ##
       # @param attr [Attribute]
-      # @return [String]
+      # @return [String] Same `@return`-tag-text fallback as
+      #   {#attribute_docstring}, truncated to its first sentence the same
+      #   way every other Member Summary bullet's source text is (via
+      #   `Docstring#summary`)
       #
       def attribute_docstring_summary(attr)
-        attr.source_method.docstring.summary
+        docstring = attr.source_method.docstring
+        return docstring.summary unless docstring.empty?
+
+        text = attr.source_method.tag(:return)&.text
+        text ? ::YARD::Docstring.new(text).summary : ""
       end
 
       ##

@@ -599,25 +599,14 @@ may follow; that doc tracks status across all of them.
       @constant.docstring.empty?`, owning its own leading blank line) —
       see "Attribute `**Type:**` fallback for a plain, comment-less
       `attr_*`" under "Decisions", which covers both fixes together
-- [ ] (design) Attribute description entirely inside a `@!attribute`'s
+- [x] (design) Attribute description entirely inside a `@!attribute`'s
       `@return [Type] Description` tag, with no separate free-text
-      docstring — renders `**Type:**` correctly (`attribute_type` already
-      falls back to `tag(:return)&.types`, per the fallback item above) but
-      silently drops the description in both `## Member Summary` and the
-      full entry, since `attribute_docstring`/`attribute_docstring_summary`
-      (`lib/yard/agentdocs/attribute_info.rb`) read `source_method.docstring`
-      directly with no equivalent fallback to `tag(:return)&.text`. Confirmed
-      on `HermesAgent::Client::Transport::Result` (a
-      `Data.define(:body, :headers)` documented via `@!attribute [r] body` /
-      `@return [Hash, Enumerator] The parsed JSON body...`): both `#body`/
-      `#headers` render their type but the description is blank everywhere.
-      Distinct from the fallback item above — that case has no `@return` tag
-      at all; here one exists with real descriptive text, just not surfaced.
-      Flagged by the 2026-07-21 `hermes-client` dogfood run (see
-      devdocs/Dogfood.md). Needs an `example/lib` fixture: an attribute
-      (`@!attribute`, or a bare `Struct.new`/`Data.define` accessor) whose
-      only description lives inside `@return [Type] Description`, no
-      separate free-text docstring
+      docstring — `Geometry::PointCloud#centroid`; fixed by falling back to
+      `tag(:return)&.text`, rendered verbatim (not YARD's own
+      `"Returns X."` wrapping) — see "Attribute description entirely
+      inside a `@!attribute`'s `@return`: fall back to the tag's text,
+      verbatim" under "Decisions". Flagged by the 2026-07-21
+      `hermes-client` dogfood run (see devdocs/Dogfood.md)
 - [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
@@ -4891,6 +4880,48 @@ at all — added to the same fixture.
   `Stopwatch::DEFAULT_ELAPSED`/`::CLOCK`) — all five already carry a real
   `@return` tag and a real docstring, so neither fallback path changes
   their output.
+
+### Attribute description entirely inside a `@!attribute`'s `@return`: fall back to the tag's text, verbatim
+
+Settles the "Attribute description entirely inside a `@!attribute`'s
+`@return`" checklist item under "Attributes & constants", flagged by the
+2026-07-21 `hermes-client` dogfood run (see devdocs/Dogfood.md). Exercised
+via a new `Geometry::PointCloud#centroid` attribute: a second
+`@!attribute`-based reader alongside the existing `#size`, but — unlike
+`#size` — with no indented free-text paragraph at all, only
+`@return [Point] the average position of all points in the cloud`.
+Confirmed directly (not inferred) by probing the parsed registry:
+`source_method.docstring` is genuinely `""` for this shape, while
+`tag(:return).text` holds the real description.
+
+**The fix:** `attribute_docstring`/`attribute_docstring_summary`
+(`lib/yard/agentdocs/attribute_info.rb`) now fall back to
+`source_method.tag(:return)&.text` when `source_method.docstring` is
+empty — the same emptiness check `attribute_type` already uses for the
+sibling `types` fallback. `attribute_docstring_summary`'s fallback is
+truncated to its first sentence via `::YARD::Docstring.new(text).summary`,
+matching how every other Member Summary bullet's source text is
+truncated.
+
+**Rendering choice: the fallback text renders verbatim, not wrapped.**
+YARD's own human-facing template has the identical fallback
+(`docstring/setup.rb#docstring_text`), but wraps the tag text into
+`"Returns <text>."` (capitalized, period-terminated) when the object's own
+docstring is blank. Deliberately not mirrored: this template already has
+an established, consistent idiom for rendering a tag's raw `text` —
+`dash_join`/`summary_suffix` (`lib/yard/agentdocs/text_layout.rb`), used
+verbatim (markdownified, never re-cased or prefixed) for every
+Params/Returns/Raises/Yields bullet already. Importing YARD's `"Returns
+X."` phrasing just for this one call site would be a one-off
+inconsistency with that idiom, and fabricates a word ("Returns") that
+isn't literally in the source — undesirable for a tool whose whole pitch
+is faithful, cheap lookups over paraphrase. So `attribute_docstring`
+renders `markdownify(tag.text)` unchanged, same as every other tag-text
+site.
+
+Verified against the full `example/lib`/`example/doc` suite, byte-for-byte,
+with no regressions to `#size` (still exercises the indented-paragraph
+path) or any other attribute.
 
 ## Implementation
 

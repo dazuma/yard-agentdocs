@@ -14,12 +14,18 @@ with no source declaration of its own for a docstring to attach to, so
 *under* the directive line to become the attribute's own docstring — a
 sibling-indented paragraph above the directive attaches to nothing.
 
+`#centroid` exercises a distinct case: its `@!attribute` directive has
+no indented free-text paragraph of its own at all — the only
+description anywhere is the text inside its `@return` tag, so the
+attribute's own docstring is genuinely empty.
+
 See [`Working with point clouds`](../file.point_cloud.md) for a worked example.
 
 ## Member Summary
 
 **Instance Attributes**
 
+- `#centroid` (read-only) — the average position of all points in the cloud.
 - `#size` (read-only) — The number of points in the cloud.
 
 **Class Methods**
@@ -28,6 +34,15 @@ See [`Working with point clouds`](../file.point_cloud.md) for a worked example.
 
 ## Instance Attributes
 
+### #centroid
+
+- **Type:** [`Point`](Point.md)
+- **Read-only.**
+
+the average position of all points in the cloud
+
+* **Defined in:** `example/lib/geometry/point_cloud.rb:35`
+
 ### #size
 
 - **Type:** `Integer`
@@ -35,7 +50,7 @@ See [`Working with point clouds`](../file.point_cloud.md) for a worked example.
 
 The number of points in the cloud.
 
-* **Defined in:** `example/lib/geometry/point_cloud.rb:24`
+* **Defined in:** `example/lib/geometry/point_cloud.rb:29`
 
 ## Class Methods
 
@@ -53,4 +68,4 @@ Creates a point cloud from the given points.
 
 - `points` (`Array<`[`Point`](Point.md)`>`) — the points to collect
 
-* **Defined in:** `example/lib/geometry/point_cloud.rb:31`
+* **Defined in:** `example/lib/geometry/point_cloud.rb:44`
