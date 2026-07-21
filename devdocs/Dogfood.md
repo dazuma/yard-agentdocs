@@ -24,6 +24,58 @@ first.
 | Gem | Status | Notes |
 |---|---|---|
 | YARD (self-run) | Done — findings promoted to DESIGN.md | 2 findings (1 crash) |
+| `hermes-client` | Queued (2026-07-21) | Markdown dialect at real scale |
+| `rubocop` | Queued (2026-07-21) | Scale + macro-defined methods |
+| `parser` | Queued (2026-07-21) | Racc-generated mega-classes |
+
+## Queued candidates
+
+Recommended 2026-07-21 (asked in a separate future session, not run yet),
+each targeting an axis DESIGN.md's dogfood milestone flagged but the YARD
+run didn't cover. Order not prescribed — pick whichever's most convenient
+to start; each stands alone.
+
+### `hermes-client`
+
+**Why this gem:** the user's own gem, local at `../hermes-client`
+(resource/entity/transport-layered API client — a `.yardopts` with
+`--markup=markdown` confirms real Markdown-dialect docstrings throughout).
+The YARD run only stress-tested `:rdoc` at real scale; Markdown is this
+project's primary/default dialect but has only ever been verified against
+the toy `example/` fixture. Also structurally unlike YARD (API-client
+layering vs. a parser/generator), so likely to surface different shapes —
+e.g. `@example` blocks showing client call chains. ~144KB / 25 files, a
+genuine mid-size fit; no fetch/pin needed (already on disk).
+
+### `rubocop`
+
+**Why this gem:** already Bundler-vendored (`rubocop-1.88.1`, 919 files /
+~3.2MB — roughly 3x YARD's corpus), so no extra fetch/pin is needed and the
+version is pinned by `Gemfile.lock`. Two things worth checking: whether
+cops' `def_node_matcher`/`NodePattern` macros (which define methods via
+metaprogramming rather than a plain `def`) are silently invisible to
+YARD's static parser — a different flavor of silent gap than the
+already-found unresolved-alias crash — and whether real-scale, heavy
+`@example` usage (bad/good code fences in nearly every cop) renders well.
+Also a more meaningful stress test of the file-count/size concern the
+"File granularity" decision flagged (the deferred "escape valve") than
+YARD's own run was.
+
+### `parser`
+
+**Why this gem:** already Bundler-vendored (`parser-3.3.11.1`), no
+fetch/pin needed. Its racc-generated lexer/grammar files (`ruby34.rb`,
+`lexer-F1.rb`, etc.) are 12–15K lines each — essentially single classes
+with huge method counts. This is exactly the "very large class" scenario
+the file-granularity "escape valve" was deferred against without ever
+being exercised; a good forcing function to see whether deferring it is
+still fine or whether real generated code hits it.
+
+**Also considered:** `minitest` (already vendored, 24 files) — smaller
+than the "mid-size" bar the other three clear, but interesting for a
+different, so-far-untested reason: it leans on RDoc's `:nodoc:`/
+`:stopdoc:`/`:startdoc:` visibility directives, which nothing has
+exercised at all. Kept as a reserve pick rather than a fourth queued run.
 
 ## Procedure (applies to every run)
 
