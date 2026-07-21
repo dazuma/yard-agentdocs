@@ -41,8 +41,6 @@ module Geometry
     #
     # @return [Float] the area
     #
-    def area
-      @width * @height
-    end
+    def area = @width * @height
   end
 end

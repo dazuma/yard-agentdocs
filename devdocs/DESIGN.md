@@ -477,10 +477,14 @@ may follow; that doc tracks status across all of them.
       report needed cleanup after all — see "Argument forwarding and
       anonymous params: recover forwarding tokens from `signature`" under
       "Decisions". Flagged by the July 2026 coverage review
-- [ ] (mech) Endless method definition (`def area = width * height`) —
-      almost certainly renders identically to the block form, but it's a
-      distinct parse path in YARD and a one-line fixture proves it.
-      Flagged by the July 2026 coverage review
+- [x] (mech) Endless method definition (`def area = width * height`) —
+      `Geometry::Rectangle#area` converted in place from block to endless
+      form; confirmed by direct probe that YARD's `signature`, `parameters`,
+      `docstring`, `tags`, and `line` are byte-identical to the block form
+      (only `source` differs, which the template never reads), so
+      `example/doc/Geometry/Rectangle.md` needed zero changes and
+      `toys test` passed with zero template changes. Flagged by the July
+      2026 coverage review
 - [x] (mech, pre-dogfood) Explicit assignment method (`def name=(value)`) not
       paired via `attr_*` — YARD treats it as a plain method named `name=`,
       not an attribute, so it takes the method-entry path; the
