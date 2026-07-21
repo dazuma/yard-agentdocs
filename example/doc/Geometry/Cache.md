@@ -20,6 +20,7 @@ resolution cap workaround.
 **Instance Methods**
 
 - `#fetch` — Fetches the cached value for `key`, computing and storing it via `block` if not already present.
+- `#set` — Sets the memoized value under `key`, either directly or lazily.
 
 ## Instance Methods
 
@@ -48,3 +49,61 @@ transitive tags, unlike `@since`/`@api`.
 - `Object` — the cached value
 
 * **Defined in:** `example/lib/geometry/cache.rb:29`
+
+### #set
+
+```ruby
+cache.set(key, value) → self
+cache.set(key, &block) → self
+```
+
+Sets the memoized value under `key`, either directly or lazily.
+
+Exercises per-overload `@yieldreturn`, `@raise`, and `@see` — real
+precedent for `@yieldreturn` from `functions_framework`'s
+`Function::Callable#set_global`, which has this exact "value form" /
+"block form" shape and declares `@yieldreturn` only on the block
+form; `@raise`/`@see` have no such real-world precedent yet but are
+included on the same footing by deliberate choice (see DESIGN.md's
+per-overload checklist item).
+
+**`cache.set(key, value) → self`**
+
+Sets `key` directly to `value`.
+
+**Params:**
+
+- `key` (`Object`) — the cache key
+- `value` (`Object`) — the value to store
+
+**Returns:**
+
+- `self`
+
+**Raises:**
+
+- `ArgumentError` — if `value` is `nil` (indistinguishable from not passing a value at all)
+
+**`cache.set(key, &block) → self`**
+
+Defers computing the value until `key` is first read, by calling
+the given block at most once; its result is reused for subsequent
+reads.
+
+**Params:**
+
+- `key` (`Object`) — the cache key
+
+**Yield Returns:**
+
+- `Object` — the value to compute and store, lazily
+
+**Returns:**
+
+- `self`
+
+**See also:**
+
+- `#fetch` — the method that triggers the block
+
+* **Defined in:** `example/lib/geometry/cache.rb:62`

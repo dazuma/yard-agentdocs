@@ -371,7 +371,7 @@ may follow; that doc tracks status across all of them.
       devdocs/Dogfood.md. Root cause and fix turned out broader than the
       missing `**Returns:**` bullet alone — see "A 2+-`@overload` method's
       own top-level `@return`" under "Decisions"
-- [ ] (design) Per-overload `@yield`/`@yieldparam`/`@yieldreturn`,
+- [x] (design) Per-overload `@yield`/`@yieldparam`/`@yieldreturn`,
       `@raise`, and `@see` — the same "own tag wins, else fall back to the
       method's shared one" treatment just settled for `@return`, extended
       to the rest of the tag family `method_entry.erb` still reads only at
@@ -394,8 +394,10 @@ may follow; that doc tracks status across all of them.
       and expected to exist (a hash-form overload could raise a validation
       error a positional-form overload can't, for instance), worth building
       now rather than waiting for a concrete case, overriding this project's
-      usual wait-for-evidence default for once
-- [ ] (design) Per-overload `@overload` prose (the free-text description
+      usual wait-for-evidence default for once — see "Per-overload
+      `@yield`/`@yieldparam`/`@yieldreturn`/`@raise`/`@see`" under
+      "Decisions"
+- [x] (design) Per-overload `@overload` prose (the free-text description
       written under a specific `@overload` line, before its nested tags) —
       currently dropped unconditionally: `method_prose.erb` only ever
       renders `@method.docstring` (the method's own shared, top-level
@@ -414,7 +416,7 @@ may follow; that doc tracks status across all of them.
       two `@overload`-related gaps found in this review, since it's
       universal rather than occasional. Needs a design decision on where
       this text goes relative to the existing per-overload bold-signature-
-      label group (see "Prose-vs-signature ordering" under "Decisions")
+      label group — see "Per-overload `@overload` prose" under "Decisions"
 - [x] (design) Settle prose-vs-signature ordering as one uniform rule — the
       2+-overload shape led with the shared docstring and `@example`s
       (`Point.of`'s two examples rendered before *any* signature), while
@@ -3066,6 +3068,88 @@ e.g. `@since` would have rendered it twice. No fixture combined 2+
 overloads with a trailing tag until this item added `@note`/`@since` to
 `Point.of` specifically to catch it. Fixed by deleting the in-branch call;
 the shared tail's call is now the only one, for both branches.
+
+### Per-overload `@yield`/`@yieldparam`/`@yieldreturn`/`@raise`/`@see`: own tag wins, else fall back once to the method-level shared tag
+
+Settles the checklist item of the same name. Mechanical, per-family-independent
+extension of the fallback rule already settled for `@return` (see "A
+2+-`@overload` method's own top-level `@return`" above) to the rest of the
+tag family `method_entry.erb` previously read only at the method level.
+Applied identically, and independently, to `@yield` (single tag), `@yieldparam`/
+`@yieldreturn`/`@raise` (tag lists), and `@see` (tag list):
+
+- If an overload declares its own instance(s) of a tag family, they render
+  inline under that overload's own bold-label group — unlabeled, the same
+  treatment `@return` already gets there.
+- If an overload declares none, it gets nothing of that family under its own
+  group — no borrowing another overload's tag, and no fallback to the
+  method-level tag rendered inline under an overload that didn't ask for it.
+- In the shared tail: a family falls back to the method-level tag(s)
+  (rendered once, `(every overload)`-labeled) only when *no* overload in the
+  2+ set declares its own instance of it; if at least one does, the tail
+  stays empty for that family specifically (every other family's tail is
+  evaluated independently, so a method can have e.g. a per-overload
+  `@yieldreturn` alongside a shared, tail-rendered `@raise` in the same
+  entry).
+- The 0/1-overload path is untouched — still reads `@method.tags(...)`/
+  `@method.tag(:yield)` directly and unconditionally, as before. The
+  analogous "single `@overload` with its own yield/raise/see, distinct from
+  the method's" case has no real-world evidence and stays unexercised, same
+  status as the mixed-`@return` case flagged in the entry above.
+
+**Fixture:** `Geometry::Cache#set`, a new instance method modeled on
+`functions_framework`'s real `Function::Callable#set_global` (two overloads:
+a direct-value form and a lazy-block form). The direct-value overload
+declares its own `@raise [ArgumentError]` (real and mechanically enforced —
+the method body actually raises it — chosen over an invented-but-inert case
+since `@raise`/`@see` have no real-world precedent for this item, per the
+checklist's note); the block-form overload declares its own `@yieldreturn`
+(the real-world-evidenced case) and its own `@see #fetch` (same-class,
+renders as the already-settled unlinked backtick). Both overloads also
+declare their own `@return [self]`, exercising nothing new there (already
+covered by `Point.of`) but confirming the new per-overload sections compose
+correctly alongside the existing per-overload Returns group. Chosen over
+extending `BoundingBox.enclosing` (whose two overloads deliberately share
+identical `@return`/`@raise`, the scenario the entry above already settled)
+to keep "genuinely shared" and "genuinely per-overload" fixtures separate.
+
+### Per-overload `@overload` prose: renders right after that overload's bold label, before its own Params
+
+Settles the checklist item of the same name, and the "where this text goes"
+question the item raised. An overload's own docstring (`ov.docstring`, when
+non-empty) renders immediately after that overload's bold
+`` **`signature`** `` label and before its own `**Params:**` — recursively
+echoing the top-level shape (signature block, then shared prose, then tags)
+one level down, at each overload's own group.
+
+Grounded in two real precedents checked directly rather than assumed:
+
+- **Real source layout** — both `toys-core`'s `Middleware.spec` and
+  `functions_framework`'s `Function::Callable#set_global` write each
+  overload's own explanatory paragraph directly under that overload's
+  `@overload` line, before its nested `@param`/`@return` tags — the same
+  order this decision renders in.
+- **Stock YARD's own HTML template** — `yard/templates/default/tags/html/overload.erb`
+  renders each overload as `<span class="signature">` followed by
+  `yieldall :object => overload` (that overload's own docstring + tags,
+  recursively), i.e. signature, then docstring, then tags — the same
+  ordering, just for a different output format.
+
+**Scope: 2+-overload methods only.** The existing single-`@overload`
+"friendlier signature" idiom (`Point#label`) already deliberately ignores
+the overload's own (usually blank) docstring in favor of the method's own,
+unconditionally — settled in the `@overload` decision above and left
+untouched here; no evidence has surfaced to revisit it.
+
+**Fixture:** shares `Geometry::Cache#set` with the entry above — both of
+`set_global`'s real overloads carry their own descriptive paragraph, so one
+ported fixture exercises both checklist items at once. The real gem's
+inline indented code samples (e.g. `set_global(:project_id, "...")`) were
+deliberately *not* ported, to keep this fixture scoped to prose placement
+rather than also implicitly probing "a code block embedded in overload
+prose" — untested territory (plain-Markdown 4-space-indent should pass
+through `markdownify` unchanged, but that's unproven) left for a future
+item if real evidence calls for it.
 
 ### Auxiliary one-line tags: `@deprecated`/`@note` as flag lines, `@since` as trailing metadata
 

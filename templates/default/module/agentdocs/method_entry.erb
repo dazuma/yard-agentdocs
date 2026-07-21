@@ -44,6 +44,11 @@
 <%- overloads.each do |ov| -%>
 
 **`<%= signature_text(@method, overload: ov) %>`**
+<%- ov_docstring = ov.docstring -%>
+<%- unless ov_docstring.empty? -%>
+
+<%= markdownify(ov_docstring) %>
+<%- end -%>
 <%- ov_param_tags = ordered_param_tags(@method, ov.tags(:param), overload: ov) -%>
 <%- unless ov_param_tags.empty? -%>
 
@@ -53,12 +58,56 @@
 - `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
+<%- ov_yield = ov.tag(:yield) -%>
+<%- if ov_yield -%>
+<%- ov_yield_names = ov_yield.types || [] -%>
+
+**Yields:**
+
+- <%= dash_join(ov_yield_names.empty? ? "" : ov_yield_names.map { |n| "`#{n}`" }.join(', '), ov_yield.text) %>
+<%- end -%>
+<%- ov_yieldparam_tags = ov.tags(:yieldparam) -%>
+<%- unless ov_yieldparam_tags.empty? -%>
+
+**Yield Params:**
+
+<%- ov_yieldparam_tags.each do |p| -%>
+- `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
+<%- end -%>
+<%- end -%>
+<%- ov_yieldreturn_tags = ov.tags(:yieldreturn) -%>
+<%- unless ov_yieldreturn_tags.empty? -%>
+
+**Yield Returns:**
+
+<%- ov_yieldreturn_tags.each do |yrt| -%>
+- <%= dash_join(type_ref(yrt.types && yrt.types.join(", ")), yrt.text) %>
+<%- end -%>
+<%- end -%>
 <%- ov_return = ov.tag(:return) -%>
 <%- if ov_return -%>
 
 **Returns:**
 
 - <%= dash_join(type_ref_first(ov_return), ov_return.text) %>
+<%- end -%>
+<%- ov_raise_tags = ov.tags(:raise) -%>
+<%- unless ov_raise_tags.empty? -%>
+
+**Raises:**
+
+<%- ov_raise_tags.each do |r| -%>
+- <%= dash_join(type_ref_first(r), r.text) %>
+<%- end -%>
+<%- end -%>
+<%- ov_see_tags = ov.tags(:see) -%>
+<%- unless ov_see_tags.empty? -%>
+
+**See also:**
+
+<%- ov_see_tags.each do |t| -%>
+- <%= dash_join(see_ref(t), t.text) %>
+<%- end -%>
 <%- end -%>
 <%- end -%>
 <%- else -%>
@@ -92,17 +141,20 @@
 <%- end -%>
 <%- end -%>
 <%-
-  # 2+ overloads: every section from here on is method-level and shared
-  # across every overload, rendered once rather than repeated per overload
-  # — but it directly follows the last overload's own Params (and, if it
-  # declared one, its own Returns), with nothing else marking where the
-  # per-overload group ends and the shared method-level tail begins. Each
-  # heading below names its own scope explicitly (" (every overload)")
+  # 2+ overloads: every section from here on is method-level, and shared
+  # across every overload except when at least one overload declares its
+  # own instance of a given tag family — then that family is fully
+  # per-overload (each already rendered its own copy above, so there's
+  # nothing left for @method's own tags to contribute) rather than a mix of
+  # per-overload and shared for the same family. This section directly
+  # follows the last overload's own group, with nothing else marking where
+  # the per-overload group ends and the shared method-level tail begins.
+  # Each heading below names its own scope explicitly (" (every overload)")
   # to disambiguate, rather than relying on a single transition marker to
   # carry that meaning for every tag type that follows it.
 -%>
 <%- tag_scope_suffix = overloads.size >= 2 ? " (every overload)" : "" -%>
-<%- yt = yield_tag(@method) -%>
+<%- yt = overloads.size >= 2 && overloads.any? { |ov| !ov.tag(:yield).nil? } ? nil : yield_tag(@method) -%>
 <%- if yt -%>
 <%- yt_names = yt.types || [] -%>
 
@@ -110,15 +162,16 @@
 
 - <%= dash_join(yt_names.empty? ? "" : yt_names.map { |n| "`#{n}`" }.join(', '), yt.text) %>
 <%- end -%>
-<%- unless @method.tags(:yieldparam).empty? -%>
+<%- yieldparam_tags = overloads.size >= 2 && overloads.any? { |ov| !ov.tags(:yieldparam).empty? } ? [] : @method.tags(:yieldparam) -%>
+<%- unless yieldparam_tags.empty? -%>
 
 **Yield Params<%= tag_scope_suffix %>:**
 
-<%- @method.tags(:yieldparam).each do |p| -%>
+<%- yieldparam_tags.each do |p| -%>
 - `<%= p.name %>` (<%= type_ref_first(p) %>)<%= summary_suffix(p.text) %>
 <%- end -%>
 <%- end -%>
-<%- yieldreturn_tags = @method.tags(:yieldreturn) -%>
+<%- yieldreturn_tags = overloads.size >= 2 && overloads.any? { |ov| !ov.tags(:yieldreturn).empty? } ? [] : @method.tags(:yieldreturn) -%>
 <%- unless yieldreturn_tags.empty? -%>
 
 **Yield Returns<%= tag_scope_suffix %>:**
@@ -144,19 +197,21 @@
 - <%= dash_join(type_ref(rt.types && rt.types.join(", ")), rt.text) %>
 <%- end -%>
 <%- end -%>
-<%- unless @method.tags(:raise).empty? -%>
+<%- raise_tags = overloads.size >= 2 && overloads.any? { |ov| !ov.tags(:raise).empty? } ? [] : @method.tags(:raise) -%>
+<%- unless raise_tags.empty? -%>
 
 **Raises<%= tag_scope_suffix %>:**
 
-<%- @method.tags(:raise).each do |r| -%>
+<%- raise_tags.each do |r| -%>
 - <%= dash_join(type_ref_first(r), r.text) %>
 <%- end -%>
 <%- end -%>
-<%- unless @method.tags(:see).empty? -%>
+<%- see_tags = overloads.size >= 2 && overloads.any? { |ov| !ov.tags(:see).empty? } ? [] : @method.tags(:see) -%>
+<%- unless see_tags.empty? -%>
 
 **See also<%= tag_scope_suffix %>:**
 
-<%- @method.tags(:see).each do |t| -%>
+<%- see_tags.each do |t| -%>
 - <%= dash_join(see_ref(t), t.text) %>
 <%- end -%>
 <%- end -%>
