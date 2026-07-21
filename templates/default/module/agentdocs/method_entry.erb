@@ -117,11 +117,14 @@
 <%- end -%>
 <%- end -%>
 <%-
-  # No top-level Returns section when overloads.size >= 2 (+primary+ is nil
-  # then): each overload already rendered its own Returns above, so there's
-  # nothing left for @method's own tags to contribute here.
+  # 2+ overloads: no top-level Returns section when any overload declares
+  # its own @return (each already rendered its own Returns above, so
+  # there's nothing left for @method's own tags to contribute); otherwise
+  # fall back to @method's own tags, a shared @return common to every
+  # overload, rendered once here rather than duplicated per overload — the
+  # same "method-level, shared" treatment @raise/@yield/@see already get.
 -%>
-<%- return_tags = overloads.size < 2 ? (primary ? primary.tags(:return) : method_return_tags(@method)) : [] -%>
+<%- return_tags = overloads.size < 2 ? (primary ? primary.tags(:return) : method_return_tags(@method)) : (overloads.any? { |ov| !ov.tags(:return).empty? } ? [] : method_return_tags(@method)) -%>
 <%- unless return_tags.empty? -%>
 
 **Returns:**

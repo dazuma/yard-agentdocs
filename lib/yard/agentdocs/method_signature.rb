@@ -492,9 +492,12 @@ module YARD
 
       ##
       # @param meth [::YARD::CodeObjects::MethodObject]
-      # @param overload [::YARD::Tags::OverloadTag, nil] when given, this
-      #   overload's own `@return` instead of +meth+'s real one (see
-      #   {#signature_text})
+      # @param overload [::YARD::Tags::OverloadTag, nil] when given and it
+      #   declares its own `@return`, that instead of +meth+'s real one (see
+      #   {#signature_text}); when given but it declares no `@return` of its
+      #   own, falls back to +meth+'s real one — a shared method-level
+      #   `@return` common to every overload (see "A 2+-`@overload` method's
+      #   own top-level `@return`" under "Decisions" in devdocs/DESIGN.md)
       # @return [String, nil] every type the relevant `@return` tag declares,
       #   comma-joined — same "union in one tag" policy {#signature_return_type}
       #   already applies to +meth+'s own tags (see "Multiple return types"
@@ -503,7 +506,7 @@ module YARD
       #   first-type-only tag sites" under "Decisions")
       #
       def signature_return_type_for(meth, overload)
-        return overload.tag(:return)&.types&.join(", ") if overload
+        return overload.tag(:return).types&.join(", ") if overload&.tag(:return)
         signature_return_type(meth)
       end
 

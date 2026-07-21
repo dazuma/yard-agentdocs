@@ -48,5 +48,28 @@ module Geometry
     edge :top
     edge :right
     edge :bottom
+
+    ##
+    # Creates the smallest bounding box that encloses the given points.
+    #
+    # Exercises a 2+-`@overload` method whose `@return` (and `@raise`) are
+    # declared once, at the method level, rather than per overload: the two
+    # calling conventions vary only in how the points are supplied.
+    #
+    # @overload enclosing(*points)
+    #   @param points [Array<Point>] the points to enclose
+    # @overload enclosing(path)
+    #   @param path [Path] a path whose points to enclose
+    # @return [BoundingBox] the smallest box containing every point
+    # @raise [ArgumentError] if there are no points to enclose
+    #
+    def self.enclosing(*args)
+      points = args.size == 1 && args.first.is_a?(Path) ? args.first.to_a : args
+      raise ArgumentError, "enclosing requires at least one point" if points.empty?
+
+      xs = points.map(&:x)
+      ys = points.map(&:y)
+      new(left: xs.min, top: ys.min, right: xs.max, bottom: ys.max)
+    end
   end
 end

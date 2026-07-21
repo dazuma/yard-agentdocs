@@ -22,6 +22,7 @@ site's line, not `.edge`'s.
 **Class Methods**
 
 - `.edge` — Declares a coercing numeric edge attribute.
+- `.enclosing` — Creates the smallest bounding box that encloses the given points.
 - `.new` — Creates a bounding box from its four edges.
 
 **Instance Methods**
@@ -42,6 +43,41 @@ BoundingBox.edge(name)
 Declares a coercing numeric edge attribute.
 
 * **Defined in:** `example/lib/geometry/bounding_box.rb:28`
+
+### .enclosing
+
+```ruby
+BoundingBox.enclosing(*points) → BoundingBox
+BoundingBox.enclosing(path) → BoundingBox
+```
+
+Creates the smallest bounding box that encloses the given points.
+
+Exercises a 2+-`@overload` method whose `@return` (and `@raise`) are
+declared once, at the method level, rather than per overload: the two
+calling conventions vary only in how the points are supplied.
+
+**`BoundingBox.enclosing(*points) → BoundingBox`**
+
+**Params:**
+
+- `points` (`Array<`[`Point`](Point.md)`>`) — the points to enclose
+
+**`BoundingBox.enclosing(path) → BoundingBox`**
+
+**Params:**
+
+- `path` ([`Path`](Path.md)) — a path whose points to enclose
+
+**Returns:**
+
+- `BoundingBox` — the smallest box containing every point
+
+**Raises:**
+
+- `ArgumentError` — if there are no points to enclose
+
+* **Defined in:** `example/lib/geometry/bounding_box.rb:66`
 
 ### .new
 

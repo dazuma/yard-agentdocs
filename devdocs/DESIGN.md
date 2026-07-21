@@ -355,7 +355,7 @@ may follow; that doc tracks status across all of them.
       signature over an awkward real one" idiom); settled both the
       single-overload and two-or-more-overload rendering shapes — see
       "`@overload`" under "Decisions"
-- [ ] (design) A 2+-`@overload` method's own top-level `@return`, shared
+- [x] (design) A 2+-`@overload` method's own top-level `@return`, shared
       across every overload rather than redundant with each overload's own
       — the `@overload` decision assumed this combination was "redundant/
       unusual" and left it unexercised; real `gapic-generator-ruby`-produced
@@ -368,7 +368,9 @@ may follow; that doc tracks status across all of them.
       fallback to the method's own `@return`. Confirmed on real code: 36
       methods across 3 files lose `**Returns:**` entirely on the
       2026-07-21 `google-cloud-secret_manager-v1` dogfood run — see
-      devdocs/Dogfood.md
+      devdocs/Dogfood.md. Root cause and fix turned out broader than the
+      missing `**Returns:**` bullet alone — see "A 2+-`@overload` method's
+      own top-level `@return`" under "Decisions"
 - [x] (design) Settle prose-vs-signature ordering as one uniform rule — the
       2+-overload shape led with the shared docstring and `@example`s
       (`Point.of`'s two examples rendered before *any* signature), while
@@ -2868,6 +2870,52 @@ neither overload declares one. Confirmed on real code: 36 methods across 3
 files (`SecretManagerService::Client`/`::Rest::Client`/`::Paths`) lose
 `**Returns:**` entirely. Not yet fixed — see the new checklist item under
 "Methods — shapes & signatures".
+
+### A 2+-`@overload` method's own top-level `@return`: fall back to the method's own tags, shared and rendered once
+
+Settles the checklist item above. Root cause traced one layer deeper than
+the dogfood finding's own description: `signature_return_type_for(meth,
+overload)` (`lib/yard/agentdocs/method_signature.rb`) treats *any* given
+`overload` as fully authoritative for the return type — if that overload
+declares no `@return` of its own, the helper returns `nil`, never falling
+back to the method's real `@return`. This one helper feeds both the
+leading fenced signature block (every overload's natural-call-syntax
+line) and, indirectly, the tail `**Returns:**` section — so the real
+`google-cloud-secret_manager-v1` methods were silently losing the `→ Type`
+arrow everywhere, not just the bulleted section the dogfood write-up
+called out.
+
+Fix, in two parts, mirroring the already-settled "`@raise`/`@yield`/`@see`
+stay method-level and shared, rendered once, not per overload" treatment
+from the `@overload` decision above:
+
+- `signature_return_type_for`: falls back to `signature_return_type(meth)`
+  when the given overload declares no `@return` of its own, instead of
+  unconditionally returning `nil`. Fixes the arrow for both this
+  checklist item's 2+-overload case and, as a side effect, the analogous
+  0/1-overload case (a single `@overload` with no `@return` of its own,
+  but the method has one) — that permutation isn't exercised by any
+  fixture (`Point#label`'s sole overload always declares its own
+  `@return`), so it's fixed by symmetry but left unproven; not escalated
+  to its own checklist item since there's no real-world evidence for it
+  yet either.
+- `method_entry.erb`'s 2+-overload branch: `return_tags` now falls back to
+  `method_return_tags(@method)` when *none* of the overloads declare their
+  own `@return`, rendered once in the existing shared tail position
+  (after Yields, before Raises) — never duplicated per overload. When at
+  least one overload *does* declare its own `@return` (e.g. `Point.of`),
+  behavior is unchanged: each overload's own `**Returns:**` already
+  renders inline, and the tail stays empty. The mixed case (some overloads
+  declare their own `@return`, others don't) has no real-world evidence
+  either way and stays undecided.
+
+**Fixture:** `Geometry::BoundingBox.enclosing`, a new class method with
+two `@overload`s (`enclosing(*points)` / `enclosing(path)`) sharing one
+top-level `@return [BoundingBox]` and one shared `@raise [ArgumentError]`
+— chosen over extending an existing fixture (`Point.of`, whose two
+overloads intentionally have *differing* per-overload return types, a
+distinct scenario already settled) to keep the two decisions cleanly
+separated.
 
 ### Prose-vs-signature ordering: one leading multi-line signature block, bold inline-code labels per overload group
 
