@@ -28,7 +28,7 @@ first.
 | `rubocop` | Queued (2026-07-21) | Scale + macro-defined methods |
 | `parser` | Queued (2026-07-21) | Racc-generated mega-classes |
 | `toys` | Queued (2026-07-21) | Human-written docs, embedded `toys-core` copy, large `--files` guide, installed-gem generation |
-| `google-cloud-secret_manager-v1` | Queued (2026-07-21) | Protobuf-generated client; `@example`/`@overload`/`@yield` at scale |
+| `google-cloud-secret_manager-v1` | Done (2026-07-21) — 3 checklist items promoted to DESIGN.md | 3 findings, no crash |
 
 ## Queued candidates
 
@@ -118,47 +118,6 @@ than the "mid-size" bar the other three clear, but interesting for a
 different, so-far-untested reason: it leans on RDoc's `:nodoc:`/
 `:stopdoc:`/`:startdoc:` visibility directives, which nothing has
 exercised at all. Kept as a reserve pick rather than a fourth queued run.
-
-### `google-cloud-secret_manager-v1`
-
-**Why this gem:** requested directly by the user (2026-07-21) as a
-mechanically generated gem — automatically converted to Ruby from a
-protobuf/gRPC service definition (Google's `gapic-generator-ruby`), unlike
-every other queued/run candidate so far, all of which are hand-written.
-Per [[user_google_api_client_background]] the user has direct hands-on
-experience with this generated-docs style, so is well positioned to judge
-whether the rendered output looks right. Local checkout confirmed at
-`~/Documents/Development/oss/google-cloud-ruby/google-cloud-secret_manager-v1`
-(not currently Bundler-vendored in this project; `google-cloud-secret_manager-v1`
-`1.9.0` is published on rubygems.org, so either the local checkout or a
-fresh install would work). The user named three specific axes to expect:
-
-1. **`@example` usage at scale** — confirmed: 47 occurrences across `lib/`.
-2. **`@overload`** — confirmed: present in 3 files (`secret_manager_service/paths.rb`,
-   `secret_manager_service/client.rb`, `secret_manager_service/rest/client.rb`)
-   — the generator emits both an RPC-request-object calling convention and a
-   flattened-keyword-args convenience convention as alternate signatures on
-   the same method, a shape none of the run/queued gems so far use.
-3. **`@yield`** — confirmed: present in 3 files (the same `client.rb`/
-   `rest/client.rb` plus `rest/service_stub.rb`) — generated RPC methods
-   yield the raw response/operation for streaming or custom-call use.
-4. **"Potentially awkward formatting because it was automatically
-   converted"** — the user's framing, not yet independently verified by
-   reading actual rendered output; that's exactly what this run needs to
-   check (per the general procedure below) rather than something to
-   pre-judge from source alone.
-
-**Setup notes for the eventual run:** `.yardopts` specifies
-`--markup markdown --markup-provider redcarpet` and points at
-`./lib/**/*.rb` **and** `./proto_docs/**/*.rb`, with `--exclude _pb\.rb$`.
-`lib/` is 15 files / ~348KB; `proto_docs/` (protobuf message-class doc
-stubs, no real logic — likely almost pure docstrings) is a further 17
-files / ~143KB — both trees need to be included to match how this gem
-documents itself, unlike every prior candidate's single source tree.
-Extra `--files`: `README.md` (154 lines), `AUTHENTICATION.md` (122 lines),
-`LICENSE.md` (201 lines).
-
-**Not yet run** — queued only.
 
 ## Procedure (applies to every run)
 
@@ -567,3 +526,246 @@ that the fraction would shrink on real gems.
    `example/lib` fixture: an attribute (via `@!attribute` or a bare
    `Struct.new`/`Data.define` accessor) whose only description lives inside
    `@return [Type] Description`, no separate free-text docstring.
+
+### 3. `google-cloud-secret_manager-v1`
+
+**Status:** run complete (2026-07-21); the three checklist items below
+promoted to DESIGN.md 2026-07-21. Measurements/confirmations stay here only,
+per the procedure's step 5 split.
+
+**Why this gem:** requested directly by the user as a mechanically
+generated gem — automatically converted to Ruby from a protobuf/gRPC
+service definition (`gapic-generator-ruby`), unlike every prior run
+(all hand-written). Per [[user_google_api_client_background]] the user has
+direct hands-on experience with this generated-docs style. Three axes named
+in advance and confirmed present before running: `@example` at scale (47
+occurrences), `@overload` (3 files — a request-object calling convention
+alongside a flattened-keyword-args one, per RPC method), and `@yield` (3
+files — RPC methods yield the raw response/operation). A fourth, "awkward
+formatting from automatic conversion," was explicitly left unverified until
+the actual diff-read (see Findings below).
+
+**Setup:** generated from the local checkout
+(`~/Documents/Development/oss/google-cloud-ruby/google-cloud-secret_manager-v1`,
+not Bundler-vendored in this project) with `--markup markdown
+--markup-provider redcarpet` (matching its own `.yardopts`), against
+**both** `lib/**/*.rb` (15 files) and `proto_docs/**/*.rb` (17 files,
+protobuf message-class doc stubs), excluding the 3 `_pb.rb` gRPC-stub files
+per its own `--exclude _pb\.rb$` — the first run needing two separate
+source trees to match how a gem documents itself. `proto_docs/` pulls in
+several files (`google/api/*`, `google/iam/v1/*`, `google/protobuf/*`,
+`google/rpc/status.rb`, `google/type/expr.rb`) that are shared
+infrastructure across every `google-cloud-*-v1` gem, not Secret-Manager-
+specific — a corpus-composition wrinkle unique to this run so far. Extra
+`--files`: `README.md`, `AUTHENTICATION.md`, `LICENSE.md`. Disposable
+script: `/private/tmp/.../scratchpad/dogfood_secret_manager.rb` (not
+committed). Result: 120 output files (117 classes/modules + 3 guide pages
++ `index.md`) from 470,267 bytes of source across 29 files (excluding the
+`_pb.rb` files). No crash, no warnings on stderr — clean on the first try.
+
+**Findings:**
+
+1. **Confirmed bug, high prevalence: a 2+-`@overload` method's own
+   method-level `@return` is silently dropped whenever neither overload
+   declares its own.** The existing "`@overload`" decision explicitly
+   flagged this combination as "not exercised, left for a real case to
+   justify," assuming it was "redundant/unusual — when overloads are
+   present they're treated as the complete params/return story." This gem
+   is exactly that real case, and the assumption is wrong for it: every RPC
+   client method (e.g. `SecretManagerService::Client#access_secret_version`)
+   declares two `@overload`s — one for the request-object calling
+   convention, one for flattened keyword args — each documenting only its
+   own `@param`s, while `@yield`/`@yieldparam`/`@return`/`@raise` sit once,
+   at the method level, shared across both conventions (the return
+   value/exceptions don't depend on which calling convention was used).
+   `@raise`/`@yield` already render correctly (method-level tags are
+   rendered unconditionally, regardless of overload branch), but
+   `method_entry.erb`'s 2+-overload branch sets
+   `return_tags = overloads.size < 2 ? ... : []` — unconditionally empty
+   for 2+ overloads, with no fallback to the method's own `@return` when
+   neither overload declares one. Confirmed on real code: 17 of 21 methods
+   in `SecretManagerService::Client.md`, 17 of 21 in
+   `SecretManagerService::Rest::Client.md`, and 2 of 5 in
+   `SecretManagerService::Paths.md` (`#secret_path`/`#secret_version_path`,
+   each with 2 keyword-shaped overloads for a nested vs. flat resource
+   path) lose `**Returns:**` entirely — 36 methods across 3 files. The only
+   methods keeping `**Returns:**` are the ones with 0–1 `@overload` tags.
+
+2. **Confirmed bug, low prevalence here but a full unhandled category:
+   attribute entries never render `@note`/`@example`/`@deprecated`/
+   `@abstract`/`@since`/`@version`/`@author`/`@todo` — only the plain
+   docstring (or its `@return`-text fallback) and type.**
+   `attribute_entry.erb` calls only `attribute_type`/`attribute_docstring`;
+   unlike `method_entry.erb`, it never calls `annotation_lines`,
+   `examples_block`, or `trailing_annotation_lines`. DESIGN.md's "Remaining
+   free-form tags" decision already flagged `@todo`/`@version`/`@author` as
+   unwired for attributes ("same pre-existing 'not exercised' gap as
+   before"), but the gap is broader than that note captured: `@note`,
+   `@deprecated`, and `@example` — the "before prose" caveat family "Auxiliary
+   one-line tags" settled as high-priority, must-see-before-using-the-object
+   content — are silently dropped for attributes too, even though that
+   decision's own checklist item claimed to exercise `@deprecated`/`@since`/
+   `@note` "on both a method and a non-method (class/module or constant)
+   object" — attributes were never actually in that set. Confirmed real,
+   concrete loss on this gem: `SecretManagerService::Client::Configuration
+   #credentials` (and its `Rest::Client` twin) is documented via
+   `@!attribute` with **two** separate `@note` tags (one a real security
+   warning: "Passing a `String`... is deprecated. Providing an unvalidated
+   credential configuration to Google APIs can compromise the security of
+   your systems and data.") plus a worked `@example` — all silently
+   dropped from both `Client.md`/`Rest/Client.md`, leaving only the plain
+   description and bullet list. `Google::Api::CommonLanguageSettings
+   #reference_docs_uri`'s `@deprecated` flag is dropped the same way. Only
+   3–4 real hits in this gem (low prevalence), but the category itself
+   (any `@!attribute`-documented attribute carrying one of these tags) is
+   completely unhandled, and `@note`/`@deprecated` in particular are
+   exactly the kind of caveat this format's own stated priority order says
+   should never be silently lost. Side note for whoever fixes this: the
+   existing `note_line` (`AuxiliaryTags`) already has its own known,
+   separate limitation — it reads `object.tag(:note)` (singular, first tag
+   only), "multiple `@note` tags on one object aren't exercised and aren't
+   handled" per the original "Auxiliary one-line tags" decision — and
+   `credentials`' two `@note` tags are a real instance of exactly that,
+   currently masked only because attributes don't reach `note_line` at
+   all. Fixing the attribute-wiring gap without also fixing the
+   singular-tag read would just relocate this bug rather than closing it.
+
+3. **New, distinct-root-cause instance of the "cheap summary is
+   uninformative" problem, at high prevalence.** Real protobuf/gapic
+   docstrings conventionally open with a one-word field-behavior sentence
+   — `"Optional."`, `"Required."`, `"Output only."`, `"Input only."` —
+   before the actual description, e.g. `Secret#annotations`: "Optional.
+   Custom metadata about the secret. Annotations are distinct from...".
+   `Docstring#summary`'s first-sentence extraction correctly identifies
+   `"Optional."` as a complete sentence (real period, real word boundary —
+   unlike the already-fixed "e.g."/"i.e." abbreviation case, no misparse is
+   involved here at all), so the Member Summary bullet/`index.md` entry for
+   nearly every such attribute renders as just `` — Optional. `` or
+   `` — Required. `` with zero real content — arguably worse than the
+   abbreviation case, which at least left a recognizable fragment. Measured:
+   77 occurrences (`"Optional."` ×35, `"Required."` ×23, `"Output only."`
+   ×17, `"Input only."` ×2) across 32 of the 120 rendered files. The full
+   description is never actually lost (the full entry below the Member
+   Summary always has it in full, same "worse than terse, not
+   information-losing" framing as the hermes-client "e.g." finding) — just
+   unreachable from the cheap-summary view this format's whole pitch
+   depends on. Since the already-fixed abbreviation-aware
+   `DocstringSummary#smart_summary` reimplementation has no seam for "skip a
+   real, complete, but low-information leading sentence," this needs its
+   own design treatment, not a trivial extension of that fix.
+
+**What works, no changes recommended** (confirms existing decisions/fixes
+hold up on a third, structurally different real gem — the first
+mechanically-generated one):
+
+- **No crash, clean generation on the first try** — unlike the YARD run's
+  immediate `alias_original` crash.
+- **`config_attr`-based metaprogrammed attributes render correctly,
+  reconfirming the "no custom handler classes" principle.** `Configuration`
+  classes (e.g. `SecretManagerService::Client::Configuration`) define every
+  attribute via `Gapic::Config`'s `config_attr` macro — invisible to YARD's
+  static parser on its own — but the gem's own source explicitly documents
+  each one via a stacked `@!attribute` directive on the class docstring
+  (the same mechanism already covered by the `@!attribute`-description
+  fallback fix), so every `config_attr`-defined attribute renders with a
+  correct type and full description with zero template changes. This is
+  the second real-world "invisible macro-defined method" case (after
+  `hermes-client`'s clean "no such shapes present" non-finding) to confirm
+  the principle holds *because the gem author compensated with real YARD
+  directives*, not because YARD's stock handlers understood the macro —
+  worth remembering distinctly if `rubocop`'s `def_node_matcher` (which is
+  *not* accompanied by `@!attribute`-style compensating docs, per a quick
+  check) turns out differently. Grepped for `prepend`/`refine`/
+  `define_method`/`method_missing`/`class_eval`/`instance_eval` — none
+  present, so this run adds no further evidence beyond `config_attr`.
+- **A `{Full::Path#method_name label}`-style inline reference whose label
+  isn't the real Ruby identifier (`{...#access_secret_version
+  SecretManagerService.AccessSecretVersion}`) resolves correctly** — the
+  same "link to the containing file, not a per-member anchor" behavior
+  every other cross-reference already has (`CrossReferencing#link_path`
+  always resolves to the target's namespace file), not a new gap; the
+  differently-shaped display label doesn't change resolution at all.
+- **The `@note` tag whose continuation lines are indented at the same
+  level as the tag directive itself (rather than deeper, matching where
+  its text starts) gets its continuation split off into a disconnected,
+  mid-sentence paragraph** — a real, slightly jarring artifact in the
+  `credentials` attribute's rendered text (see Finding 2's example) caused
+  by inconsistent indentation in the gem's own auto-generated comments.
+  Verified **not** an agentdocs-specific regression: generated the same
+  file through YARD's own stock `-f`/`-t default` (HTML) template side by
+  side — it produces the identical split (the tag captures only "Warning:
+  If you accept a credential configuration (JSON file or Hash) from an",
+  and the orphaned remainder appears as a disconnected paragraph in the
+  main docstring body). A genuine instance of the "awkward formatting from
+  automatic conversion" the user predicted, but the root cause is a
+  pre-existing YARD-core `Docstring`/tag-continuation parsing behavior
+  reacting to messy generated-comment indentation, not something this
+  project's template introduces or could fix without diverging from stock
+  YARD's own tag-continuation rules.
+- **Token economy and `Defined in:` overhead both land in the
+  already-established ranges, no new pattern.** 370,749 output bytes vs.
+  470,267 source bytes = **‑21.2%** (docs smaller) — consistent with the
+  YARD run's "heavy method bodies dilute docs" theory (this gem's RPC
+  methods have substantial bodies: retries, coercion, gRPC/REST calls),
+  unlike `hermes-client`'s thin-wrapper +34.3%. `Defined in:` overhead:
+  38,403B / 370,749B = **~10.4%**, in the same band as the prior two real
+  runs (~11.0%, ~11.7%), all still above the toy fixture's 8.6%.
+- **No empty/broken output files.** The smallest files are all genuine
+  namespace-only container modules (`Google.md`, `Google::Cloud.md`) or a
+  real one-line-docstring thin subclass (`SecretManagerService
+  ::Credentials`, which really does have no other content) — none are
+  accidentally-empty renders of something that should have content.
+
+**Measurements:**
+
+| Measurement | Toy fixture | YARD run | `hermes-client` run | `google-cloud-secret_manager-v1` run |
+|---|---|---|---|---|
+| Doc corpus vs. source size | **+37%** | **‑24.7%** | **+34.3%** | **‑21.2%** (370,749B / 470,267B) |
+| Per-entry `**Defined in:**` overhead | **8.6%** | **~11.0%** | **~11.7%** | **~10.4%** (38,403B / 370,749B) |
+| One-word/abbreviation-truncated summary | crash / not probed | not probed | 43 / 22 of 63 files (~35%), "e.g."/"i.e." | 77 / 32 of 120 files (~27%), "Optional."/"Required."/"Output only."/"Input only." |
+
+**Not yet formally revisited: the "no custom handler classes" open
+question and the "Accompanying agent skill" checklist item.** This run adds
+a third data point (after YARD's `prepend` gap and `hermes-client`'s clean
+non-finding) confirming the principle holds so far — real metaprogramming
+this run hit (`config_attr`) was fully covered by the gem's own compensating
+`@!attribute` directives, not by any gap in YARD's stock handlers. Still
+leaving the actual re-evaluation for a deliberate cross-run pass once more
+of the queue (`toys`, `rubocop`, `parser`) has run, per the YARD run's own
+"benefit from seeing more than one gem's worth of evidence first" call —
+`rubocop`'s `def_node_matcher` macros (not accompanied by compensating YARD
+directives, unlike `config_attr` here) are likely to be a more decisive
+test than a fourth confirmation would be.
+
+**Checklist items harvested — added to DESIGN.md 2026-07-21:**
+
+1. **(design)** A 2+-`@overload` method's own top-level `@return`, shared
+   across every overload rather than redundant with each overload's own —
+   reopens the "`@overload`" decision's "not exercised, left for a real
+   case to justify" bullet. Added under "Methods — shapes & signatures".
+   Needs an `example/lib` fixture: a method with 2+ `@overload` tags, each
+   declaring only its own `@param`s, plus a shared method-level `@return`
+   (and ideally `@yield`/`@raise` alongside it, to keep exercising that
+   those already work).
+2. **(design)** Attribute entries never render `@note`/`@example`/
+   `@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo` tags.
+   Added under "Attributes & constants"; also corrects "Auxiliary one-line
+   tags"' checklist claim of exercising `@deprecated`/`@since`/`@note` on
+   "a non-method (class/module or constant) object" — attributes were
+   never actually covered. Needs an `example/lib` fixture: an
+   `@!attribute`-documented attribute carrying at least one of `@note`/
+   `@deprecated`/`@example`, ideally two `@note` tags on the same attribute
+   to also finally exercise `note_line`'s existing "first tag only"
+   limitation in the same pass.
+3. **(design)** `Docstring#summary` extracting a real, complete, but
+   zero-information first sentence (a one-word field-behavior annotation
+   like `"Optional."`/`"Required."`) as the entire Member Summary bullet —
+   a distinct root cause from the already-fixed abbreviation-blind
+   truncation (no sentence-boundary misparse here at all). Added under
+   "Documentation content / prose patterns". Needs an `example/lib`
+   fixture: a docstring whose first sentence is a short, low-information
+   annotation word followed by the real description as a second sentence,
+   and a design review of whether/how to mitigate (skip-listing specific
+   one-word leading sentences vs. accepting it as an inherited YARD
+   limitation, same disposition as the duck-typing/`@note`-split cases this
+   run confirmed are unchanged from stock YARD).

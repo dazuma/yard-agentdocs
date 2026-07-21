@@ -355,6 +355,20 @@ may follow; that doc tracks status across all of them.
       signature over an awkward real one" idiom); settled both the
       single-overload and two-or-more-overload rendering shapes — see
       "`@overload`" under "Decisions"
+- [ ] (design) A 2+-`@overload` method's own top-level `@return`, shared
+      across every overload rather than redundant with each overload's own
+      — the `@overload` decision assumed this combination was "redundant/
+      unusual" and left it unexercised; real `gapic-generator-ruby`-produced
+      code proves the assumption wrong: `@param`s genuinely vary per
+      overload (request-object vs. flattened-keyword-args calling
+      conventions) while `@return`/`@yield`/`@raise` are shared, declared
+      once at the method level. `@raise`/`@yield` already render correctly
+      (method-level tags render unconditionally), but `method_entry.erb`'s
+      2+-overload branch unconditionally empties `return_tags`, with no
+      fallback to the method's own `@return`. Confirmed on real code: 36
+      methods across 3 files lose `**Returns:**` entirely on the
+      2026-07-21 `google-cloud-secret_manager-v1` dogfood run — see
+      devdocs/Dogfood.md
 - [x] (design) Settle prose-vs-signature ordering as one uniform rule — the
       2+-overload shape led with the shared docstring and `@example`s
       (`Point.of`'s two examples rendered before *any* signature), while
@@ -607,6 +621,27 @@ may follow; that doc tracks status across all of them.
       inside a `@!attribute`'s `@return`: fall back to the tag's text,
       verbatim" under "Decisions". Flagged by the 2026-07-21
       `hermes-client` dogfood run (see devdocs/Dogfood.md)
+- [ ] (design) Attribute entries never render `@note`/`@example`/
+      `@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo` —
+      `attribute_entry.erb` only ever calls `attribute_type`/
+      `attribute_docstring`, unlike `method_entry.erb`'s full
+      `annotation_lines`/`examples_block`/`trailing_annotation_lines`
+      wiring. Corrects "Auxiliary one-line tags"' claim of exercising
+      `@deprecated`/`@since`/`@note` on "a non-method (class/module or
+      constant) object" — attributes were never actually in that set,
+      silently, and "Remaining free-form tags"' note that
+      `@todo`/`@version`/`@author` are unwired for attributes undersold
+      the gap (`@note`/`@deprecated`/`@example` are unwired too). Confirmed
+      real loss on the 2026-07-21 `google-cloud-secret_manager-v1` dogfood
+      run: an `@!attribute`-documented `#credentials` attribute's two
+      `@note` tags (one a real security warning) and its `@example` are
+      silently dropped, as is a separate attribute's `@deprecated` flag —
+      see devdocs/Dogfood.md. Low prevalence in that gem (3–4 hits), but a
+      full category of tags with zero attribute-side handling. Also
+      exercises `note_line`'s pre-existing, separately-flagged "reads only
+      the first `@note` tag" limitation (see "Auxiliary one-line tags"
+      under "Decisions") — fix both together, since attributes reaching
+      `note_line` for the first time is exactly when that would surface.
 - [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
@@ -837,6 +872,21 @@ may follow; that doc tracks status across all of them.
       inherited YARD limitation — see "`Docstring#summary`'s abbreviation-
       blind truncation: a ported, abbreviation-aware reimplementation"
       under "Decisions"
+- [ ] (design) `Docstring#summary` extracting a real, complete, but
+      zero-information first sentence as the entire Member Summary
+      bullet/`index.md` entry — distinct root cause from the abbreviation
+      item above (no sentence-boundary misparse here: the leading sentence
+      genuinely ends at that period). Real protobuf/gapic docstrings
+      conventionally open with a one-word field-behavior sentence
+      (`"Optional."`, `"Required."`, `"Output only."`, `"Input only."`)
+      before the actual description, so the cheap-summary view renders as
+      just `` — Optional. `` or similar, arguably worse than the
+      abbreviation case (no fragment at all, not even a partial phrase).
+      The already-fixed `DocstringSummary#smart_summary` skip-list has no
+      seam for this — it's not an abbreviation, just an uninformative real
+      sentence — so this needs its own design treatment. Measured on the
+      2026-07-21 `google-cloud-secret_manager-v1` dogfood run: 77
+      occurrences across 32 of 120 rendered files — see devdocs/Dogfood.md
 
 ### Cross-referencing scenarios
 
@@ -2801,6 +2851,24 @@ implementation).
   an aliased/inherited method's overloads as seen from another class's
   page (not raised by either fixture).
 
+**Reopened in part (2026-07-21 `google-cloud-secret_manager-v1` dogfood
+run, see devdocs/Dogfood.md):** the "not exercised" assumption above —
+that a top-level `@return` alongside 2+ overloads is "redundant/unusual" —
+is wrong for real `gapic-generator-ruby`-generated code. Every RPC client
+method there declares 2+ `@overload`s that genuinely vary only in
+`@param`s (a request-object calling convention vs. a flattened-keyword-args
+one), while `@return`/`@yield`/`@raise` are declared once, at the method
+level, because the return value and exceptions don't depend on which
+calling convention was used — the opposite of "redundant." `@raise`/
+`@yield` already handle this correctly (both already render unconditionally
+at the method level, confirmed still true on this real code), but
+`**Returns:**` does not: `return_tags` is unconditionally `[]` in the
+2+-overload branch, with no fallback to the method's own `@return` when
+neither overload declares one. Confirmed on real code: 36 methods across 3
+files (`SecretManagerService::Client`/`::Rest::Client`/`::Paths`) lose
+`**Returns:**` entirely. Not yet fixed — see the new checklist item under
+"Methods — shapes & signatures".
+
 ### Prose-vs-signature ordering: one leading multi-line signature block, bold inline-code labels per overload group
 
 Settles the "Settle prose-vs-signature ordering as one uniform rule"
@@ -2942,6 +3010,22 @@ and `Geometry::Vector` (a class-level example) for `@since`.
   longer the ERB template's job once composed alongside the other two flag
   lines) — verified byte-for-byte unchanged against `Stopwatch#raw_elapsed_s`,
   the one pre-existing fixture with a private-API flag.
+
+**Reopened in part (2026-07-21 `google-cloud-secret_manager-v1` dogfood
+run, see devdocs/Dogfood.md):** "on both a method and a non-method
+(class/module or constant) object" above never actually included
+attributes — `attribute_entry.erb` never calls `annotation_lines` (or
+`examples_block`/`trailing_annotation_lines`) at all, so `@deprecated`/
+`@note`/`@abstract`/`@example`/`@since`/`@version`/`@author`/`@todo` are
+all silently dropped for any attribute, not just the `@todo`/`@version`/
+`@author` gap "Remaining free-form tags" (below) already flagged. Confirmed
+real loss on real code: an `@!attribute`-documented `#credentials`
+attribute's two `@note` tags (one a genuine security warning) and its
+`@example` are dropped; a separate attribute's `@deprecated` flag is
+dropped too. Not yet fixed — see the new checklist item under "Attributes
+& constants", which also notes this is exactly the case that would surface
+`note_line`'s already-documented "first `@note` tag only" limitation
+(directly above) once attributes are wired in.
 
 ### `@abstract`: folded into the existing flag-line mechanism, no new prominence
 
