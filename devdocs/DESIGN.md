@@ -682,9 +682,9 @@ may follow; that doc tracks status across all of them.
       inside a `@!attribute`'s `@return`: fall back to the tag's text,
       verbatim" under "Decisions". Flagged by the 2026-07-21
       `hermes-client` dogfood run (see devdocs/Dogfood.md)
-- [ ] (design) Attribute entries never render `@note`/`@example`/
+- [x] (design) Attribute entries never render `@note`/`@example`/
       `@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo` —
-      `attribute_entry.erb` only ever calls `attribute_type`/
+      `attribute_entry.erb` only ever called `attribute_type`/
       `attribute_docstring`, unlike `method_entry.erb`'s full
       `annotation_lines`/`examples_block`/`trailing_annotation_lines`
       wiring. Corrects "Auxiliary one-line tags"' claim of exercising
@@ -695,14 +695,16 @@ may follow; that doc tracks status across all of them.
       the gap (`@note`/`@deprecated`/`@example` are unwired too). Confirmed
       real loss on the 2026-07-21 `google-cloud-secret_manager-v1` dogfood
       run: an `@!attribute`-documented `#credentials` attribute's two
-      `@note` tags (one a real security warning) and its `@example` are
-      silently dropped, as is a separate attribute's `@deprecated` flag —
-      see devdocs/Dogfood.md. Low prevalence in that gem (3–4 hits), but a
-      full category of tags with zero attribute-side handling. Also
-      exercises `note_line`'s pre-existing, separately-flagged "reads only
-      the first `@note` tag" limitation (see "Auxiliary one-line tags"
-      under "Decisions") — fix both together, since attributes reaching
-      `note_line` for the first time is exactly when that would surface.
+      `@note` tags (one a real security warning) and its `@example` were
+      silently dropped, as was a separate attribute's `@deprecated` flag —
+      see devdocs/Dogfood.md. Fixed by wiring `attribute_entry.erb` through
+      `@attribute.source_method`, also fixing `note_line`'s pre-existing
+      "reads only the first `@note` tag" limitation and
+      `attribute_summary_line`'s missing deprecated/abstract Member Summary
+      suffix in the same pass — see "Attribute-side wiring for
+      `@note`/`@example`/`@deprecated`/`@abstract`/`@since`/`@version`/
+      `@author`/`@todo`, plus `note_line`'s first-tag-only fix" under
+      "Decisions"
 - [x] Manually-defined reader/writer pair documented via
       `@attr`/`@attr_reader`/`@attr_writer` tags instead of relying on
       `attr_*` — `Waypoint#label`/`#order`; escalated to (design), since
@@ -3322,10 +3324,12 @@ all silently dropped for any attribute, not just the `@todo`/`@version`/
 real loss on real code: an `@!attribute`-documented `#credentials`
 attribute's two `@note` tags (one a genuine security warning) and its
 `@example` are dropped; a separate attribute's `@deprecated` flag is
-dropped too. Not yet fixed — see the new checklist item under "Attributes
-& constants", which also notes this is exactly the case that would surface
-`note_line`'s already-documented "first `@note` tag only" limitation
-(directly above) once attributes are wired in.
+dropped too. **Fixed** — see "Attribute-side wiring for
+`@note`/`@example`/`@deprecated`/`@abstract`/`@since`/`@version`/`@author`/
+`@todo`, plus `note_line`'s first-tag-only fix" under "Decisions", which
+also closes out `note_line`'s "first `@note` tag only" limitation
+(directly above), exactly the case attributes reaching it for the first
+time surfaced.
 
 ### `@abstract`: folded into the existing flag-line mechanism, no new prominence
 
@@ -5364,6 +5368,70 @@ word-boundary false-positive guard) and a regression guard proving
 Verified against the full `example/lib`/`example/doc` suite, byte-for-byte
 (the `Stopwatch#log_level`/`#rounding_mode`/`#label_style` fixture
 attributes), plus `toys rubocop`/`toys yardoc` clean.
+
+### Attribute-side wiring for `@note`/`@example`/`@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo`, plus `note_line`'s first-tag-only fix
+
+Settles the "Attribute entries never render `@note`/`@example`/
+`@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo`" checklist
+item under "Attributes & constants" — a partial reopening of "Auxiliary
+one-line tags" above — flagged by the 2026-07-21
+`google-cloud-secret_manager-v1` dogfood run (see devdocs/Dogfood.md).
+
+**The fix is purely mechanical.** `attribute_entry.erb` now calls
+`annotation_lines`/`examples_block`/`trailing_annotation_lines` against
+`@attribute.source_method` — already a real
+`::YARD::CodeObjects::MethodObject` ({Attribute#source_method}), and every
+one of those three helpers is already generic over
+`::YARD::CodeObjects::Base`, so no new helper code was needed for the
+wiring itself. Placement mirrors `page.erb`'s existing
+metadata→flags→docstring→examples→trailing shape (flags after the
+existing `**Type:**`/`**Read-only.**` block, examples after the docstring,
+trailing before `**Defined in:**`) and `method_entry.erb`'s
+trailing→`**Defined in:**` adjacency (stacked with no blank line between
+them, both `* `-bulleted).
+
+**Bundled fix: `note_line` no longer reads only the first `@note` tag.**
+The checklist item explicitly called for fixing this alongside the
+wiring, since an attribute reaching `note_line` for the first time (no
+prior fixture had 2+ `@note` tags on any object) is exactly the case that
+would surface it. `note_line` (`AuxiliaryTags`) now reads
+`obj.tags(:note)` instead of `obj.tag(:note)` and renders every tag as its
+own `* **Note:**` bullet, in source order, joined with `"\n"` — the same
+"a field is always a bullet, adjacency needs no blank line" convention
+"Bulleted-list rendering for metadata/flag lines" above already
+established. This also fixes the same latent gap on the per-overload
+method path (`method_entry.erb`'s `ov_note = note_line(ov)`), incidentally.
+
+**Also fixed in the same pass (scope addition, confirmed with the user
+before proceeding — not in the original checklist item's own text):**
+`attribute_summary_line` (the Member Summary bullet builder,
+`module/agentdocs/setup.rb`) only ever appended the read-only/write-only
+suffix; a deprecated attribute got a full `**Deprecated.**` flag in its
+own entry but no hint at all in the one-line Member Summary listing,
+unlike a deprecated *method* (`method_summary_line` already joins
+`annotation_lines_short`). `attribute_summary_line` now joins
+`[attribute_annotation_short(attr)].compact + annotation_lines_short(attr.source_method)`,
+e.g. `(read-only, deprecated)`.
+
+**Not touched:** `constant_entry.erb`'s separate, pre-existing
+`@todo`/`@version`/`@author` gap (`@since` is already wired there) —
+a different, still-open checklist item, deliberately left alone here to
+keep this fix scoped to attributes.
+
+**Fixture:** a new `Geometry::PointCloud#average_point` — a read-only
+`@!attribute`-documented legacy alias for `#centroid`, `@deprecated` in
+its favor — carrying two distinct `@note` tags (the first fixture
+anywhere with 2+ `@note` tags on one object), `@deprecated`, `@since`, and
+an `@example`. `{#centroid}` referenced from within `#average_point`'s own
+docstring/tags resolves as a same-page self-reference (bare `` `#centroid` ``,
+no link) — confirmed consistent with the existing `Stopwatch#tag=`'s
+`Sets {#tag}` precedent, not a new resolution path.
+
+Verified against the full `example/lib`/`example/doc` suite, byte-for-byte,
+with no regressions to `#centroid`/`#size` or any other fixture (isolated
+by generating before/after each change into a scratch directory and
+diffing the full output tree, not just the changed file), plus `toys
+rubocop`/`toys yardoc` clean.
 
 ## Implementation
 

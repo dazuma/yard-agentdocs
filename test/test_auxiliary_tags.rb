@@ -112,6 +112,20 @@ describe ::YARD::AgentDocs::AuxiliaryTags do
       assert_equal(["* **Note:** Not thread-safe."], holder.annotation_lines(holder.object))
     end
 
+    it "renders every @note tag on the object, in source order" do
+      holder = holder_at(<<~RUBY, "Foo#bar")
+        class Foo
+          # @note First caveat.
+          # @note Second caveat.
+          def bar; end
+        end
+      RUBY
+      assert_equal(
+        ["* **Note:** First caveat.\n* **Note:** Second caveat."],
+        holder.annotation_lines(holder.object)
+      )
+    end
+
     it "renders every tag in Private API/Deprecated/Abstract/Note order regardless of source order" do
       holder = holder_at(<<~RUBY, "Foo#bar")
         class Foo

@@ -4,7 +4,24 @@
 <%- if attribute_annotation(@attribute) -%>
 - **<%= attribute_annotation(@attribute) %>**
 <%- end -%>
+<%- lines = annotation_lines(@attribute.source_method) -%>
+<%- unless lines.empty? -%>
+
+<%= lines.join("\n") %>
+<%- end -%>
 
 <%= attribute_docstring(@attribute) %>
+<%- examples = examples_block(@attribute.source_method) -%>
+<%- if examples -%>
+
+<%= examples %>
+<%- end -%>
+<%- trailing = trailing_annotation_lines(@attribute.source_method) -%>
+<%- if trailing.empty? -%>
 
 * **Defined in:** `<%= attribute_file(@attribute) %>:<%= attribute_line(@attribute) %>`
+<%- else -%>
+
+<%= trailing.join("\n") %>
+* **Defined in:** `<%= attribute_file(@attribute) %>:<%= attribute_line(@attribute) %>`
+<%- end -%>

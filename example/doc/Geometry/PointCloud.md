@@ -19,12 +19,18 @@ no indented free-text paragraph of its own at all — the only
 description anywhere is the text inside its `@return` tag, so the
 attribute's own docstring is genuinely empty.
 
+`#average_point` exercises `@!attribute`-documented tags beyond a plain
+description/`@return`: two stacked `@note` tags (also the only fixture
+with more than one `@note` on the same object), plus `@deprecated`,
+`@since`, and `@example`.
+
 See [`Working with point clouds`](../file.point_cloud.md) for a worked example.
 
 ## Member Summary
 
 **Instance Attributes**
 
+- `#average_point` (read-only, deprecated) — The mean position of every point in the cloud — the original name for `#centroid`.
 - `#centroid` (read-only) — the average position of all points in the cloud.
 - `#size` (read-only) — The number of points in the cloud.
 
@@ -34,6 +40,28 @@ See [`Working with point clouds`](../file.point_cloud.md) for a worked example.
 
 ## Instance Attributes
 
+### #average_point
+
+- **Type:** [`Point`](Point.md)
+- **Read-only.**
+
+* **Deprecated.** Use `#centroid` instead; kept only for source compatibility, will be removed in 2.0.0.
+* **Note:** Recomputes the average from every point on each call, just like `#centroid` — no memoization of its own.
+* **Note:** Reads the point array with no synchronization; do not call while another thread mutates the cloud.
+
+The mean position of every point in the cloud — the original name for `#centroid`.
+
+**Examples:**
+
+```ruby
+cloud = PointCloud.new([Point.new(0, 0), Point.new(2, 0)])
+cloud.average_point.x
+#=> 1.0
+```
+
+* **Since:** 1.0.0
+* **Defined in:** `example/lib/geometry/point_cloud.rb:57`
+
 ### #centroid
 
 - **Type:** [`Point`](Point.md)
@@ -41,7 +69,7 @@ See [`Working with point clouds`](../file.point_cloud.md) for a worked example.
 
 the average position of all points in the cloud
 
-* **Defined in:** `example/lib/geometry/point_cloud.rb:35`
+* **Defined in:** `example/lib/geometry/point_cloud.rb:40`
 
 ### #size
 
@@ -50,7 +78,7 @@ the average position of all points in the cloud
 
 The number of points in the cloud.
 
-* **Defined in:** `example/lib/geometry/point_cloud.rb:29`
+* **Defined in:** `example/lib/geometry/point_cloud.rb:34`
 
 ## Class Methods
 
@@ -68,4 +96,4 @@ Creates a point cloud from the given points.
 
 - `points` (`Array<`[`Point`](Point.md)`>`) — the points to collect
 
-* **Defined in:** `example/lib/geometry/point_cloud.rb:44`
+* **Defined in:** `example/lib/geometry/point_cloud.rb:66`

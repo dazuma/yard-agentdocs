@@ -18,6 +18,11 @@ module Geometry
   # description anywhere is the text inside its `@return` tag, so the
   # attribute's own docstring is genuinely empty.
   #
+  # `#average_point` exercises `@!attribute`-documented tags beyond a plain
+  # description/`@return`: two stacked `@note` tags (also the only fixture
+  # with more than one `@note` on the same object), plus `@deprecated`,
+  # `@since`, and `@example`.
+  #
   # See {file:example/docs/point_cloud.md} for a worked example.
   #
   class PointCloud
@@ -33,6 +38,23 @@ module Geometry
     #   @return [Point] the average position of all points in the cloud
     #
     define_method(:centroid) do
+      Point.new(@points.sum(&:x) / @points.size.to_f, @points.sum(&:y) / @points.size.to_f)
+    end
+
+    ##
+    # @!attribute [r] average_point
+    #   The mean position of every point in the cloud — the original name for {#centroid}.
+    #   @note Recomputes the average from every point on each call, just like {#centroid} — no memoization of its own.
+    #   @note Reads the point array with no synchronization; do not call while another thread mutates the cloud.
+    #   @deprecated Use {#centroid} instead; kept only for source compatibility, will be removed in 2.0.0.
+    #   @since 1.0.0
+    #   @example
+    #     cloud = PointCloud.new([Point.new(0, 0), Point.new(2, 0)])
+    #     cloud.average_point.x
+    #     #=> 1.0
+    #   @return [Point] the mean position of every point in the cloud
+    #
+    define_method(:average_point) do
       Point.new(@points.sum(&:x) / @points.size.to_f, @points.sum(&:y) / @points.size.to_f)
     end
 

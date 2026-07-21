@@ -162,8 +162,9 @@ def constant_type(const)
 end
 
 def attribute_summary_line(attr)
-  suffix = attribute_annotation_short(attr)
-  "- `#{attribute_heading(attr)}`#{" (#{suffix})" if suffix}#{summary_suffix(attribute_docstring_summary(attr))}"
+  suffix = ([attribute_annotation_short(attr)].compact + annotation_lines_short(attr.source_method)).join(", ")
+  summary = attribute_docstring_summary(attr)
+  "- `#{attribute_heading(attr)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(summary)}"
 end
 
 def method_summary_line(meth)

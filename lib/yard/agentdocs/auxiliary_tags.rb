@@ -145,10 +145,13 @@ module YARD
       end
 
       def note_line(obj)
-        return nil unless obj.has_tag?(:note)
+        tags = obj.tags(:note)
+        return nil if tags.empty?
 
-        text = markdownify(obj.tag(:note).text)
-        text.empty? ? "* **Note:**" : "* **Note:** #{indent_continuation(text)}"
+        tags.map do |tag|
+          text = markdownify(tag.text)
+          text.empty? ? "* **Note:**" : "* **Note:** #{indent_continuation(text)}"
+        end.join("\n")
       end
 
       def abstract_line(obj)
