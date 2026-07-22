@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "rdoc"
-require "rdoc/markup/to_markdown"
+require "yard/agentdocs/rdoc_to_markdown"
 
 module YARD
   module AgentDocs
@@ -54,7 +54,7 @@ module YARD
           when :markdown
             text
           when :rdoc
-            ::RDoc::Markup::ToMarkdown.new.convert(text)
+            RDocToMarkdown.new.convert(text)
           else
             log.error "yard-agentdocs: unsupported markup type `#{options.markup.inspect}` " \
                        "(only :markdown and :rdoc are supported) — passing prose through unconverted"

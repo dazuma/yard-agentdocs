@@ -921,28 +921,59 @@ may follow; that doc tracks status across all of them.
       `@param`/`@return` tag text, and Member Summary one-line summaries —
       see "Docstring markup dialect" under "Decisions" for the full scope
       and unsupported-dialect behavior settled while implementing this.
-- [ ] (mech) `RDoc::Markup::ToMarkdown` (the stdlib converter `:rdoc`-
+- [x] (mech) `RDoc::Markup::ToMarkdown` (the stdlib converter `:rdoc`-
       dialect docstrings pass through, per "Docstring markup dialect" under
-      "Decisions") converts RDoc's `<tt>...</tt>` inline-code tag to
-      literal `<code>...</code>` HTML instead of a Markdown code span —
-      inconsistent with the equivalent `+word+` shorthand, which converts
-      correctly to a backtick span. Confirmed via direct probe of the
-      stdlib converter in isolation (`RDoc::Markup::ToMarkdown.new.convert
-      ("+matcher+ <tt>=~</tt> +obj+")` → `` `matcher` <code>=~</code>
-      `obj` ``), so root cause sits in the delegated third-party converter,
-      not this project's own conversion code — but `Markdownify
-      #markdownify` already post-processes the converter's output for
-      other concerns (`demote_headings`), so patching a residual
-      `<code>...</code>` pair into a backtick span is within the existing
-      architecture, no new parsing/Handler surface needed. Measured on the
-      2026-07-21 `minitest` dogfood run: 42 occurrences across 10 of 57
-      rendered files, all traced to real `<tt>` usage in the gem's own
-      source and its guide files. See the `minitest` entry under "Runs" in
-      `devdocs/Dogfood.md` for full detail. Needs an
-      `example/lib`/`example/rdoc/lib` fixture using `<tt>...</tt>` in a
-      docstring under the `:rdoc` dialect, and a design review of scope
-      (just `<code>`, or a broader survey of other `RDoc::Markup::
-      ToMarkdown` raw-HTML leftovers first).
+      "Decisions") leaked literal `<code>...</code>`/`<strong>...</strong>`/
+      `<em>...</em>`/`<s>...</s>` HTML instead of the equivalent Markdown
+      delimiter, for **any** of `<tt>`/`<code>`/`<b>`/`<i>`/`<em>`/`<s>`/
+      `<del>` tag-form markup, *and* for the plain `+word+`/`` `word` ``/
+      `*word*`/`_word_` shorthand forms whenever the content has any
+      character outside `\w`/whitespace — which is routine, not rare:
+      predicate/bang/setter method names (`+valid?+`, `+save!+`, `+name=+`),
+      namespaced constants (`+Foo::Bar+`), paths, array-index syntax, and
+      any resolved crossref all trigger it. Scope was widened from the
+      original "just `<tt>`" framing after a design review, then narrowed
+      back for implementation to the single-string-content case — see
+      "`RDoc::Markup::ToMarkdown` raw-HTML leaks: scope and fix-location
+      decision" under "Decisions" for the full survey of leak mechanisms,
+      the ruled-out `accept_raw`/`Raw`-node path, and why the fix lives in
+      a `ToMarkdown` subclass overriding tag emission rather than a
+      text-level post-process on the rendered Markdown. Measured on the
+      2026-07-21 `minitest` dogfood run: 42 `<tt>` occurrences across 10 of
+      57 rendered files (the tag-form subset of this bug only — the
+      shorthand-form and other-tag-family leaks weren't separately measured
+      there). See the `minitest` entry under "Runs" in `devdocs/Dogfood.md`
+      for that run's detail. Fixed by {YARD::AgentDocs::RDocToMarkdown}
+      (`lib/yard/agentdocs/rdoc_to_markdown.rb`), a `ToMarkdown` subclass
+      overriding `add_tag` to always wrap with the Markdown delimiter,
+      never the raw-HTML fallback — wired into {Markdownify#markdownify}
+      in place of the stock class. Exercised by the new
+      `example/rdoc/lib/tag_conversion.rb` (`TagConversion`) fixture —
+      `example/rdoc/doc/TagConversion.md` — covering punctuated content via
+      both shorthand and tag-form across all four styles, plus a verbatim
+      example block whose literal `<code>`/`<tt>` text must (and does)
+      survive untouched, since `accept_verbatim` never calls `add_tag`.
+      Does *not* cover nested/multi-node styled content (e.g. `<b>foo
+      *bar* baz</b>`) — see the next item.
+- [ ] (mech) `RDoc::Markup::ToMarkdown` still leaks raw HTML for styled
+      inline markup spanning **multiple inline nodes** — e.g. `<b>foo
+      *bar* baz</b>` → `<strong>foo **bar** baz</strong>` — regardless of
+      how simple the content is, since `handle_tag`'s multi-node branch
+      (as opposed to the single-string `add_tag` case the item above
+      fixes) unconditionally emits a raw wrapper tag and recurses.
+      Deliberately deferred, not designed: for `<b>`/`<em>`/`<s>`, wrapping
+      the recursively-converted content in the plain Markdown delimiter
+      (`**...**`/`*...*`/`~~...~~`) is very likely correct — Markdown's
+      emphasis delimiters are containers that interpret nested markup, the
+      same as the HTML tags they replace. But for `<tt>`/`<code>`, the
+      equivalent move is **not** correct: a Markdown code span is verbatim
+      by spec (CommonMark does not interpret markup inside backticks), so
+      naively wrapping already-converted nested-markup text (e.g. literal
+      `**bar**`) in backticks would display the literal asterisks instead
+      of preserving the nested emphasis — a real semantic loss neither
+      "keep the raw HTML" nor "just wrap it" resolves cleanly. Needs a
+      human decision on target behavior for the tt/code case specifically
+      before a fixture can be hand-authored.
 - [x] Prose/summary containing Markdown metacharacters (backticks, `*`, `_`,
       `[`) — turned out not to need an escaping policy at all (CommonMark
       keeps a bare metacharacter's effects confined to its own line/bullet);
@@ -5773,6 +5804,156 @@ convention the abbreviation-skip-list and low-information-merge sections
 above already established): a first-paragraph-ends-in-colon-before-a-list
 case, a bare `":nodoc:"` string, and a regression case pinning down that a
 Markdown-styling-delimiter ending still gets the unconditional period.
+
+### `RDoc::Markup::ToMarkdown` raw-HTML leaks: scope and fix-location decision
+
+Widens the "`<tt>` → `<code>`" checklist item's scope and settles where the
+fix belongs. Implemented for the single-string-content case (mechanisms 1
+and 2 below); the nested/multi-node case (mechanism 3) remains deferred —
+see the follow-up checklist item.
+
+**Root cause is one shared choke point, not a `<tt>`-specific quirk.**
+`RDoc::Markup::ToMarkdown#add_tag` (`rdoc/markup/to_markdown.rb`) is the
+sole method deciding raw-HTML-vs-Markdown-delimiter for **all four** styled
+tags:
+
+```ruby
+def add_tag(tag, simple_tag, content)
+  if content.match?(/\A[\w\s]+\z/)
+    emit_inline("#{simple_tag}#{content}#{simple_tag}")
+  else
+    emit_inline("<#{tag}>#{content}</#{tag}>")   # raw HTML
+  end
+end
+```
+
+`handle_BOLD`/`handle_EM`/`handle_STRIKE`/`handle_TT` all funnel through it
+(directly, or via `handle_tag`'s single-string branch). Any content byte
+outside `\w`/whitespace flips the branch to raw HTML — for bold/em/strike
+just as much as for tt/code.
+
+**Confirmed via direct probe (rdoc 8.0.0, the installed gem), four distinct
+leak mechanisms:**
+
+1. **Punctuated content, any of the four styles, via the plain shorthand
+   delimiters too — not just tag-form HTML.** `+valid?+` → `` <code>valid?
+   </code> ``, `+save!+` → `` <code>save!</code> ``, `+name=+` → `` <code>
+   name=</code> ``, `` `x[0]` ``/`+Foo::Bar+`/`+foo/bar+`/`+foo-bar+` → all
+   raw `<code>`; `*bold?*` → `` <strong>bold?</strong> ``, `_em!_` → `` <em>
+   em!</em> ``. This is the scope-widening finding: RDoc's own
+   `InlineParser::WORD_REGEXPS` explicitly *permits* `. / : [ ] -` and one
+   trailing punctuation char (covering `?`/`!`/`=`) inside `+word+`/backtick
+   shorthand content, while `add_tag`'s `\A[\w\s]+\z` check rejects exactly
+   those characters — an internal inconsistency in RDoc itself. Predicate
+   methods, bang methods, setters, namespaced constants, paths, and
+   crossref-resolved text are everyday RDoc prose, referenced via the
+   ordinary shorthand — this fires far more often than literal `<tt>` tags.
+2. **`<code>` is a synonym for `<tt>` in RDoc's own grammar**
+   (`InlineParser::CODEBLOCK_TAGS = %w[tt code]`) — literal `<code>...
+   </code>` in a docstring hits the identical path/bug as `<tt>`.
+3. **Multi-node (nested) content inside a tag form always emits a raw
+   wrapper**, regardless of content simplicity, and recurses into
+   children — can produce mixed raw+Markdown: `<b>foo *bar* baz</b>` →
+   `<strong>foo **bar** baz</strong>`. Empty content (`<b></b>`) also lands
+   here since the regex requires at least one character.
+4. **Checked, ruled out: `accept_raw`/`RDoc::Markup::Raw` is not reachable
+   in this project's pipeline.** `Raw` nodes (and the `HtmlBlock`/
+   `StyleBlock` grammar productions that create them) are only ever
+   constructed by RDoc's own competing Markdown-format parser
+   (`rdoc/markdown.rb`/`.kpeg`) — never by the plain `:rdoc`-dialect parser
+   (`rdoc/markup/parser.rb`) this project's `:rdoc` docstrings go through.
+   Since `Markdownify#markdownify` passes `:markdown`-dialect text through
+   untouched (never invoking `ToMarkdown` at all), that raw-HTML door is
+   closed for both dialects here. Recorded so it isn't re-investigated.
+
+**Rejected approach: a text-level post-process on `ToMarkdown`'s rendered
+output** (e.g. a `gsub(/<code>(.*?)<\/code>/, ...)` in `Markdownify`,
+alongside the existing `demote_headings` post-process). Demonstrated
+false positive, not just a theoretical risk:
+
+```ruby
+doc = <<~RDOC
+  Some prose with +valid?+ inline.
+
+    example_code = "<code>literal</code>"
+    another_line <tt>also literal</tt>
+
+  More prose with <tt>=~</tt> after.
+RDOC
+RDoc::Markup::ToMarkdown.new.convert(doc)
+```
+
+renders the indented block's `"<code>literal</code>"` and `<tt>also
+literal</tt>` completely unchanged, byte-for-byte, alongside the two real
+leaks in the surrounding prose (`` <code>valid?</code> ``, `` <code>=~
+</code> ``) — because `accept_verbatim` copies verbatim-block content
+straight through without ever calling `handle_inline`/`add_tag`. At the
+string level, a real leak and an author's deliberate literal `<code>` text
+in a code example are indistinguishable, so any whole-document regex would
+corrupt the latter. The project's existing `transform_outside_code_spans`
+helper (used by `demote_headings`) doesn't rescue this either — it only
+skips backtick-*fenced* spans, and `ToMarkdown` never emits backtick
+fences for verbatim (it 4-space-indents instead), so there's no fence
+marker to detect.
+
+**Chosen direction: fix at the converter/AST level, not the rendered
+string.** Override `add_tag`/`handle_tag` in a `ToMarkdown` subclass (or
+targeted monkeypatch) so the raw-HTML branch is never taken. `accept_verbatim`
+is a structurally separate visitor callback that never calls
+`add_tag`/`handle_tag` — that AST-level boundary between "verbatim block"
+and "inline-formatted prose" already exists for free in RDoc's own visitor
+design, so intervening there excludes the false-positive class by
+construction, with no regex/indent-width heuristics needed. Still open for
+the eventual implementation: how to handle mechanism 3 (nested/multi-node
+content), where the content itself may contain characters that would
+break the target Markdown delimiter (e.g. a backtick inside tt content, or
+`**` inside bold content) — not yet designed.
+
+**Also surfaced, explicitly out of scope for this item:** RDoc's
+`InlineParser` itself (upstream of `ToMarkdown` entirely) greedily pairs
+any `<code>`/`<tt>`-family open token with the *next* matching close token
+in the text, even across unrelated prose or into an author's own correct
+backtick span — e.g. `"Just mentioning <code> and </code> as plain text
+without pairing."` → `` "Just mentioning ` and ` as plain text without
+pairing." ``, and `` "...html-ish text: `<code>x</code>`." `` →
+`` "...html-ish text: ``x``." ``. This is a pre-existing parser-level
+mis-tokenization that loses the author's real intent before `ToMarkdown`
+or any downstream fix ever sees the text — neither the rejected
+post-process nor the chosen converter-subclass fix can repair it. Noted as
+a known limitation, not pursued.
+
+**Implemented:** {YARD::AgentDocs::RDocToMarkdown}
+(`lib/yard/agentdocs/rdoc_to_markdown.rb`) overrides only `add_tag` (the
+single-string-content path — mechanisms 1 and 2), always emitting
+`"#{simple_tag}#{content}#{simple_tag}"` and never the raw-HTML branch.
+`Markdownify#markdownify` instantiates it instead of the stock
+`::RDoc::Markup::ToMarkdown` for the `:rdoc` dialect. Verified the
+verbatim-preservation claim empirically, not just by reasoning about the
+visitor architecture: generating through the override reproduced the
+`<code>literal</code>`/`<tt>also literal</tt>` verbatim text byte-for-byte
+unchanged from the unpatched baseline, confirming `accept_verbatim` never
+reaches the overridden method.
+
+**Fixture:** `example/rdoc/lib/tag_conversion.rb` (`TagConversion`) —
+punctuated content via `+word+`/`` `word` ``/`*word*`/`_word_` shorthand
+(`+valid?+`, `+save!+`, `+name=+`, `+Foo::Bar+`, `` `x[0]` ``, `*bold?*`,
+`_em!_`) and via tag form across all four styles (`<tt>=~</tt>`,
+`<code>a.b</code>`, `<b>foo=~bar</b>`, `<i>a.b</i>`, `<em>foo!</em>`,
+`<s>strike!</s>`, `<del>del?</del>`), plus three real methods (`#valid?`,
+`#save!`, `#name=`) so the bug's Member-Summary/full-entry fan-out is
+covered, and a verbatim example block whose literal `<code>`/`<tt>` text
+is the false-positive guard. `example/rdoc/doc/TagConversion.md` was
+generated (not hand-typed) two ways for a byte-accurate diff: once through
+the unmodified `ToMarkdown` (documenting today's bug for reference), once
+through `RDocToMarkdown` (the actual target) — isolating the diff to
+exactly the intended spans and confirming `Greeter.md`/`index.md` are
+unaffected. `test_agentdocs_template.rb#generate_rdoc` was switched from a
+single hardcoded filename to `Dir.glob("example/rdoc/lib/**/*.rb")`,
+matching the main fixture's discovery convention, so a future
+`example/rdoc/lib` addition needs no test-file edit.
+
+**Deliberately not covered:** nested/multi-node styled content (mechanism
+3) — see the follow-up checklist item; no fixture case exists for it yet.
 
 ## Implementation
 

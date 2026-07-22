@@ -35,6 +35,7 @@ describe "agentdocs template" do
   def generate_rdoc(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
+      files = ::Dir.glob("example/rdoc/lib/**/*.rb")
       ::YARD::CLI::Yardoc.new.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
@@ -43,7 +44,7 @@ describe "agentdocs template" do
         "--markup", "rdoc",
         "--title", "yard-agentdocs rdoc-dialect fixture — API Reference",
         "--readme", "example/rdoc/README.rdoc",
-        "example/rdoc/lib/greeter.rb"
+        *files
       )
     end
   end

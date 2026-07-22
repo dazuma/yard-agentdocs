@@ -36,3 +36,4 @@
 ## Classes & modules
 
 - [`Greeter`](Greeter.md) — Builds a greeting string.
+- [`TagConversion`](TagConversion.md) — Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.
