@@ -1241,6 +1241,42 @@ may follow; that doc tracks status across all of them.
       `CrossReferencing`" under "Decisions". Originally flagged by the
       2026-07-17 code review
 
+### OKF interop
+
+Gap analysis against the **Open Knowledge Format (OKF)** draft spec — see
+`devdocs/OKF.md` for the full writeup — found conformance reduces to two
+concrete changes. Both are (design): each reverses or extends a recorded
+decision and leaves sub-questions unsettled. Adopting either is a real user
+call, not a formality — "No YAML front matter" under "Output format:
+per-file Markdown template" would need to be explicitly revisited, not
+silently overridden by picking these up.
+
+- [ ] (design) Frontmatter on every class/module file — a minimal YAML
+      block (`type: Ruby Class`/`Ruby Module`, `title`, `description`,
+      the last two already computable from the H1 and existing summary
+      logic) making every generated file an OKF concept. Open
+      sub-questions: the `type` vocabulary and whether finer distinctions
+      (exception classes, mixin modules) belong there or in `tags`; which
+      fields to omit (`timestamp` churns every regen for no informational
+      gain); whether/when to add `resource` (an identity-bridge URI —
+      rubydoc.info page, source URL, gem URL — needs the dogfood milestone
+      to settle what's actually derivable at generation time). See "Part 1
+      — What conformance would take" (subsection 1) in `devdocs/OKF.md`.
+- [ ] (design) Root `index.md` restructured for OKF conformance — three
+      sub-issues, in decreasing severity: the "How to navigate these docs"
+      preamble is prose, not the §6 concept-listing structure §9 requires
+      of reserved files (candidate fix: relocate to its own linked concept
+      file, e.g. `navigating.md`, leaving a one-bullet pointer carrying the
+      single most load-bearing rule); add an `okf_version: "0.1"`
+      frontmatter block (root `index.md` only); and align list-item bullet
+      glyphs with the spec's example surface form (`* ` and a spaced
+      hyphen, vs. our `- ` and em-dash) — cheap, but check against the
+      "Prose/summary containing Markdown metacharacters" decision first,
+      since some summaries contain hyphens. See "Part 1" (subsection 2) in
+      `devdocs/OKF.md`; its option *(c)* (raising the preamble
+      accommodation upstream as a spec issue) is worth pursuing alongside
+      whichever fix lands here, independent of this checklist.
+
 ## Open questions
 
 Output format, indexing/lookup, cross-referencing, and the core YARD
