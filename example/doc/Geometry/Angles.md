@@ -1,3 +1,9 @@
+---
+type: Ruby Module
+title: Geometry::Angles
+description: "Angle-related helpers."
+---
+
 # module Geometry::Angles
 
 - **Extends:** `Angles`

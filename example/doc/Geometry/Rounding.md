@@ -1,3 +1,9 @@
+---
+type: Ruby Module
+title: Geometry::Rounding
+description: "Rounding helpers."
+---
+
 # module Geometry::Rounding
 
 - **Defined in:** `example/lib/geometry/rounding.rb`

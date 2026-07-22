@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::CompassRose
+description: "Compass-bearing lookups, one instance method per cardinal direction."
+---
+
 # class Geometry::CompassRose
 
 - **Superclass:** `Object`

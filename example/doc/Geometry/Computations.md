@@ -1,3 +1,9 @@
+---
+type: Ruby Module
+title: Geometry::Computations
+description: "Utility computations on `Point` values."
+---
+
 # module Geometry::Computations
 
 - **Defined in:** `example/lib/geometry/computations.rb`

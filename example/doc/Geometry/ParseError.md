@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::ParseError
+description: "Raised when a string can't be parsed as a point."
+---
+
 # class Geometry::ParseError
 
 - **Superclass:** `StandardError`

@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Waypoint
+description: "A labeled stop along a route, documented the way YARD supported before `attr_*` gained its own doc-comment convention: `@attr`/`@attr_reader`/ `@attr_writer` tags on the class docstring, rather than a comment above each reader/writer method."
+---
+
 # class Geometry::Waypoint
 
 - **Superclass:** `Object`

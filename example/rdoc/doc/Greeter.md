@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Greeter
+description: "Builds a greeting string."
+---
+
 # class Greeter
 
 - **Superclass:** `Object`

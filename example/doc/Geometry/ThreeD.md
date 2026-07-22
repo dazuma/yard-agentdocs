@@ -1,3 +1,8 @@
+---
+type: Ruby Module
+title: Geometry::ThreeD
+---
+
 # module Geometry::ThreeD
 
 - **Defined in:** `example/lib/geometry/three_d.rb`

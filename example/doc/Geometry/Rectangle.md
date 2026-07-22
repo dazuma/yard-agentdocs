@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Rectangle
+description: "An axis-aligned rectangle, defined by its width and height."
+---
+
 # class Geometry::Rectangle
 
 - **Superclass:** `Object`

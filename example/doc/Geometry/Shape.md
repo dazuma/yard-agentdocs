@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Shape
+description: "A generic two-dimensional shape."
+---
+
 # class Geometry::Shape
 
 - **Superclass:** `Object`

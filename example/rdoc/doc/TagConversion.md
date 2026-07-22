@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: TagConversion
+description: "Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug."
+---
+
 # class TagConversion
 
 - **Superclass:** `Object`

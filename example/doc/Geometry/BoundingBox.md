@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::BoundingBox
+description: "An axis-aligned bounding box, whose four numeric edges are declared through a small class-level DSL (`.edge`) instead of individual `attr_reader`s."
+---
+
 # class Geometry::BoundingBox
 
 - **Superclass:** `Object`

@@ -1,3 +1,9 @@
+---
+type: Ruby Module
+title: Geometry::Named
+description: "Mixed into shape classes via `extend` (not `include`) to add a `.kind` class method, derived from the extending class's own name."
+---
+
 # module Geometry::Named
 
 - **Defined in:** `example/lib/geometry/named.rb`

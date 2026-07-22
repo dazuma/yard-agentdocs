@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Circle
+description: "A circle, defined by its radius."
+---
+
 # class Geometry::Circle
 
 - **Superclass:** `Struct`

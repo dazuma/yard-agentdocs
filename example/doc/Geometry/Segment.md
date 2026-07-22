@@ -1,3 +1,8 @@
+---
+type: Ruby Class
+title: Geometry::Segment
+---
+
 # class Geometry::Segment
 
 - **Superclass:** `Object`

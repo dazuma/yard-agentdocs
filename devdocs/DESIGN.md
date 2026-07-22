@@ -1245,23 +1245,17 @@ may follow; that doc tracks status across all of them.
 
 Gap analysis against the **Open Knowledge Format (OKF)** draft spec — see
 `devdocs/OKF.md` for the full writeup — found conformance reduces to two
-concrete changes. Both are (design): each reverses or extends a recorded
-decision and leaves sub-questions unsettled. Adopting either is a real user
-call, not a formality — "No YAML front matter" under "Output format:
+concrete changes, plus a third found while starting work on the first (see
+below). All three are (design): each reverses or extends a recorded
+decision and leaves sub-questions unsettled. Adopting any of them is a real
+user call, not a formality — "No YAML front matter" under "Output format:
 per-file Markdown template" would need to be explicitly revisited, not
 silently overridden by picking these up.
 
-- [ ] (design) Frontmatter on every class/module file — a minimal YAML
-      block (`type: Ruby Class`/`Ruby Module`, `title`, `description`,
-      the last two already computable from the H1 and existing summary
-      logic) making every generated file an OKF concept. Open
-      sub-questions: the `type` vocabulary and whether finer distinctions
-      (exception classes, mixin modules) belong there or in `tags`; which
-      fields to omit (`timestamp` churns every regen for no informational
-      gain); whether/when to add `resource` (an identity-bridge URI —
-      rubydoc.info page, source URL, gem URL — needs the dogfood milestone
-      to settle what's actually derivable at generation time). See "Part 1
-      — What conformance would take" (subsection 1) in `devdocs/OKF.md`.
+- [x] (design) Frontmatter on every class/module file — see "Frontmatter on
+      every class/module file: `type`/`title`/`description`, description
+      always double-quoted" under "Decisions". `resource` remains
+      deferred to the dogfood milestone, per that entry.
 - [ ] (design) Root `index.md` restructured for OKF conformance — three
       sub-issues, in decreasing severity: the "How to navigate these docs"
       preamble is prose, not the §6 concept-listing structure §9 requires
@@ -1276,6 +1270,20 @@ silently overridden by picking these up.
       `devdocs/OKF.md`; its option *(c)* (raising the preamble
       accommodation upstream as a spec issue) is worth pursuing alongside
       whichever fix lands here, independent of this checklist.
+- [ ] (design) Frontmatter on README/`--files` guide pages — found while
+      starting work on the class/module frontmatter item above: OKF's
+      requirement is frontmatter on *every* non-reserved `.md` file, but
+      `file.README.md`/`file.point_cloud.md`-style pages go through a
+      different template entry point (`serialize_extra_file` in
+      `templates/default/fulldoc/agentdocs/setup.rb`) that renders raw
+      `file.contents` with no `type`/`title`/`description` computed at
+      all — those fields need their own answer here (what `type` for a
+      guide? is `description` even derivable without a docstring to
+      summarize?), distinct from the class/module item's answers. Left
+      unaddressed, the tree isn't literally OKF-conformant even once the
+      class/module item lands. Deliberately kept a separate item rather
+      than folded into the class/module one, since the two have different
+      source data and shouldn't block each other.
 
 ## Open questions
 
@@ -6001,7 +6009,72 @@ markup spanning multiple inline nodes" item above for the corrected
 analysis (the anticipated `<tt>`/`<code>` special case turned out to be
 moot) and its `RDocToMarkdown#handle_tag`/fixture detail.
 
-## Implementation
+### Frontmatter on every class/module file: `type`/`title`/`description`, description always double-quoted
+
+Settles the first "OKF interop" checklist item, reversing "No YAML front
+matter" under "Output format: per-file Markdown template" — every
+class/module page now opens with a three-key YAML block before its `#
+class`/`# module` title:
+
+```yaml
+---
+type: Ruby Class
+title: Geometry::Point
+description: "A point in two-dimensional space."
+---
+```
+
+- **`type`**: `Ruby Class`/`Ruby Module` from `object.type` — no finer
+  vocabulary (exception classes, mixin modules, `Struct`/`Data`-based
+  classes all render the same `Ruby Class`), matching OKF.md's own
+  recommendation that consumers route on `type`, not a proliferating
+  vocabulary. Unquoted: always two plain words, no YAML hazard.
+- **`title`**: `object.path`, the FQN. Unquoted: a Ruby constant path is
+  always YAML-safe (a bare `::` isn't a mapping indicator — that requires
+  a colon followed by a space), verified rather than assumed.
+- **`description`**: the same summary sentence `{#nested_summary_line}`/
+  `{#index_summary_suffix}` already extract (`markdownify(smart_summary(
+  object.docstring))`), **always double-quoted**, with `\`/`"` escaped.
+  Omitted entirely — not `description: ""` — when the object has no
+  docstring, matching this format's existing "absence means empty"
+  convention (e.g. `Geometry::Segment`, `Geometry::ThreeD`). Verified the
+  quoting choice, not assumed: an unquoted plain YAML scalar breaks on a
+  summary starting with a Markdown indicator character (`` ` ``, `-`,
+  `*`, …) or containing `": "`, both of which occur in real fixture
+  summaries; double-quoting round-tripped correctly through Ruby's
+  `Psych` against the real corpus (backtick-containing summaries,
+  apostrophes, embedded quotes/backslashes, a trailing colon, and an
+  empty string) before any fixture was written. A `@private`-flagged
+  class's `description` excludes the "(private API)" annotation — that's
+  `VisibilityInfo`'s flag mechanism, not part of the summary sentence.
+  A summary containing a resolved cross-reference (`Geometry::ThreeD::
+  Point`, "analogous to `Geometry::Point`") uses that *object's own page*
+  resolution context, i.e. the same relative path already rendered in its
+  docstring body (`../Point.md`), not the root-relative path `index.md`'s
+  separate `current_dir`-pinned context would produce for the same
+  summary.
+- **Fields left out, deliberately**: `timestamp` (would churn every file
+  on every regen for no informational gain) and `resource` (an identity-
+  bridge URI — deferred to the dogfood milestone, which needs to settle
+  what's actually derivable at generation time; see the still-open
+  "extension frontmatter keys" idea in `devdocs/OKF.md` Part 2).
+
+**Implementation**: a new `templates/default/module/agentdocs/
+frontmatter.erb` partial (three lines plus a conditional `description`
+line, same shape as `metadata.erb`), rendered from `page.erb` before the
+title line via `<%= erb(:frontmatter).strip %>`, blank line, then the
+existing `# <%= object.type %> <%= object.path %>`. `frontmatter_type`/
+`frontmatter_description` live in `module/agentdocs/setup.rb` under a new
+`# @group Frontmatter` — no new `lib/` mixin, since nothing outside this
+one template needs the escaping helper yet (YAGNI; revisit if/when the
+README/guide-frontmatter or `index.md` `okf_version` items need the same
+escaping).
+
+**Exercised**: every class/module file in `example/doc` and `example/
+rdoc/doc` (25 + 2 files) gained a frontmatter block — not just a couple of
+representative ones — since this is a mechanical, per-file addition with
+no per-object branching left undemonstrated once the no-docstring/
+private-API/cross-reference cases above are covered.
 
 The `agentdocs` template is implemented and generates output *identical*
 (byte-for-byte) to `example/doc` when run against `example/lib` — verified by

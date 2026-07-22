@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Cache
+description: "An internal memoization cache used by a few computation-heavy methods elsewhere in this namespace."
+---
+
 # class Geometry::Cache
 
 - **Superclass:** `Object`

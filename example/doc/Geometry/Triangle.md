@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Triangle
+description: "A triangle: a polygon with exactly three sides."
+---
+
 # class Geometry::Triangle
 
 - **Superclass:** [`Polygon`](Polygon.md)

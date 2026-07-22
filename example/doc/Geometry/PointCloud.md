@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::PointCloud
+description: "A fixed collection of points."
+---
+
 # class Geometry::PointCloud
 
 - **Superclass:** `Object`

@@ -1,3 +1,9 @@
+---
+type: Ruby Module
+title: Geometry::Loud
+description: "Prepended onto a class to upper-case whatever its own `#describe` method returns, without needing to know that method's implementation."
+---
+
 # module Geometry::Loud
 
 - **Defined in:** `example/lib/geometry/loud.rb`

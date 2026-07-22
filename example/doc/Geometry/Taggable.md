@@ -1,3 +1,9 @@
+---
+type: Ruby Module
+title: Geometry::Taggable
+description: "Mixed into shape classes to add a short bracketed tag string, derived from whatever `#label` the including class defines."
+---
+
 # module Geometry::Taggable
 
 - **Defined in:** `example/lib/geometry/taggable.rb`

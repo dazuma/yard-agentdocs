@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Polygon
+description: "A polygon: a shape with a fixed number of straight sides."
+---
+
 # class Geometry::Polygon
 
 - **Superclass:** [`Shape`](Shape.md)

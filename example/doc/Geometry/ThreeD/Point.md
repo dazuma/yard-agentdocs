@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::ThreeD::Point
+description: "A point in three-dimensional space, analogous to [`Geometry::Point`](../Point.md)."
+---
+
 # class Geometry::ThreeD::Point
 
 - **Superclass:** `Object`

@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Vector
+description: "An immutable 2D displacement vector."
+---
+
 # class Geometry::Vector
 
 - **Superclass:** `Data`

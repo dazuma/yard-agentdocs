@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Stopwatch
+description: "A simple stopwatch that accumulates elapsed time, in seconds."
+---
+
 # class Stopwatch
 
 - **Superclass:** `Object`

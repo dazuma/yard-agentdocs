@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Point
+description: "A point in two-dimensional space."
+---
+
 # class Geometry::Point
 
 - **Superclass:** `Object`

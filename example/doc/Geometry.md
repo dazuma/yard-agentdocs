@@ -1,3 +1,9 @@
+---
+type: Ruby Module
+title: Geometry
+description: "A small toy geometry namespace, used as a worked example and test case for the `yard-agentdocs` output format."
+---
+
 # module Geometry
 
 - **Defined in:** `example/lib/geometry.rb`

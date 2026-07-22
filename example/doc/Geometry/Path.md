@@ -1,3 +1,9 @@
+---
+type: Ruby Class
+title: Geometry::Path
+description: "An ordered sequence of points."
+---
+
 # class Geometry::Path
 
 - **Superclass:** `Object`

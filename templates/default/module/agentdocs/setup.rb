@@ -22,6 +22,27 @@ def page
   erb(:page)
 end
 
+# @group Frontmatter (OKF conformance — see "OKF interop" under "Example
+# coverage checklist" in devdocs/DESIGN.md)
+
+def frontmatter_type
+  "Ruby #{object.type == :class ? 'Class' : 'Module'}"
+end
+
+# The same summary sentence {#nested_summary_line}/{#index_summary_suffix}
+# extract, YAML-double-quoted (never left unquoted: a summary can start
+# with a Markdown indicator character or contain ": ", either of which
+# breaks an unquoted YAML plain scalar) — +nil+ when the object has no
+# docstring, so {#frontmatter} can omit the key entirely rather than
+# render `description: ""`.
+def frontmatter_description
+  summary = markdownify(smart_summary(object.docstring))
+  return nil if summary.empty?
+
+  escaped = summary.gsub("\\", "\\\\\\\\").gsub('"', '\\"')
+  %("#{escaped}")
+end
+
 # @group Ancestry (superclass_line overridden for classes; modules have no
 # superclass of their own)
 
