@@ -26,7 +26,7 @@ first.
 | YARD (self-run) | Done — findings promoted to DESIGN.md | 2 findings (1 crash) |
 | `hermes-client` | Done (2026-07-21) — 2 checklist items promoted to DESIGN.md | 2 findings, no crash |
 | `rubocop` | Done (2026-07-21) — 0 checklist items promoted to DESIGN.md (1 crash, confirmed pre-existing YARD-core bug) | Scale + macro-defined methods |
-| `parser` | Queued (2026-07-21) | Racc-generated mega-classes |
+| `parser` | Done (2026-07-21) — 1 checklist item promoted to DESIGN.md | Racc-generated mega-classes |
 | `toys` | Queued (2026-07-21) | Human-written docs, embedded `toys-core` copy, large `--files` guide, installed-gem generation |
 | `google-cloud-secret_manager-v1` | Done (2026-07-21) — 3 checklist items promoted to DESIGN.md | 3 findings, no crash |
 
@@ -1009,3 +1009,238 @@ patterns), (b) confirms an already-accepted permanent limitation
 (`exclude_limit`, same disposition as `prepend`), or (c) is a pre-existing
 YARD-core bug outside this project's fixable surface (the `MixinHandler`
 crash). No `example/lib` fixture work follows from this run.
+
+### 5. `parser`
+
+**Status:** run complete (2026-07-21); one new checklist item promoted to
+DESIGN.md (a third distinct `Docstring#summary`/`smart_summary`
+punctuation bug). New evidence gathered for both open questions this
+milestone gates on — "no custom handler classes" (folded into the existing
+open-question note) and the file-granularity "escape valve" (this run's
+central purpose; its own dedicated recommendation is below) — neither
+resolved, per the procedure's step 6.
+
+**Why this gem:** see "Queued candidates" above — already Bundler-vendored
+(`parser-3.3.11.1`, no extra fetch/pin needed), specifically queued to test
+how the template handles the racc-generated grammar/lexer files (reported
+as 12–15K source lines each, essentially single classes with huge method
+counts) — the first real exercise of the "very large class" scenario the
+file-granularity escape valve was deferred against without ever being
+tested on real code.
+
+**Setup:** the installed gem ships no `.yardopts`; markup dialect inferred
+empirically the same way the `rubocop` run did — grepped `lib/**/*.rb` for
+Markdown-only tells (`**bold**`, `[text](url)`) vs. RDoc-only tells
+(`rdoc-ref:`, `<tt>`); found 16 Markdown tells, zero RDoc tells, so
+`--markup markdown`. Generated against the Bundler-resolved
+`parser-3.3.11.1` gem's `lib/**/*.rb` (76 files), run from within the gem's
+own directory (so `**Defined in:**` paths came out relative to it, e.g.
+`lib/parser/context.rb`). No `--exclude` needed. The installed gem ships no
+`README.md` (confirmed: gemspec's `spec.files` packages only
+`bin/*`/`lib/**/*.rb`/`parser.gemspec`/`LICENSE.txt` — no `--readme` flag
+used); extra `--files`: `LICENSE.txt`. Disposable script:
+`/private/tmp/.../scratchpad/dogfood_parser.rb` (not committed). Result: 79
+output files (76 classes/modules + 1 guide page + `index.md`) from
+10,380,592 bytes of source across 76 files — by far the largest *source*
+corpus yet (3.2x `rubocop`'s), despite the smallest file count of any real
+run. Generation completed in ~85 seconds with no crash — 9 stderr warnings
+total (5 unknown `@param` names, 2 unknown `@returns` tags, 1 malformed
+`@see` wrapping, 1 "Undocumentable FLAGS" — see Finding 2), all graceful.
+
+**Findings:**
+
+1. **New, distinct-root-cause bug: `Docstring#summary`/`smart_summary`
+   blindly appends a trailing `.` even when the extracted text isn't a real
+   truncated sentence at all — producing a visibly malformed summary, not
+   just a terse or misleading one.** Two trigger shapes, same root cause
+   (confirmed by direct algorithm trace through both YARD-core
+   `Docstring#summary` and this project's ported `DocstringSummary
+   #smart_summary` — both unconditionally `+= "."` whenever the extracted
+   text is non-empty, with no check for what character it already ends in):
+   - **A docstring whose first paragraph ends in `:` before a bulleted
+     list** — the paragraph-break branch of the scan treats the blank line
+     before the list as a sentence boundary (matching this format's
+     existing "paragraph break = sentence end" fallback), but then appends
+     `.` onto text already ending in `:`, yielding `"Initializes
+     attributes:."` (`Builders::Default#initialize`,
+     `lib/parser/builders/default.rb:239-243`: docstring is "Initializes
+     attributes:" followed by a blank line and a bulleted list) and
+     "Actions are arranged in a tree and get combined so that:."
+     (`TreeRewriter::Action`, `lib/parser/source/tree_rewriter/action.rb:8`,
+     same shape). The list itself — the actual content — never reaches the
+     summary, same "worse than terse" framing as the two already-fixed
+     patterns, but here the visible artifact (`:.`) reads as broken, not
+     merely abbreviated.
+   - **A docstring whose entire text is a single short token with no
+     terminal punctuation at all** — the scan's `text.length - 1` fallback
+     (no `.` or paragraph break ever found) takes the whole string, then
+     still appends `.`, yielding `` `:nodoc:.` `` for three methods
+     (`Source::Buffer#freeze`/`#inspect`, `Source::TreeRewriter#inspect`)
+     documented with nothing but `# :nodoc:` — RDoc's "suppress this from
+     docs" directive. **Confirmed as two separate gaps layered together,**
+     not one: (a) YARD never implements `:nodoc:`/`:stopdoc:`/`:startdoc:`
+     under any markup dialect (grepped YARD-0.9.44's own `lib/` — no
+     handler processes it as a directive anywhere, and it uses the same
+     `# :nodoc:` idiom in its own source); reproduced the identical
+     `:nodoc:.` text via stock `-f`/`-t default` (HTML) generation
+     side-by-side, confirming this half is a pre-existing YARD-core gap,
+     out of scope here — and it's the first real (if incomplete — RDoc's
+     `:stopdoc:`/`:startdoc:` weren't exercised, only `:nodoc:`) data point
+     on the exact axis the "Also considered: `minitest`" aside under
+     "Queued candidates" flagged as untested. (b) Given that YARD hands
+     this format a bare `":nodoc:"` string as the "real" docstring text
+     regardless, the summary machinery's blind period-append is what turns
+     it into the actively-malformed `:nodoc:.` — that half **is** this
+     project's own code and is what the new checklist item targets.
+   Prevalence confirmed via a direct `smart_summary` probe against the full
+   registry (not grep, which would miss/over-match on Markdown escaping):
+   **5 occurrences** across the 76-class corpus — low in absolute count
+   (this gem's docstrings are terse and code-comment-like throughout, not
+   prose-heavy like `hermes-client`/`secret_manager`), but a clean, credible
+   third data point in the "cheap summary is uninformative-or-worse" family,
+   with its own distinct trigger and its own credible fix direction (skip
+   the appended `.` when the extracted text already ends in non-alphanumeric
+   punctuation, or — matching the low-information-sentence fix's precedent —
+   extend to include what follows instead of truncating at all).
+
+2. **`attr_accessor(*FLAGS)` — an `attr_accessor` call splatting a constant
+   array, rather than a literal argument list — is completely invisible in
+   the output, with no compensating YARD directive anywhere.**
+   `Parser::Context` (`lib/parser/context.rb:19-45`) defines 8 boolean flag
+   attributes (`in_defined`, `in_kwarg`, `in_argdef`, `in_def`, `in_class`,
+   `in_block`, `in_lambda`, `cant_return`) via `FLAGS = %i[...]` followed by
+   `attr_accessor(*FLAGS)`. YARD's stock `AttributeHandler` can't statically
+   resolve the splatted variable to concrete names (logged at generation
+   time: `[warn]: in YARD::Handlers::Ruby::AttributeHandler: Undocumentable
+   FLAGS`) and silently drops all 8 attributes — confirmed completely absent
+   from `Context.md`: not in `## Member Summary`, not as `## Instance
+   Attributes`, nowhere; only the two real `def`s (`#in_dynamic_block?`,
+   `#reset`) render. 16 accessor methods lost (8 readers + 8 writers). This
+   is the same shape and disposition as the `rubocop` run's
+   `ExcludeLimit#exclude_limit` finding — a genuinely static, real
+   metaprogrammed method set with **no** compensating `@!attribute`
+   directive anywhere near the call site — folded into DESIGN.md's "no
+   custom handler classes" open-question note as a second "authors don't
+   compensate" data point, not a new checklist item of its own (same
+   reasoning as `exclude_limit`: closing it needs either a smarter stock
+   `AttributeHandler` or a custom one, both out of scope for this
+   principle).
+
+**What works, no changes recommended** (confirms existing decisions hold up
+on a fifth real gem, and the first one dominated by machine-generated
+rather than hand-written source):
+
+- **Token economy hits a new extreme, confirming the "docs shrink when
+  source is generated/data-heavy" pattern rather than breaking it.** Total
+  corpus: 1,386,744 output bytes vs. 10,380,592 source bytes = **‑86.6%** —
+  by far the largest reduction of any run (previous best: YARD's ‑24.7%).
+  Consistent with this gem's shape taken to its logical extreme: racc's
+  generated files are almost entirely literal state-transition-table data
+  with near-zero docstrings, so the format strips nearly all of that dead
+  weight down to bare method signatures.
+- **A blank-line-separated leading comment still attaches as the following
+  method's docstring, confirmed as correct YARD-core behavior, not a
+  mis-render.** Racc emits `# reduce N omitted\n\ndef _reduce_M(...)` (one
+  blank line between comment and `def`) for reduce rules with no distinct
+  action; `Docstring#summary`'s already-known one-blank-line tolerance
+  attaches it anyway, and it renders identically and correctly in both `##
+  Member Summary` (`` - `#_reduce_1` — reduce 0 omitted. ``) and the full
+  entry (confirmed same text, same file, no divergence) — a real, if minor,
+  YARD-core parsing nuance worth having on record since it wasn't
+  previously exercised, but not a gap.
+- **A 5,333-byte, 391-line constant value (`Racc_token_to_s_table`, a flat
+  string-literal array) escalates to a full ` ```ruby ` fence and renders
+  intact** — the "Structured constant" decision's largest real exercise yet
+  (prior largest: the toy fixture's hand-sized `NAMED_ANGLES` hash), with no
+  sign of the decision's own documented "deferred edge case" (a value
+  containing a literal fence-delimiter or `##`/`###`-prefixed line) — this
+  gem's racc-generated literals don't happen to contain either.
+- **No new evidence for "no custom handler classes" beyond Finding 2** —
+  grepped for `define_method`/`method_missing`/`class_eval`/`instance_eval`/
+  `prepend`/`.prepend(` outside the racc-generated files; none found. This
+  run's central axis was file granularity, not metaprogramming, and beyond
+  the one real `attr_accessor(*FLAGS)` case, that holds.
+- **No empty/broken output files** across all 79; the smallest
+  (`Parser/Builders.md` at 174 bytes, `Parser/AST.md` at 269 bytes) are
+  genuine empty namespace-container modules, matching the established
+  pattern.
+- **Malformed real-world tags degrade gracefully, replicating the
+  `rubocop` run's finding at a different scale.** 5 `@param`s naming things
+  that aren't parameter names (e.g. `content`, `Endpoint(s)`,
+  `crossing_deletions:,`), 2 unknown `@returns` (plural, not a real tag),
+  and one `@see` wrapped in `{}` that YARD itself warns "should not be
+  wrapped in {} (causes rendering issues)" — all logged as warnings and
+  dropped/degraded without crashing or leaking raw tag syntax.
+
+**Measurements:**
+
+| Measurement | Toy fixture | YARD run | `hermes-client` run | `secret_manager` run | `rubocop` run | `parser` run |
+|---|---|---|---|---|---|---|
+| Doc corpus vs. source size | **+37%** | **‑24.7%** | **+34.3%** | **‑21.2%** | **‑9.7%** | **‑86.6%** (1,386,744B / 10,380,592B) |
+| Per-entry `**Defined in:**` overhead | **8.6%** | **~11.0%** | **~11.7%** | **~10.4%** | **~13.0%** | **~29.2%** (404,293B / 1,386,744B) — new high by a wide margin |
+| Abbreviation/low-info summary truncation | crash / not probed | not probed | 43/22 of 63 files (bug, fixed) | 77/32 of 120 files (bug, fixed) | 0 — fixes holding | 0 — fixes holding; new distinct bug found instead (Finding 1, 5 occurrences) |
+
+The `Defined in:` overhead measurement sets a dramatic new high — nearly
+3x the previous record (`rubocop`'s ~13.0%) — driven entirely by the
+racc-generated mega-classes: hundreds of `_reduce_N` methods per class carry
+almost no other content (most have no docstring, params, or return value at
+all — just a one-line call signature), so their `**Defined in:**` line is
+often the majority of the entry's bytes. This is the clearest evidence yet
+that the overhead scales with *method count relative to per-method content
+density*, not gem size — exactly the mechanism DESIGN.md's "Per-entry
+`Defined in:` retained at all levels" decision reasoned about in the
+abstract, now measured at its real extreme.
+
+**File-granularity "escape valve" — this run's central question, with a
+recommendation:** `Parser::Ruby31` (552 instance methods) renders as an
+82,835-byte, 5,524-line `Ruby31.md` — the largest single output file any
+dogfood run has produced, and not a one-off: 17 of the ~77 rendered classes
+here have 300+ methods (the next four largest: `Ruby32` 551, `Ruby34`/
+`Ruby33` 546, `Ruby30` 537). This is the first real evidence the "100+
+methods" scenario DESIGN.md's escape valve was deferred against actually
+occurs in a real, commonly-depended-on gem — at more than 5x the threshold,
+not just past it. **Recommendation: keep the escape valve deferred, not
+implement it now.** Reasoning, not a decision — see "File granularity:
+one file per class/module, members as sections" under "Decisions" for the
+full writeup now added there:
+- Even `Ruby31.md` at 552 methods is **86.7% smaller** than its own
+  622,770-byte source file (`lib/parser/ruby31.rb`) — the format's core
+  size-reduction promise holds even at this extreme; reading the doc file
+  is still dramatically cheaper than reading the source, which was always
+  the actual bar, not an absolute size cap.
+- An agent after one specific method never needs to read the whole file at
+  all — the existing greppable-heading mechanism (`### #_reduce_250`)
+  resolves directly regardless of file size or the Member Summary's
+  alphabetical ordering, which is the precision mechanism this decision
+  already built specifically to avoid needing a full-file read.
+- The measurable cost is real but narrower than originally framed: only a
+  "cheap overview of an entire mega-class" read is degraded (a 552-entry,
+  string-sorted `_reduce_1`/`_reduce_10`/`_reduce_100`-ordered list is
+  genuinely hard to browse, but nothing about sequential `_reduce_N` names
+  benefits from numeric adjacency in the first place, so this reads as a
+  minor cosmetic cost, not a functional one), and the `**Defined in:**`
+  overhead cost (Finding above) scales with method count regardless of
+  whether the file gets split.
+- This shape (racc-generated grammar tables) is a narrow, code-generation-
+  specific extreme, not representative of the mid-size hand-written gems
+  this milestone otherwise targets — `rubocop`'s 919-file run, by direct
+  contrast, had no class approaching 100 methods.
+
+**Evidence for the "no custom handler classes" open question:** see
+Finding 2 above (`attr_accessor(*FLAGS)`) — folded into DESIGN.md's
+existing open-question note as a second "authors don't compensate" data
+point alongside `rubocop`'s `exclude_limit`, not resolved.
+
+**Checklist items harvested — added to DESIGN.md 2026-07-21:**
+
+1. **(design)** `Docstring#summary`/`smart_summary`'s blind trailing-`.`
+   append when the extracted text already ends in different punctuation (a
+   colon before a list) or is a bare directive-like token with no sentence
+   structure — a third, distinct root cause in the summary-punctuation
+   family, producing a visibly malformed result rather than a plausible
+   truncation. Added under "Documentation content / prose patterns". Needs
+   an `example/lib` fixture: a docstring whose first paragraph ends in `:`
+   immediately before a bulleted/numbered list, and a design review of the
+   fix direction (skip the appended period when the text already ends in
+   non-alphanumeric punctuation, vs. extending the summary to include what
+   follows, matching the low-information-sentence fix's precedent).

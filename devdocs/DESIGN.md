@@ -951,6 +951,36 @@ may follow; that doc tracks status across all of them.
       merge heuristic in `DocstringSummary#smart_summary` — see
       "`Docstring#summary` extracting a low-information first sentence:
       structural merge, not a vocabulary skip-list" under "Decisions"
+- [ ] (design) `Docstring#summary`/`smart_summary` blindly appends a
+      trailing `.` even when the extracted text already ends in different
+      terminal punctuation (a colon introducing a list) or is a short
+      RDoc-directive-like token with no sentence structure at all —
+      producing a visibly malformed summary (`"Initializes attributes:."`,
+      `` `:nodoc:.` ``) rather than a plausible-looking truncation. A third,
+      distinct root cause from the two already-fixed items above: no
+      abbreviation misparse (first item), and not a genuinely-complete
+      short sentence either (second item) — here the extracted text isn't a
+      sentence at all, it's a paragraph-introducing clause or a bare
+      directive token, and the same unconditional `!summary.empty? &&
+      ... += "."` (present in both YARD-core `Docstring#summary` and this
+      project's own ported `DocstringSummary#smart_summary`, which doesn't
+      special-case it either) fires regardless. Measured on the 2026-07-21
+      `parser` dogfood run: 5 occurrences, confirmed via a direct
+      `smart_summary` probe against the full registry, not grep —
+      `Builders::Default#initialize` (docstring starts "Initializes
+      attributes:" before a bulleted list), `TreeRewriter::Action` (class
+      docstring, same "intro clause + list" shape), and three `#
+      :nodoc:`-only docstrings (`Source::Buffer#freeze`/`#inspect`,
+      `Source::TreeRewriter#inspect`) whose entire docstring text is the
+      literal RDoc `:nodoc:` directive token — itself unimplemented by YARD
+      under any markup dialect (confirmed via a stock `-f html` side-by-side
+      generation showing the identical literal `:nodoc:.` text; a separate,
+      out-of-scope YARD-core gap, not what this item is about — see the
+      "Also considered: `minitest`" aside under "Queued candidates" in
+      devdocs/Dogfood.md, which flagged `:nodoc:`/`:stopdoc:`/`:startdoc:`
+      as an untested axis before this run stumbled onto a first, partial
+      data point). See the `parser` entry under "Runs" in
+      devdocs/Dogfood.md for full detail.
 
 ### Cross-referencing scenarios
 
@@ -1183,7 +1213,24 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   `def_node_matcher`'s — the gem's own maintainers just didn't write one.
   First real data point where the "gem authors compensate" optimism this
   principle has been running on doesn't hold universally. Full detail in
-  the `rubocop` entry under "Runs" in `devdocs/Dogfood.md`.
+  the `rubocop` entry under "Runs" in `devdocs/Dogfood.md`. **A second such
+  case, from the `parser` dogfood run:** `Parser::Context` defines 8 boolean
+  flag attributes (`in_defined`, `in_kwarg`, etc.) entirely via
+  `attr_accessor(*FLAGS)` — a splat over a constant array, not a literal
+  argument list. YARD's stock `AttributeHandler` can't statically evaluate
+  the splatted variable (logged as an "Undocumentable FLAGS" warning at
+  generation time) and drops all 8 attributes/16 accessor methods
+  completely — confirmed absent from `Context.md`'s Member Summary and
+  every section. No `@!attribute` directive compensates for any of them.
+  Root cause and disposition are the same as `exclude_limit`: this is a
+  stock-handler gap (YARD's `AttributeHandler`, not this project's
+  template), fixable only by teaching it to resolve simple constant-splat
+  arguments — out of scope for "no custom handler classes" the same way a
+  bespoke `Handler` subclass would be. Two "authors don't compensate" data
+  points now (`exclude_limit`, `attr_accessor(*FLAGS)`), alongside two
+  "they do" ones (`config_attr`, `def_node_matcher`) and `prepend`'s
+  distinct third category. Full detail in the `parser` entry under "Runs"
+  in `devdocs/Dogfood.md`.
 
 ## Decisions
 
@@ -1228,6 +1275,35 @@ nice-to-have, not a requirement, for most lookups.
 (constants / class methods / instance methods) within the class's namespace,
 bounding worst-case file size without going all the way to full atomization.
 Not needed until we have evidence a real target class needs it.
+
+**Evidence gathered, still not implemented (2026-07-21, `parser` dogfood
+run):** the first real class blowing past the "well under ~20 members"
+assumption by more than an order of magnitude — `Parser::Ruby31` (a
+racc-generated grammar class) has 552 instance methods, rendering an 82.8KB
+`Ruby31.md` (5,524 lines) — and it's not a one-off: 17 of the run's ~77
+rendered classes have 300+ methods. Recommendation, not a decision: **keep
+the escape valve deferred.** Even at 552 methods, `Ruby31.md` is still
+**86.7% smaller** than its own 622,770-byte source file — the format's core
+"cheaper than reading source" value proposition holds even at this extreme,
+and an agent after one specific member never needs the whole file at all
+(the existing greppable-heading mechanism this decision already built for
+the "precision problem" resolves `### #_reduce_250` directly, independent
+of file size or the Member Summary's alphabetical order). The measurable
+cost is narrower than the escape valve's original file-count/tooling-stress
+framing: only the "cheap overview of an entire mega-class" use case is
+degraded (a 552-line, alphabetically-`_reduce_1`/`_reduce_10`/`_reduce_100`-
+ordered Member Summary list is real but low-stakes, since nothing about
+`_reduce_N` names benefits from adjacency anyway), and `**Defined in:**`
+overhead peaks at its highest measured rate yet on this exact file (31.1%,
+vs. the run's own corpus-wide ~29.2%) because hundreds of near-content-free
+one-line methods each still pay a full pointer line — a real, compounding
+cost, but one that scales with method count regardless of whether the
+escape valve splits the file. Also worth weighing: this shape (racc-
+generated grammar tables) is a narrow, code-generation-specific extreme, not
+representative of the mid-size hand-written gems this milestone otherwise
+targets — `rubocop`'s 919-file run, by contrast, had no class near 100
+methods. Full detail, including the `**Defined in:**`/token-economy
+measurements, in the `parser` entry under "Runs" in `devdocs/Dogfood.md`.
 
 ### Output format: per-file Markdown template
 
