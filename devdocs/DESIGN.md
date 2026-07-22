@@ -636,6 +636,34 @@ may follow; that doc tracks status across all of them.
       (not filtering), consistently with the already-decided policy, not a
       new decision. See "Class-level `@private`/`@api private`" under
       "Decisions". Originally flagged by the July 2026 coverage review
+- [ ] (design) A docstring whose entire (stripped) content is a bare RDoc
+      `:nodoc:`/`:stopdoc:`/`:startdoc:` directive token — currently
+      rendered as literal prose (`` :nodoc: ``, further malformed by the
+      already-logged trailing-period bug into `` `:nodoc:.` ``). Whether
+      such an object should instead be recognized and treated as a privacy
+      marker — flagged, matching the existing `@private`/`@api private`
+      policy, or filtered, matching Ruby-scope `private`/`protected`'s
+      existing policy — is open. Distinct from (and independent of) the
+      trailing-period punctuation bug: fixing that bug alone still leaves
+      the literal directive text as the rendered content; this item is
+      about *what* to render, not how to punctuate it. Purely a
+      template-level docstring-text check (`docstring.to_s.strip =~
+      /\A:(no|stop|start)doc:\z/`), no custom Handler needed — same
+      architectural layer as the existing `@private`/`@api private` check,
+      not the "no custom handler classes" principle's territory. Measured
+      at high real-world prevalence on the 2026-07-21 `minitest` dogfood
+      run: 138 of 523 documentable objects (~26.4%) carry a bare
+      `:nodoc:`/`:stopdoc:`/`:startdoc:` docstring (8 classes, 4 modules,
+      17 constants, 109 methods) — not a rare idiom. Note: RDoc's actual
+      `:stopdoc:`/`:startdoc:` *block-scoping* semantic (suppressing every
+      statement between the two markers, not just the one item whose own
+      docstring literally contains the token) is a separate, out-of-scope
+      gap — see "The 'no custom handler classes' integration principle"
+      under "Open questions", which this run added as a new evidence
+      category. See the `minitest` entry under "Runs" in
+      `devdocs/Dogfood.md` for full detail. Needs an `example/lib` fixture:
+      a method/class/constant documented with nothing but `# :nodoc:` (or
+      `# :stopdoc:`), and a design review choosing flag-vs-filter.
 
 ### Attributes & constants
 
@@ -904,6 +932,28 @@ may follow; that doc tracks status across all of them.
       `@param`/`@return` tag text, and Member Summary one-line summaries —
       see "Docstring markup dialect" under "Decisions" for the full scope
       and unsupported-dialect behavior settled while implementing this.
+- [ ] (mech) `RDoc::Markup::ToMarkdown` (the stdlib converter `:rdoc`-
+      dialect docstrings pass through, per "Docstring markup dialect" under
+      "Decisions") converts RDoc's `<tt>...</tt>` inline-code tag to
+      literal `<code>...</code>` HTML instead of a Markdown code span —
+      inconsistent with the equivalent `+word+` shorthand, which converts
+      correctly to a backtick span. Confirmed via direct probe of the
+      stdlib converter in isolation (`RDoc::Markup::ToMarkdown.new.convert
+      ("+matcher+ <tt>=~</tt> +obj+")` → `` `matcher` <code>=~</code>
+      `obj` ``), so root cause sits in the delegated third-party converter,
+      not this project's own conversion code — but `Markdownify
+      #markdownify` already post-processes the converter's output for
+      other concerns (`demote_headings`), so patching a residual
+      `<code>...</code>` pair into a backtick span is within the existing
+      architecture, no new parsing/Handler surface needed. Measured on the
+      2026-07-21 `minitest` dogfood run: 42 occurrences across 10 of 57
+      rendered files, all traced to real `<tt>` usage in the gem's own
+      source and its guide files. See the `minitest` entry under "Runs" in
+      `devdocs/Dogfood.md` for full detail. Needs an
+      `example/lib`/`example/rdoc/lib` fixture using `<tt>...</tt>` in a
+      docstring under the `:rdoc` dialect, and a design review of scope
+      (just `<code>`, or a broader survey of other `RDoc::Markup::
+      ToMarkdown` raw-HTML leftovers first).
 - [x] Prose/summary containing Markdown metacharacters (backticks, `*`, `_`,
       `[`) — turned out not to need an escaping policy at all (CommonMark
       keeps a bare metacharacter's effects confined to its own line/bullet);
@@ -1230,7 +1280,24 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   points now (`exclude_limit`, `attr_accessor(*FLAGS)`), alongside two
   "they do" ones (`config_attr`, `def_node_matcher`) and `prepend`'s
   distinct third category. Full detail in the `parser` entry under "Runs"
-  in `devdocs/Dogfood.md`.
+  in `devdocs/Dogfood.md`. **A fourth category, from the `minitest`
+  dogfood run:** every prior data point was about content *silently
+  disappearing* that a smarter static Handler could in principle recover.
+  `minitest`'s `:stopdoc:`/`:startdoc:` block-scoping directives are the
+  inverse — content the gem author explicitly, successfully signaled
+  should be hidden from generated docs (e.g. all of `lib/hoe/minitest.rb`,
+  wrapped in a file-spanning `# :stopdoc:` with no matching `:startdoc:`)
+  is instead *fully exposed*, complete signatures and all, with zero
+  indication anything was meant to be hidden. Confirmed non-agentdocs-
+  specific (identical under stock YARD's own HTML template). Unlike the
+  recognizable-bare-token half of the same finding (a single object's own
+  docstring literally reading `:nodoc:` — recoverable at the template
+  level with a docstring-text check, now its own checklist item under
+  "Visibility"), this block-scoping half is genuinely unrecoverable
+  without something functionally identical to a custom Handler (tracking
+  source-position ranges across otherwise-unrelated statements) —
+  squarely inside what this principle already declines to build. Full
+  detail in the `minitest` entry under "Runs" in `devdocs/Dogfood.md`.
 
 ## Decisions
 

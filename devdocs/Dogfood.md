@@ -29,6 +29,7 @@ first.
 | `parser` | Done (2026-07-21) — 1 checklist item promoted to DESIGN.md | Racc-generated mega-classes |
 | `toys` | Queued (2026-07-21) | Human-written docs, embedded `toys-core` copy, large `--files` guide, installed-gem generation |
 | `google-cloud-secret_manager-v1` | Done (2026-07-21) — 3 checklist items promoted to DESIGN.md | 3 findings, no crash |
+| `minitest` | Done (2026-07-21) — 2 checklist items promoted to DESIGN.md | RDoc `:nodoc:`/`:stopdoc:`/`:startdoc:` at scale |
 
 ## Queued candidates
 
@@ -1244,3 +1245,259 @@ point alongside `rubocop`'s `exclude_limit`, not resolved.
    fix direction (skip the appended period when the text already ends in
    non-alphanumeric punctuation, vs. extending the summary to include what
    follows, matching the low-information-sentence fix's precedent).
+
+### 6. `minitest`
+
+**Status:** run complete (2026-07-21); two new checklist items promoted to
+DESIGN.md. New evidence gathered for the "no custom handler classes" open
+question (folded into the existing open-question note, not resolved) and a
+confirmed-but-out-of-scope YARD-core tag-parsing gap, logged here only.
+
+**Why this gem:** see "Also considered: `minitest`" under "Queued
+candidates" — deliberately picked (promoted from reserve pick to a full run
+by direct user request) to exercise RDoc's `:nodoc:`/`:stopdoc:`/
+`:startdoc:` visibility directives at real scale, an axis nothing had
+touched beyond the `parser` run's incidental, partial brush with bare
+`:nodoc:` (3 occurrences, no `:stopdoc:`/`:startdoc:` at all — see the
+`parser` entry's Finding 1). Confirmed before running that `minitest` uses
+all three: 139 `:nodoc:`, 8 `:stopdoc:`, 7 `:startdoc:` occurrences
+(grepped), including genuine block-scoped pairs and one file-spanning
+`:stopdoc:` with no matching `:startdoc:` at all (RDoc's own documented
+"suppress to end of file" shape) — real, dedicated ground `parser` never
+reached.
+
+**Setup:** the installed gem ships no `.yardopts`; markup dialect confirmed
+as `:rdoc` both by inspection (`+word+` shorthand and `##`-prefixed
+doc-comment blocks throughout, RDoc's native idioms) and by gem identity
+(minitest is Ryan Davis/Seattle.rb "hoe-family" software, RDoc-authored by
+convention). Generated against the Bundler-resolved `minitest-6.0.6` gem's
+`lib/**/*.rb` (24 files — `hoe/minitest.rb` plus 23 files under
+`lib/minitest/`), run from within the gem's own directory (so `**Defined
+in:**` paths came out relative to it, e.g. `lib/minitest/assertions.rb`).
+No `--exclude` needed. Extra `--files`: `History.rdoc` (the changelog);
+`README.rdoc` as the readme — both genuinely large relative to this gem's
+small `lib/` (30KB/59KB vs. 134KB of source; see the token-economy
+measurement's caveat below). Disposable script:
+`/private/tmp/.../scratchpad/dogfood_minitest.rb` (not committed). Result:
+57 output files (54 classes/modules + 2 guide pages + `index.md`) from
+134,667 bytes of source across 24 files — by far the smallest corpus of any
+real-gem run (matches the "Also considered" aside's own "smaller than the
+mid-size bar" framing). Generation completed in a few seconds with no
+crash — 1 stderr warning (`Unknown tag @file_of_args` — see Finding 3).
+
+**Findings:**
+
+1. **`:nodoc:`/`:stopdoc:`/`:startdoc:` at real scale, high prevalence:
+   confirms and massively amplifies the already-logged trailing-period bug,
+   and separately confirms the deeper visibility-directive gap is a
+   completely unimplemented block-scoping semantic, not just a
+   per-statement quirk.** Confirmed via a direct registry probe (not grep):
+   **138 of 523 documentable objects (~26.4%)** have a docstring whose
+   entire stripped content is exactly one of `:nodoc:`/`:stopdoc:`/
+   `:startdoc:` and nothing else (8 classes, 4 modules, 17 constants, 109
+   methods) — all 138 are bare-token-only, zero mixed with real
+   surrounding prose. Every one of these already reproduces the `parser`
+   run's logged trailing-period bug (e.g. `` `:nodoc:.` ``,
+   `` `:stopdoc:.` ``) at ~27x that run's prevalence (138 vs. 5) — strong
+   replication evidence for that already-(design)-flagged item, not a new
+   root cause. But this run's dedicated focus surfaces a second, deeper,
+   previously-unmeasured half: **YARD never implements the `:stopdoc:`/
+   `:startdoc:` block-scoping semantic at all**, so content the gem author
+   explicitly marked hidden is not just cosmetically mislabeled — it's
+   fully exposed. Concrete case: `lib/hoe/minitest.rb` opens with a bare
+   `# :stopdoc:` (line 1, no matching `:startdoc:` anywhere in the file —
+   RDoc's documented "suppress everything to end of file" shape) above
+   `class Hoe` (an empty reopen) and `module Hoe::Minitest` (3 real
+   methods). Rendered output: `Hoe.md` shows the literal `:stopdoc:` text
+   as the class's docstring (only the *first* statement after the comment
+   inherits it, per YARD's one-comment-per-statement model), and
+   `Hoe/Minitest.md` — which has no docstring of its own reference to
+   `:stopdoc:` at all — renders **fully**, all 3 methods
+   (`#define_minitest_tasks`/`#initialize_minitest`/`#minitest?`) with
+   complete signatures and one full `@return`, with zero indication
+   anywhere that this content was supposed to be hidden. Same result for
+   the block-scoped pair in `lib/minitest.rb:1206-1225`
+   (`# :stopdoc:` / `# :startdoc:` wrapping `Minitest.clock_time` and
+   `Minitest::Runnable.inherited`, each individually marked `# :nodoc:` on
+   its own `def` line too) — both render fully (with the already-known
+   `:nodoc:.` malformed-period text as their summary), confirming the
+   block wrapper adds no suppression beyond what the per-statement
+   `:nodoc:` comments already didn't provide. **Confirmed non-agentdocs-
+   specific:** reproduced the identical literal `:stopdoc:` leak and the
+   identical full method exposure generating `lib/hoe/minitest.rb` through
+   stock YARD's own `-f`/`-t default` (HTML) template side by side — same
+   root cause as the `parser` run's `:nodoc:` finding, now confirmed to
+   extend to the block-scoped directives too, out of this project's
+   fixable surface (a genuine YARD-core parser/handler gap, not a
+   markup-conversion or template quirk). See the dedicated checklist item
+   below, though: recognizing a *bare* `:nodoc:`/`:stopdoc:`/`:startdoc:`
+   docstring (as opposed to recovering the *block scope*, which truly
+   can't be done without parser changes) is a distinct, in-scope,
+   template-level question this run's evidence makes newly worth
+   resolving.
+
+2. **New, confirmed, in-scope rendering bug: RDoc's `<tt>...</tt>` inline-
+   code tag converts to literal, un-rendered `<code>...</code>` HTML via
+   `RDoc::Markup::ToMarkdown`, unlike the equivalent `+word+` shorthand,
+   which converts correctly to a Markdown backtick span.** Real example:
+   `Assertions#assert_match`'s docstring `` Fails unless +matcher+
+   <tt>=~</tt> +obj+. `` renders as `` Fails unless `matcher`
+   <code>=~</code> `obj`. `` — the two `+...+`-delimited terms convert
+   correctly, but the `<tt>...</tt>`-delimited one (RDoc's other, fully
+   equivalent inline-code syntax) does not. Root cause confirmed by direct
+   probe of the stdlib converter in isolation, no template code involved:
+   `RDoc::Markup::ToMarkdown.new.convert("+matcher+ <tt>=~</tt> +obj+")`
+   reproduces the identical `` `matcher` <code>=~</code> `obj` `` output —
+   this project's own `Markdownify#markdownify` just calls
+   `RDoc::Markup::ToMarkdown.new.convert` and passes the result through, so
+   this is a genuine quirk in the delegated third-party converter (Ruby's
+   own `rdoc` stdlib gem), not something introduced by this project's
+   parsing or template code. Measured: **42 occurrences across 10 of the 57
+   rendered files** — traced to 13 real `<tt>` occurrences in the gem's own
+   `lib/**/*.rb` (`lib/minitest.rb` ×2, `lib/minitest/assertions.rb` ×5,
+   plus repeated per-rendering-site fan-out: once in a Member Summary
+   bullet, again in the full entry, for each affected method) and the
+   remainder from the `README.rdoc`/`History.rdoc` guide files, which use
+   `<tt>` even more heavily. See the checklist item below: unlike Finding
+   1's block-scoping half, this one has a clean, in-scope mitigation path —
+   `markdownify` already post-processes the converter's raw output for
+   other concerns (`demote_headings`), so a targeted `<code>...</code>` →
+   backtick-span substitution fits the existing architecture without any
+   new parsing surface.
+
+3. **Minor, single-occurrence, confirmed out-of-scope: RDoc's own
+   `label :: description` list syntax silently loses an item when the
+   label happens to start with `@`, because YARD's tag scanner
+   misidentifies it as an unknown custom tag.**
+   `Minitest::VendoredPathExpander#process_args`'s docstring documents its
+   argument grammar as an RDoc label list, one item of which is
+   `@file_of_args :: Read the file and append to args.` — RDoc's own
+   convention for a meta-variable-style placeholder term (not a YARD tag at
+   all), but YARD's docstring scanner treats any line starting with
+   `@word` as a tag directive regardless of markup dialect, logs `[warn]:
+   Unknown tag @file_of_args`, and drops that line entirely — confirmed in
+   the rendered `VendoredPathExpander.md`: the list renders `-file_path`
+   through the `-` (stdin) item correctly, with the `@file_of_args` item
+   simply missing, no trace, no gap marker. **Confirmed pre-existing
+   YARD-core behavior, not agentdocs-specific:** reproduced the identical
+   silent drop generating the same file through stock YARD's own
+   `-f`/`-t default` (HTML) template side by side (`file_of_args` does not
+   appear anywhere in the generated HTML either). Root cause is YARD-core's
+   own tag-scanning heuristic (any `@word`-prefixed line is a candidate tag,
+   dialect-independent), which this project inherits and has no hook to
+   override without reimplementing docstring parsing — out of scope, same
+   disposition as the `alias_original`/`MixinHandler` YARD-core bugs found
+   on the YARD/`rubocop` runs. Only 1 occurrence in this gem; not itemized
+   as a checklist item.
+
+**What works, no changes recommended** (confirms existing decisions/fixes
+hold up on a sixth real gem, the first genuinely small one and the first
+dedicated `:rdoc`-dialect-at-scale run):
+
+- **The two already-fixed `Docstring#summary` bugs (abbreviation-blind
+  "e.g."/"i.e." truncation, low-information one-word leading sentence) stay
+  fixed.** Zero "e.g."/"i.e." truncations (confirmed via a direct
+  `smart_summary` probe against the full registry, not grep). The
+  low-information-leading-sentence pattern (`"Optional."`-shaped bullets)
+  doesn't occur at all in this gem's docstring style — a negative
+  replication result, not a gap, matching the `rubocop` run's identical
+  non-finding for the same reason (neither gem happens to write field
+  docs in that idiom).
+- **No new "no custom handler classes" evidence.** Grepped for
+  `define_method`/`method_missing`/`prepend`/`class_eval`/`instance_eval`
+  across the corpus: real hits exist (`minitest/spec.rb`'s `describe`/
+  `it`/`let` DSL, `minitest/benchmark.rb`'s `bench_range`), but every one
+  defines a method whose *name* is a fully runtime-computed string (a
+  spec's `it "description"` text, a `let(:name)` symbol) — genuinely
+  dynamic, no single static call site any tool could document, the same
+  already-accepted category as `rubocop`'s remaining 2.4%
+  `def_node_matcher` calls with dynamic names. `Warning.singleton_class
+  .prepend ErrorOnWarning` is a real `prepend`, but onto a core Ruby
+  class's singleton class with no other content in this corpus — not a new
+  data point either way. Confirms this run's central axis (visibility
+  directives) is genuinely orthogonal to the metaprogramming axis rather
+  than another instance of it.
+- **No empty/broken output files** across all 57; smallest are genuine
+  minimal reopened-core-class or namespace-marker files, not accidental
+  empties.
+
+**Measurements:**
+
+| Measurement | Toy fixture | YARD run | `hermes-client` run | `secret_manager` run | `rubocop` run | `parser` run | `minitest` run |
+|---|---|---|---|---|---|---|---|
+| Doc corpus vs. source size | **+37%** | **‑24.7%** | **+34.3%** | **‑21.2%** | **‑9.7%** | **‑86.6%** | **+74.1%** raw (234,436B / 134,667B) — see caveat below |
+| Per-entry `**Defined in:**` overhead | **8.6%** | **~11.0%** | **~11.7%** | **~10.4%** | **~13.0%** | **~29.2%** | **~9.46%** (22,183B / 234,436B) — lowest of any real-gem run |
+| Abbreviation/low-info summary truncation | crash / not probed | not probed | 43/22 of 63 files (bug, fixed) | 77/32 of 120 files (bug, fixed) | 0 — fixes holding | 0 — fixes holding | 0 — fixes holding |
+| `:nodoc:`/`:stopdoc:`/`:startdoc:` bare-token docstrings | n/a | not probed | n/a | n/a | n/a | 3, incidental | **138/523 (~26.4%)** — dedicated finding, see above |
+
+**Token-economy measurement needs a caveat this run, unlike any prior
+one: the headline `+74.1%` is almost entirely a small-corpus artifact of
+the two guide files, not the format's per-class rendering efficiency.**
+`README.rdoc`/`History.rdoc` alone contribute 93,011 of the 234,436 total
+output bytes (39.7%) against a `lib/` source tree of only 134,667 bytes —
+a much larger guide-to-source ratio than any other run (`rubocop`/`parser`
+had 1-2 small guide pages against multi-megabyte source trees). Excluding
+`index.md` and the two guide files, the **54 class/module files alone
+total 134,208 bytes — a ‑0.34% difference from the 134,667-byte source,
+essentially exact parity**, not the dramatic swing the raw total suggests.
+This doesn't overturn the `hermes-client` run's "token economy tracks
+docs-to-code density, not toy-vs.-real" correction (minitest's own
+class/module docs really do land close to source size, consistent with its
+thin, terse-method shape), but the *raw* corpus-vs-source number reported
+in the table above should be read with this caveat, not compared directly
+against the larger runs' numbers without it.
+
+**Honest read on statistical significance:** this is the smallest corpus
+by a wide margin — 523 documentable objects and 24 source files, vs. the
+next-smallest real run (`hermes-client`, 25 files/144KB) and two orders of
+magnitude below `rubocop`/`parser`. The `:nodoc:`-family prevalence number
+(26.4%) is gem-specific (few real-world gems lean on RDoc's old-style
+visibility directives this heavily; this is precisely why the gem was
+picked) and shouldn't be read as representative of "how often this
+happens" across the dogfood corpus as a whole — treat it as strong
+existence-proof-at-scale evidence for *this specific idiom*, not a
+general-purpose prevalence estimate the way the `Defined in:` overhead or
+token-economy numbers (measured consistently across six runs now) are
+starting to be. The `Defined in:` overhead number, by contrast, is a
+plausible, if noisier, data point in the same family as the other five —
+no particular reason to discount it beyond the smaller sample size.
+
+**Evidence for the "no custom handler classes" open question:** this run
+adds a **new category**, not just a fourth/fifth data point in the existing
+"authors compensate vs. don't" framing (`config_attr`/`def_node_matcher`
+vs. `exclude_limit`/`attr_accessor(*FLAGS)`). Those were all about content
+*silently disappearing* that a real static Handler/directive fix could in
+principle recover. Finding 1's `:stopdoc:`/`:startdoc:` gap is the inverse:
+content the author explicitly, successfully signaled should be hidden is
+instead *fully exposed*, and — per the "why item 1 is split into a
+recoverable and unrecoverable half" reasoning above — the block-scoping
+half of it is unrecoverable without something functionally identical to a
+custom Handler (tracking source-position ranges across otherwise-unrelated
+statements), squarely inside what this principle already declines to
+build. Folded into the existing open-question note as this new category,
+not resolved. No new evidence for the existing "silently disappearing
+content" categories (see "What works" above).
+
+**Checklist items harvested — added to DESIGN.md 2026-07-21:**
+
+1. **(design)** Whether a docstring whose entire content is a bare RDoc
+   `:nodoc:`/`:stopdoc:`/`:startdoc:` directive token should be recognized
+   and treated as a privacy marker (flagged, matching the existing
+   `@private`/`@api private` policy, or filtered, matching Ruby-scope
+   `private`/`protected`'s existing policy) instead of rendered as literal
+   prose. Added under "Visibility". Distinct from (and independent of) the
+   already-logged trailing-period punctuation bug: fixing that bug alone
+   still leaves the literal directive text as the rendered content: this
+   item is about *what* to render, not how to punctuate it. Needs an
+   `example/lib` fixture (a method/class/constant documented with nothing
+   but `# :nodoc:` or `# :stopdoc:`) and a design review picking
+   flag-vs-filter.
+2. **(mech)** `RDoc::Markup::ToMarkdown`'s `<tt>...</tt>` → literal
+   `<code>...</code>` HTML leak (vs. the equivalent `+word+` shorthand,
+   which converts correctly) under the `:rdoc` markup dialect. Added under
+   "Documentation content / prose patterns", after the "Docstring markup
+   dialect" bullet. Needs an `example/lib`/`example/rdoc/lib` fixture using
+   `<tt>...</tt>` in a docstring, and a design review of scope (patch just
+   `<code>` in `Markdownify#markdownify`'s existing post-processing step,
+   or survey `RDoc::Markup::ToMarkdown` more broadly for other raw-HTML
+   leftovers first).
