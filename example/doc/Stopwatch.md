@@ -32,6 +32,7 @@ Call the reset method to start over.
 
 **Instance Attributes**
 
+- `#behavior_flags` — Extra behavior flags that modify how this stopwatch operates: ...
 - `#clock_bias` — Advanced only. A manual offset, in seconds, added to every `#measure` reading to compensate for known clock drift.
 - `#display_precision` — Optional. The number of decimal places to include when formatting elapsed time as a string.
 - `#label_style` — The formatting style applied when rendering `#tag` for display — `"plain"`, `"bold"`, `"colored"`, etc.
@@ -90,6 +91,23 @@ scope.
 * **Defined in:** `example/lib/stopwatch.rb:69`
 
 ## Instance Attributes
+
+### #behavior_flags
+
+- **Type:** `Array<Symbol>`
+
+Extra behavior flags that modify how this stopwatch operates:
+
+- `:strict` — raise instead of silently ignoring an invalid `#tag=`
+- `:verbose_log` — mirror every `#add` call to `.log_target`
+
+Exercises `DocstringSummary#smart_summary`'s trailing-punctuation fix: a
+naive scan would otherwise summarize this attribute as the malformed
+`"...operates:."` — the intro clause ending in `:` immediately before a
+bulleted list, not a real sentence, so the fix appends `" ..."` instead
+of a bare `"."`.
+
+* **Defined in:** `example/lib/stopwatch.rb:389`
 
 ### #clock_bias
 

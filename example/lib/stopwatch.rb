@@ -372,6 +372,30 @@ class Stopwatch
   #
   attr_accessor :legacy_tag
 
+  ##
+  # Extra behavior flags that modify how this stopwatch operates:
+  #
+  # - `:strict` — raise instead of silently ignoring an invalid `#tag=`
+  # - `:verbose_log` — mirror every {#add} call to {.log_target}
+  #
+  # Exercises `DocstringSummary#smart_summary`'s trailing-punctuation fix: a
+  # naive scan would otherwise summarize this attribute as the malformed
+  # `"...operates:."` — the intro clause ending in `:` immediately before a
+  # bulleted list, not a real sentence, so the fix appends `" ..."` instead
+  # of a bare `"."`.
+  #
+  # @return [Array<Symbol>]
+  #
+  attr_accessor :behavior_flags
+
+  # :nodoc:
+  LEGACY_NAME = "Stopwatch"
+
+  # :nodoc:
+  def debug_label
+    "Stopwatch(#{object_id})"
+  end
+
   protected
 
   ##

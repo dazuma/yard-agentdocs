@@ -16,13 +16,14 @@ describe ::YARD::AgentDocs::MemberRoster do
   # Parses +source+ into a fresh registry and returns a holder (with
   # {NoopVerifier}, {::YARD::AgentDocs::MemberRoster},
   # {::YARD::AgentDocs::MemberListing}, {::YARD::AgentDocs::MethodSignature},
-  # and {::YARD::AgentDocs::CrossReferencing} mixed in) whose +object+ is
-  # +path+.
+  # {::YARD::AgentDocs::CrossReferencing}, and {::YARD::AgentDocs::NodocFilter}
+  # mixed in) whose +object+ is +path+.
   def holder_for(source, path)
     agentdocs_holder(
       NoopVerifier,
       ::YARD::AgentDocs::MemberRoster, ::YARD::AgentDocs::MemberListing,
       ::YARD::AgentDocs::MethodSignature, ::YARD::AgentDocs::CrossReferencing,
+      ::YARD::AgentDocs::NodocFilter,
       source: source, at: path
     )
   end

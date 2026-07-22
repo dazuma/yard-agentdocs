@@ -23,6 +23,12 @@ module YARD
     #    zero-information first sentence" under "Decisions" in
     #    devdocs/DESIGN.md. Only one merge ever happens, even if the
     #    resulting second sentence is itself short.
+    # 3. The extracted text's own terminal punctuation is no longer always a
+    #    blind appended `"."` — see {#terminal_punctuate}. A trailing `:` (an
+    #    intro clause cut off right before a list) gets `" ..."` instead,
+    #    reading as "there's more, elided" rather than a dangling
+    #    colon-period. See "Docstring#summary/smart_summary blindly appends
+    #    a trailing period" under "Decisions" in devdocs/DESIGN.md.
     #
     # Every other behavior — paragraph breaks, paren/bracket-nesting
     # (tracked as one combined depth, not real matching, the same
@@ -80,11 +86,31 @@ module YARD
       def smart_summary(docstring)
         stripped = docstring.to_s.gsub(/[\r\n](?![\r\n])/, " ").strip
         summary = stripped[0..end_index(stripped)].to_s
-        summary += "." if !summary.empty? && summary !~ /\A\s*\{include:.+\}\s*\Z/
-        summary
+        terminal_punctuate(summary)
       end
 
       private
+
+      # {#smart_summary}'s own terminal-punctuation rule: a trailing `:` (an
+      # intro clause cut off right before a list, or a bare `:nodoc:`-shaped
+      # directive token, which is bounded by colons front and back either
+      # way) gets `" ..."` instead of a blind `"."` — reading as "there's
+      # more, elided" rather than a dangling colon-period. Every other
+      # extracted text, including one ending in a Markdown styling
+      # delimiter (an inline-code backtick, `*emphasis*`) rather than the
+      # underlying prose's own last letter, still gets the unconditional
+      # `"."` exactly as before; only a literal trailing colon is
+      # measured evidence of this bug (see "Docstring#summary/smart_summary
+      # blindly appends a trailing period" under "Decisions" in
+      # devdocs/DESIGN.md) — not a reason to second-guess every other
+      # non-alphanumeric ending. `{include:...}` is left alone either way,
+      # since it isn't real sentence text at all.
+      def terminal_punctuate(summary)
+        return summary if summary.empty? || summary =~ /\A\s*\{include:.+\}\s*\Z/
+        return "#{summary} ..." if summary.end_with?(":")
+
+        "#{summary}."
+      end
 
       # The index +stripped+'s summary should end at: {#raw_end_index}'s
       # result, extended by one more sentence when that first sentence is a

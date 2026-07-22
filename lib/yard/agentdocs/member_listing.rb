@@ -15,8 +15,10 @@ module YARD
     # Requires the including template to provide `object` and `run_verifier`
     # (both, like `options`, already provided by
     # `YARD::Templates::Template`), plus {MethodSignature#member_name} (used
-    # to sort method listings) and {MemberRoster#member_roster_lines} (used
-    # by {#any_members?}).
+    # to sort method listings), {MemberRoster#member_roster_lines} (used by
+    # {#any_members?}), and {NodocFilter#bare_nodoc?} (a bare `:nodoc:`
+    # docstring is filtered out of every listing here, the same as YARD's
+    # own visibility verifier).
     #
     # Class-level and instance-level attributes are queried separately
     # ({#class_attribute_objects}/{#instance_attribute_objects}), the same
@@ -30,7 +32,7 @@ module YARD
       #
       def nested_objects
         list = object.children.select { |c| [:module, :class].include?(c.type) }
-        run_verifier(list).sort_by { |o| o.name.to_s }
+        run_verifier(list).reject { |o| bare_nodoc?(o) }.sort_by { |o| o.name.to_s }
       end
 
       ##
@@ -40,7 +42,7 @@ module YARD
       #
       def constant_objects(namespace = object)
         list = namespace.constants(inherited: false, included: false)
-        run_verifier(list).sort_by { |o| o.name.to_s }
+        run_verifier(list).reject { |o| bare_nodoc?(o) }.sort_by { |o| o.name.to_s }
       end
 
       ##
@@ -71,7 +73,7 @@ module YARD
         list = namespace.meths(inherited: false, included: false).select do |m|
           m.scope == :class && !m.is_attribute?
         end
-        run_verifier(list).sort_by { |m| member_name(m) }
+        run_verifier(list).reject { |m| bare_nodoc?(m) }.sort_by { |m| member_name(m) }
       end
 
       # Excludes both inherited (superclass) and mixed-in (`include`d module)
@@ -96,7 +98,7 @@ module YARD
         list = namespace.meths(inherited: false, included: false).select do |m|
           m.scope == :instance && !m.is_attribute? && !m.constructor?
         end
-        run_verifier(list).sort_by { |m| member_name(m) }
+        run_verifier(list).reject { |m| bare_nodoc?(m) }.sort_by { |m| member_name(m) }
       end
 
       ##
@@ -125,7 +127,9 @@ module YARD
         entries = namespace.attributes[scope].map do |name, rw|
           Attribute.new(name: name.to_s, read: rw[:read], write: rw[:write])
         end
-        entries = entries.select { |a| run_verifier([a.source_method]).any? }
+        entries = entries.select do |a|
+          run_verifier([a.source_method]).any? && !bare_nodoc?(a.source_method)
+        end
         entries.sort_by(&:name)
       end
     end

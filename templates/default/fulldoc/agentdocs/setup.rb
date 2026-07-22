@@ -4,12 +4,13 @@ include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::DocstringSummary
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::Markdownify
+include ::YARD::AgentDocs::NodocFilter
 include ::YARD::AgentDocs::TextLayout
 include ::YARD::AgentDocs::VisibilityInfo
 
 def init
   options.serializer.extension = "md" if options.serializer
-  objects = run_verifier(options.objects).reject(&:root?)
+  objects = run_verifier(options.objects).reject(&:root?).reject { |o| bare_nodoc?(o) }
   serialize_index(objects)
   options.files.each { |file| serialize_extra_file(file) }
   objects.each { |object| serialize(object) }

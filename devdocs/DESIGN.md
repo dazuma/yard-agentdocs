@@ -636,34 +636,23 @@ may follow; that doc tracks status across all of them.
       (not filtering), consistently with the already-decided policy, not a
       new decision. See "Class-level `@private`/`@api private`" under
       "Decisions". Originally flagged by the July 2026 coverage review
-- [ ] (design) A docstring whose entire (stripped) content is a bare RDoc
-      `:nodoc:`/`:stopdoc:`/`:startdoc:` directive token — currently
-      rendered as literal prose (`` :nodoc: ``, further malformed by the
-      already-logged trailing-period bug into `` `:nodoc:.` ``). Whether
-      such an object should instead be recognized and treated as a privacy
-      marker — flagged, matching the existing `@private`/`@api private`
-      policy, or filtered, matching Ruby-scope `private`/`protected`'s
-      existing policy — is open. Distinct from (and independent of) the
-      trailing-period punctuation bug: fixing that bug alone still leaves
-      the literal directive text as the rendered content; this item is
-      about *what* to render, not how to punctuate it. Purely a
-      template-level docstring-text check (`docstring.to_s.strip =~
-      /\A:(no|stop|start)doc:\z/`), no custom Handler needed — same
-      architectural layer as the existing `@private`/`@api private` check,
-      not the "no custom handler classes" principle's territory. Measured
-      at high real-world prevalence on the 2026-07-21 `minitest` dogfood
-      run: 138 of 523 documentable objects (~26.4%) carry a bare
-      `:nodoc:`/`:stopdoc:`/`:startdoc:` docstring (8 classes, 4 modules,
-      17 constants, 109 methods) — not a rare idiom. Note: RDoc's actual
-      `:stopdoc:`/`:startdoc:` *block-scoping* semantic (suppressing every
-      statement between the two markers, not just the one item whose own
-      docstring literally contains the token) is a separate, out-of-scope
-      gap — see "The 'no custom handler classes' integration principle"
-      under "Open questions", which this run added as a new evidence
-      category. See the `minitest` entry under "Runs" in
-      `devdocs/Dogfood.md` for full detail. Needs an `example/lib` fixture:
-      a method/class/constant documented with nothing but `# :nodoc:` (or
-      `# :stopdoc:`), and a design review choosing flag-vs-filter.
+- [x] (design) A docstring whose entire (stripped) content is a bare RDoc
+      `:nodoc:`/`:stopdoc:`/`:startdoc:` directive token — exercised via
+      `Stopwatch::LEGACY_NAME`/`Stopwatch#debug_label` (bare `# :nodoc:`
+      constant/method) and `Geometry::Scratchpad` (bare `# :nodoc:` class).
+      Settled on filtering `:nodoc:` entirely, matching Ruby-scope
+      `private`/`protected`'s existing policy, not flagging it like
+      `@private`/`@api private` — see "Bare `:nodoc:` docstring: filtered
+      entirely; `:stopdoc:`/`:startdoc:` left unhandled" under "Decisions".
+      `:stopdoc:`/`:startdoc:` deliberately excluded from this item's final
+      scope (human decision, narrower than originally proposed): their real
+      meaning is a block-scoping toggle this template-only layer can't
+      recover, so a bare `:stopdoc:`/`:startdoc:` docstring is left
+      rendering as literal prose, unimproved — approximating it as a
+      per-object filter (or flag) would misrepresent what those two
+      directives actually do. See the `minitest` entry under "Runs" in
+      `devdocs/Dogfood.md` for the prevalence measurement that originally
+      motivated this item.
 
 ### Attributes & constants
 
@@ -1001,36 +990,24 @@ may follow; that doc tracks status across all of them.
       merge heuristic in `DocstringSummary#smart_summary` — see
       "`Docstring#summary` extracting a low-information first sentence:
       structural merge, not a vocabulary skip-list" under "Decisions"
-- [ ] (design) `Docstring#summary`/`smart_summary` blindly appends a
+- [x] (design) `Docstring#summary`/`smart_summary` blindly appends a
       trailing `.` even when the extracted text already ends in different
       terminal punctuation (a colon introducing a list) or is a short
       RDoc-directive-like token with no sentence structure at all —
       producing a visibly malformed summary (`"Initializes attributes:."`,
-      `` `:nodoc:.` ``) rather than a plausible-looking truncation. A third,
-      distinct root cause from the two already-fixed items above: no
-      abbreviation misparse (first item), and not a genuinely-complete
-      short sentence either (second item) — here the extracted text isn't a
-      sentence at all, it's a paragraph-introducing clause or a bare
-      directive token, and the same unconditional `!summary.empty? &&
-      ... += "."` (present in both YARD-core `Docstring#summary` and this
-      project's own ported `DocstringSummary#smart_summary`, which doesn't
-      special-case it either) fires regardless. Measured on the 2026-07-21
-      `parser` dogfood run: 5 occurrences, confirmed via a direct
-      `smart_summary` probe against the full registry, not grep —
-      `Builders::Default#initialize` (docstring starts "Initializes
-      attributes:" before a bulleted list), `TreeRewriter::Action` (class
-      docstring, same "intro clause + list" shape), and three `#
-      :nodoc:`-only docstrings (`Source::Buffer#freeze`/`#inspect`,
-      `Source::TreeRewriter#inspect`) whose entire docstring text is the
-      literal RDoc `:nodoc:` directive token — itself unimplemented by YARD
-      under any markup dialect (confirmed via a stock `-f html` side-by-side
-      generation showing the identical literal `:nodoc:.` text; a separate,
-      out-of-scope YARD-core gap, not what this item is about — this run
-      stumbled onto a first, partial data point before the `minitest`
-      dogfood run gave `:nodoc:`/`:stopdoc:`/`:startdoc:` a dedicated,
-      full-scale exercise; see its entry under "Runs" in
-      devdocs/Dogfood.md). See the `parser` entry under "Runs" in
-      devdocs/Dogfood.md for full detail.
+      `` `:nodoc:.` ``) rather than a plausible-looking truncation. Exercised
+      via `Stopwatch#behavior_flags` (docstring's first paragraph ends in
+      `:` before a bulleted list). Fixed: a trailing `:` now gets `" ..."`
+      instead of a bare `"."` — see "`Docstring#summary`/`smart_summary`'s
+      blind trailing-period append: a literal-colon check, not a general
+      non-alphanumeric one" under "Decisions". The bare-`:nodoc:`-token
+      trigger (`` `:nodoc:.` ``) is moot as of the item above: a bare
+      `:nodoc:` docstring is now filtered before `smart_summary` ever runs on
+      it (though the same colon-ending fix also improves the still-unhandled
+      `:stopdoc:`/`:startdoc:` case cosmetically, from `` `:stopdoc:.` `` to
+      `` `:stopdoc: ...` ``, as an incidental side effect, not a deliberate
+      target). See the `parser` entry under "Runs" in devdocs/Dogfood.md for
+      the original measurement.
 
 ### Cross-referencing scenarios
 
@@ -5660,6 +5637,142 @@ with no regressions to `#centroid`/`#size` or any other fixture (isolated
 by generating before/after each change into a scratch directory and
 diffing the full output tree, not just the changed file), plus `toys
 rubocop`/`toys yardoc` clean.
+
+### Bare `:nodoc:` docstring: filtered entirely; `:stopdoc:`/`:startdoc:` left unhandled
+
+Settles the "bare RDoc directive docstring" checklist item, narrowed to
+`:nodoc:` only during discussion (human decision) before any fixture was
+built — `:stopdoc:`/`:startdoc:` dropped from scope entirely, not just
+deferred (see below).
+
+**The decision: filter, not flag.** A pushed-back-on initial proposal
+(this project's own default reasoning first reached for "treat as an
+intentionally-undocumented object," mirroring how a plain missing
+docstring renders — blank prose, no flag or stub) turned out to be wrong,
+not just a style preference. `:nodoc:` isn't the *absence* of expressed
+intent (which is what "intentionally undocumented" mirrors YARD's own
+default-template behavior for) — it's an explicit RDoc directive whose
+real meaning is "this entity should not appear in generated documentation
+at all," even though it remains genuinely Ruby-public and callable (e.g.
+for tests). The "mirror YARD's own default template" justification that
+backs the intentionally-undocumented decision also doesn't transfer here:
+YARD doesn't implement `:nodoc:` under any dialect (confirmed on both the
+`parser` and `minitest` dogfood runs — even YARD's own stock HTML template
+leaks the literal token), so there's no real human-facing behavior to
+mirror, only a YARD-core bug. Flagging (the `@private`/`@api private`
+precedent) is also the wrong shape: that mechanism surfaces a real
+access-level judgment about a method that *is* meant to be part of the
+documented surface, just not stable — `:nodoc:` carries no such judgment,
+it's a request not to advertise the entity's existence at all. Filtering —
+the same disposition as Ruby-scope `private`/`protected` — is the only
+option that actually honors what the directive says.
+
+**Deliberately scoped down to `:nodoc:` only.** `:stopdoc:`/`:startdoc:`'s
+real meaning is a block-scoping toggle across otherwise-unrelated
+statements — recovering that would need something functionally identical
+to a custom Handler (tracking source-position ranges), squarely inside
+what "no custom handler classes" already declines to build, per the
+already-settled reasoning under "Open questions". Treating a bare
+`:stopdoc:`/`:startdoc:` docstring the same as `:nodoc:` (filter, or even
+flag) was considered and rejected: it would misrepresent what those two
+directives actually promise (a scoped suppression *region*, not a
+single-item marker) with an approximation this template-only layer can't
+actually deliver. A bare `:stopdoc:`/`:startdoc:` docstring is left
+rendering as literal prose, unimproved — the same as before this item,
+except its terminal punctuation now also benefits incidentally from the
+trailing-colon fix below (`` `:stopdoc:.` `` → `` `:stopdoc: ...` ``), not
+because it was deliberately targeted.
+
+**Implementation:** `lib/yard/agentdocs/nodoc_filter.rb`'s new
+`NodocFilter#bare_nodoc?(obj)` — `obj.docstring.to_s.strip == ":nodoc:"` —
+included by both `module/agentdocs/setup.rb` and
+`fulldoc/agentdocs/setup.rb`. `MemberListing`'s five member-gathering
+methods (`nested_objects`, `constant_objects`, `class_method_objects`,
+`instance_method_objects`, `attribute_objects_for`) each reject a bare-nodoc
+object alongside their existing `run_verifier` call, and
+`fulldoc/agentdocs/setup.rb#init` rejects one from the top-level object
+list — which, since `MemberRoster`'s ancestor/mixin traversal reuses those
+same `MemberListing` methods against a superclass/mixin's own namespace,
+also filters a nodoc-marked ancestor/mixin member out of the names-only
+roster for free, with no separate change needed there. `index.md` and
+per-object page generation are both driven by that same filtered
+`fulldoc` object list, so a bare-nodoc class/module gets neither. Nested
+content *inside* a bare-nodoc class/module (e.g. a class it itself
+declares) is **not** suppressed — only the one directly-marked object is
+filtered, consistent with not attempting any block/cascading semantic.
+
+**Fixture:** `Stopwatch::LEGACY_NAME` (bare `# :nodoc:` constant) and
+`Stopwatch#debug_label` (bare `# :nodoc:` method), both grouped together
+just before the `protected` line (avoids shifting any already-approved
+`**Defined in:**` line number elsewhere in the file, since everything
+below that point was already invisible in the docs); `Geometry::Scratchpad`
+(a new class, bare `# :nodoc:` docstring), placed next to `Geometry::Cache`
+for contrast (`@private`-flagged and shown vs. `:nodoc:`-filtered and
+absent). The correct hand-authored `example/doc` change for all three is
+*no change at all* — their absence from every listing surface **is** the
+fixture. Verified directly: generating from the unmodified (pre-fix)
+template and diffing against `example/doc` showed exactly these three
+leaking through as literal `` :nodoc:. `` text (both this bug and the
+trailing-period bug stacked on the same text) before the fix, and a clean
+byte-for-byte match after it.
+
+Unit-tested in isolation too (`test/test_nodoc_filter.rb`, mirroring
+`test_visibility_info.rb`'s pattern): true for a bare-`:nodoc:` method,
+class, and constant; false for an untagged object, for `:nodoc:` appearing
+alongside real prose (not the *entire* stripped docstring), and for a bare
+`:stopdoc:` docstring (confirms the deliberate `:nodoc:`-only scope).
+
+### `Docstring#summary`/`smart_summary`'s blind trailing-period append: a literal-colon check, not a general non-alphanumeric one
+
+Settles the "blind trailing-`.` append" checklist item. Exercised via
+`Stopwatch#behavior_flags`, whose docstring's first paragraph ends in `:`
+immediately before a bulleted list.
+
+**The fix:** {DocstringSummary#smart_summary}'s new private
+`terminal_punctuate` helper appends `" ..."` instead of a bare `"."` when
+the extracted text already ends in `:` — reading as "there's more,
+elided" rather than a dangling colon-period — and otherwise still appends
+the unconditional `"."` exactly as before. The originally-proposed, more
+general rule ("skip the appended period for *any* non-alphanumeric
+ending") was tried first and **caught as wrong by the full fixture test
+suite**, not just reasoned away: two already-approved fixtures
+(`Greeter#greet`'s `` wrapping it in *emphasis*. ``,
+`BoundingBox#bottom`/`#left`/`#right`/`#top`'s `` coerced to a `Float`. ``)
+end their extracted summary text in a Markdown styling delimiter
+(`*emphasis*`, `` `Float` ``) rather than the underlying prose's own last
+letter — a common, entirely legitimate shape, not truncation-bug evidence.
+Every real measured trigger for this bug (the `parser` dogfood run's
+"Initializes attributes:" case and its three bare-`:nodoc:` cases alike)
+turned out to already share one literal trait: the extracted text ends in
+`:` — `:nodoc:` itself is bounded by colons on both ends, so it was never
+actually a "no punctuation at all" case, just described that way in the
+original finding. A colon-specific check is therefore both narrower and
+fully sufficient for every piece of real evidence collected, with no need
+to second-guess every other non-alphanumeric ending.
+
+**Interaction with the `:nodoc:` filter above:** the bare-`:nodoc:`
+trigger for this bug is moot once a bare-`:nodoc:` docstring is filtered
+before `smart_summary` ever runs on it — but the two fixes are still
+independent, and their measured overlap on the same literal text (both
+happening to end in `:`) is coincidental, not load-bearing: implementing
+this colon fix alone, without the nodoc filter, would only change a
+`:nodoc:`-marked object's malformed rendering from `` :nodoc:. `` to
+`` :nodoc: ... `` — still leaking the literal directive, just differently
+punctuated. Only the filter actually removes it.
+
+**Fixture:** verified directly the same way as the item above — generating
+from the unmodified template showed `#behavior_flags`'s Member Summary
+bullet and full entry both rendering the malformed `` ...operates:. ``;
+after the fix, both correctly read `` ...operates: ... ``, matching the
+hand-authored `example/doc` byte-for-byte.
+
+Unit-tested directly in `test/test_docstring_summary.rb`'s new "trailing
+colon" section (a deliberate divergence from `Docstring#summary`, so these
+assert the corrected literal text rather than parity with it, the same
+convention the abbreviation-skip-list and low-information-merge sections
+above already established): a first-paragraph-ends-in-colon-before-a-list
+case, a bare `":nodoc:"` string, and a regression case pinning down that a
+Markdown-styling-delimiter ending still gets the unconditional period.
 
 ## Implementation
 

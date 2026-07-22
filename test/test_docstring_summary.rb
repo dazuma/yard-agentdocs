@@ -251,6 +251,37 @@ describe ::YARD::AgentDocs::DocstringSummary do
     end
   end
 
+  # New behavior: the extracted text's own terminal punctuation is no
+  # longer an unconditional appended "." — see {#terminal_punctuate}
+  # (private, but exercised end to end here). A trailing `:` (an intro
+  # clause cut off right before a list, or a bare `:nodoc:`-shaped
+  # directive, which is bounded by colons either way) reads better as
+  # "there's more, elided" than a dangling colon-period, so it gets `"
+  # ..."` instead. This is a deliberate divergence from `Docstring#summary`
+  # (which always appends a bare "."), so these assert the corrected
+  # literal text rather than parity with it.
+  describe "trailing colon" do
+    it "appends ' ...' instead of a period when the first paragraph ends in ':' before a list" do
+      text = <<~TEXT
+        Initializes attributes:
+
+        - one
+        - two
+      TEXT
+      assert_equal("Initializes attributes: ...", holder.smart_summary(text))
+    end
+
+    it "appends ' ...' for a bare :nodoc:-shaped token (bounded by colons on both ends)" do
+      assert_equal(":nodoc: ...", holder.smart_summary(":nodoc:"))
+    end
+
+    it "still appends a bare period when the extracted text's last literal character is a " \
+       "Markdown styling delimiter, not the underlying prose's own last letter" do
+      text = "Returns the box's `bottom` edge, coerced to a `Float`"
+      assert_equal("Returns the box's `bottom` edge, coerced to a `Float`.", holder.smart_summary(text))
+    end
+  end
+
   describe "blank input" do
     it "returns an empty string for nil" do
       assert_equal("", holder.smart_summary(nil))

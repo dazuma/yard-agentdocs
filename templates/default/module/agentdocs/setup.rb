@@ -10,6 +10,7 @@ include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::MemberListing
 include ::YARD::AgentDocs::MemberRoster
 include ::YARD::AgentDocs::MethodSignature
+include ::YARD::AgentDocs::NodocFilter
 include ::YARD::AgentDocs::TextLayout
 include ::YARD::AgentDocs::VisibilityInfo
 
