@@ -33,12 +33,11 @@ first.
 
 ## Queued candidates
 
-`rubocop`/`parser` recommended 2026-07-21 (asked in a separate future
-session, not run yet); `toys` added 2026-07-21 after the `hermes-client` run
-completed (see "Runs" below), replacing it in the queue. Each targets an
-axis DESIGN.md's dogfood milestone flagged but the YARD run didn't cover.
-Order not prescribed — pick whichever's most convenient to start; each
-stands alone.
+`toys` added 2026-07-21 after the `hermes-client` run completed (see "Runs"
+below). `rubocop`, `parser`, and `minitest` — the other candidates once
+listed here — have all since run to completion; see their entries under
+"Runs" (and the Status table above) rather than this section, which now
+only tracks what's still outstanding.
 
 ### `toys`
 
@@ -89,36 +88,6 @@ it works. Total installed gem size ~1.0MB.
 
 **Not yet run** — queued only, per the user's explicit instruction not to
 start it in this session.
-
-### `rubocop`
-
-**Why this gem:** already Bundler-vendored (`rubocop-1.88.1`, 919 files /
-~3.2MB — roughly 3x YARD's corpus), so no extra fetch/pin is needed and the
-version is pinned by `Gemfile.lock`. Two things worth checking: whether
-cops' `def_node_matcher`/`NodePattern` macros (which define methods via
-metaprogramming rather than a plain `def`) are silently invisible to
-YARD's static parser — a different flavor of silent gap than the
-already-found unresolved-alias crash — and whether real-scale, heavy
-`@example` usage (bad/good code fences in nearly every cop) renders well.
-Also a more meaningful stress test of the file-count/size concern the
-"File granularity" decision flagged (the deferred "escape valve") than
-YARD's own run was.
-
-### `parser`
-
-**Why this gem:** already Bundler-vendored (`parser-3.3.11.1`), no
-fetch/pin needed. Its racc-generated lexer/grammar files (`ruby34.rb`,
-`lexer-F1.rb`, etc.) are 12–15K lines each — essentially single classes
-with huge method counts. This is exactly the "very large class" scenario
-the file-granularity "escape valve" was deferred against without ever
-being exercised; a good forcing function to see whether deferring it is
-still fine or whether real generated code hits it.
-
-**Also considered:** `minitest` (already vendored, 24 files) — smaller
-than the "mid-size" bar the other three clear, but interesting for a
-different, so-far-untested reason: it leans on RDoc's `:nodoc:`/
-`:stopdoc:`/`:startdoc:` visibility directives, which nothing has
-exercised at all. Kept as a reserve pick rather than a fourth queued run.
 
 ## Procedure (applies to every run)
 
@@ -780,7 +749,7 @@ project's control. New evidence gathered for the "no custom handler classes"
 open question (see below) and folded into DESIGN.md's open-question note,
 per the procedure's step 6 — not resolved.
 
-**Why this gem:** see "Queued candidates" above — already Bundler-vendored
+**Why this gem:** already Bundler-vendored
 (`rubocop-1.88.1`, no extra fetch/pin needed), the largest corpus run yet
 (919 source files, ~3x YARD's), and specifically queued to test whether
 cops' `def_node_matcher`/`NodePattern` macro-defined methods are silently
@@ -1021,7 +990,7 @@ open-question note) and the file-granularity "escape valve" (this run's
 central purpose; its own dedicated recommendation is below) — neither
 resolved, per the procedure's step 6.
 
-**Why this gem:** see "Queued candidates" above — already Bundler-vendored
+**Why this gem:** already Bundler-vendored
 (`parser-3.3.11.1`, no extra fetch/pin needed), specifically queued to test
 how the template handles the racc-generated grammar/lexer files (reported
 as 12–15K source lines each, essentially single classes with huge method
@@ -1087,8 +1056,9 @@ total (5 unknown `@param` names, 2 unknown `@returns` tags, 1 malformed
      side-by-side, confirming this half is a pre-existing YARD-core gap,
      out of scope here — and it's the first real (if incomplete — RDoc's
      `:stopdoc:`/`:startdoc:` weren't exercised, only `:nodoc:`) data point
-     on the exact axis the "Also considered: `minitest`" aside under
-     "Queued candidates" flagged as untested. (b) Given that YARD hands
+     on an axis nothing had exercised before this run — see the `minitest`
+     entry under "Runs" below for the dedicated follow-up exercising
+     `:stopdoc:`/`:startdoc:` too. (b) Given that YARD hands
      this format a bare `":nodoc:"` string as the "real" docstring text
      regardless, the summary machinery's blind period-append is what turns
      it into the actively-malformed `:nodoc:.` — that half **is** this
@@ -1253,10 +1223,11 @@ DESIGN.md. New evidence gathered for the "no custom handler classes" open
 question (folded into the existing open-question note, not resolved) and a
 confirmed-but-out-of-scope YARD-core tag-parsing gap, logged here only.
 
-**Why this gem:** see "Also considered: `minitest`" under "Queued
-candidates" — deliberately picked (promoted from reserve pick to a full run
-by direct user request) to exercise RDoc's `:nodoc:`/`:stopdoc:`/
-`:startdoc:` visibility directives at real scale, an axis nothing had
+**Why this gem:** already Bundler-vendored (`minitest-6.0.6`, 24 files) —
+smaller than the "mid-size" bar the other real-gem runs clear, but
+deliberately picked (by direct user request, after the `parser` run
+completed) to exercise RDoc's `:nodoc:`/`:stopdoc:`/`:startdoc:` visibility
+directives at real scale, an axis nothing had
 touched beyond the `parser` run's incidental, partial brush with bare
 `:nodoc:` (3 occurrences, no `:stopdoc:`/`:startdoc:` at all — see the
 `parser` entry's Finding 1). Confirmed before running that `minitest` uses
@@ -1281,8 +1252,8 @@ measurement's caveat below). Disposable script:
 `/private/tmp/.../scratchpad/dogfood_minitest.rb` (not committed). Result:
 57 output files (54 classes/modules + 2 guide pages + `index.md`) from
 134,667 bytes of source across 24 files — by far the smallest corpus of any
-real-gem run (matches the "Also considered" aside's own "smaller than the
-mid-size bar" framing). Generation completed in a few seconds with no
+real-gem run so far, as expected for a below-the-mid-size-bar pick.
+Generation completed in a few seconds with no
 crash — 1 stderr warning (`Unknown tag @file_of_args` — see Finding 3).
 
 **Findings:**

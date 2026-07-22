@@ -1025,11 +1025,11 @@ may follow; that doc tracks status across all of them.
       literal RDoc `:nodoc:` directive token — itself unimplemented by YARD
       under any markup dialect (confirmed via a stock `-f html` side-by-side
       generation showing the identical literal `:nodoc:.` text; a separate,
-      out-of-scope YARD-core gap, not what this item is about — see the
-      "Also considered: `minitest`" aside under "Queued candidates" in
-      devdocs/Dogfood.md, which flagged `:nodoc:`/`:stopdoc:`/`:startdoc:`
-      as an untested axis before this run stumbled onto a first, partial
-      data point). See the `parser` entry under "Runs" in
+      out-of-scope YARD-core gap, not what this item is about — this run
+      stumbled onto a first, partial data point before the `minitest`
+      dogfood run gave `:nodoc:`/`:stopdoc:`/`:startdoc:` a dedicated,
+      full-scale exercise; see its entry under "Runs" in
+      devdocs/Dogfood.md). See the `parser` entry under "Runs" in
       devdocs/Dogfood.md for full detail.
 
 ### Cross-referencing scenarios
