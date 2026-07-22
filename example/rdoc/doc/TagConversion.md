@@ -18,6 +18,12 @@ Punctuated shorthand: `valid?`, `save!`, `name=`, `Foo::Bar`, `x[0]`,
 Punctuated tag form: `=~`, `a.b`, **foo=~bar**, *a.b*, *foo!*, ~~strike!~~,
 ~~del?~~.
 
+Nested styled content — multiple inline nodes inside one styled tag, not just
+punctuated single-string content: **foo **bar** baz**, *foo **bar** baz*,
+~~foo **bar** baz~~. `foo <b>bar</b> baz` looks similar but isn't: RDoc's own
+parser captures tt/code content as one literal string, never nested nodes, so
+it already rendered correctly before this fix.
+
 A verbatim example — the literal angle-bracket text below must survive
 untouched, unlike the prose above:
 
@@ -46,7 +52,7 @@ Sets the receiver's `name=`.
 
 - `value` (`String`) — the new name
 
-* **Defined in:** `example/rdoc/lib/tag_conversion.rb:48`
+* **Defined in:** `example/rdoc/lib/tag_conversion.rb:55`
 
 ### #save!
 
@@ -60,7 +66,7 @@ tagconversion.save!() → void
 
 - `void`
 
-* **Defined in:** `example/rdoc/lib/tag_conversion.rb:40`
+* **Defined in:** `example/rdoc/lib/tag_conversion.rb:47`
 
 ### #valid?
 
@@ -74,4 +80,4 @@ Returns whether the receiver is `valid?`.
 
 - `Boolean` — whether valid
 
-* **Defined in:** `example/rdoc/lib/tag_conversion.rb:31`
+* **Defined in:** `example/rdoc/lib/tag_conversion.rb:38`

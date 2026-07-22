@@ -16,6 +16,13 @@
 # Punctuated tag form: <tt>=~</tt>, <code>a.b</code>, <b>foo=~bar</b>,
 # <i>a.b</i>, <em>foo!</em>, <s>strike!</s>, <del>del?</del>.
 #
+# Nested styled content — multiple inline nodes inside one styled tag,
+# not just punctuated single-string content: <b>foo *bar* baz</b>,
+# <em>foo <b>bar</b> baz</em>, <s>foo *bar* baz</s>. <tt>foo <b>bar</b>
+# baz</tt> looks similar but isn't: RDoc's own parser captures tt/code
+# content as one literal string, never nested nodes, so it already
+# rendered correctly before this fix.
+#
 # A verbatim example — the literal angle-bracket text below must survive
 # untouched, unlike the prose above:
 #

@@ -955,25 +955,32 @@ may follow; that doc tracks status across all of them.
       survive untouched, since `accept_verbatim` never calls `add_tag`.
       Does *not* cover nested/multi-node styled content (e.g. `<b>foo
       *bar* baz</b>`) — see the next item.
-- [ ] (mech) `RDoc::Markup::ToMarkdown` still leaks raw HTML for styled
-      inline markup spanning **multiple inline nodes** — e.g. `<b>foo
-      *bar* baz</b>` → `<strong>foo **bar** baz</strong>` — regardless of
-      how simple the content is, since `handle_tag`'s multi-node branch
-      (as opposed to the single-string `add_tag` case the item above
-      fixes) unconditionally emits a raw wrapper tag and recurses.
-      Deliberately deferred, not designed: for `<b>`/`<em>`/`<s>`, wrapping
-      the recursively-converted content in the plain Markdown delimiter
-      (`**...**`/`*...*`/`~~...~~`) is very likely correct — Markdown's
-      emphasis delimiters are containers that interpret nested markup, the
-      same as the HTML tags they replace. But for `<tt>`/`<code>`, the
-      equivalent move is **not** correct: a Markdown code span is verbatim
-      by spec (CommonMark does not interpret markup inside backticks), so
-      naively wrapping already-converted nested-markup text (e.g. literal
-      `**bar**`) in backticks would display the literal asterisks instead
-      of preserving the nested emphasis — a real semantic loss neither
-      "keep the raw HTML" nor "just wrap it" resolves cleanly. Needs a
-      human decision on target behavior for the tt/code case specifically
-      before a fixture can be hand-authored.
+- [x] (mech) `RDoc::Markup::ToMarkdown` leaked raw HTML for styled inline
+      markup spanning **multiple inline nodes** — e.g. `<b>foo *bar*
+      baz</b>` → `<strong>foo **bar** baz</strong>` — regardless of how
+      simple the content was, since `handle_tag`'s multi-node branch (as
+      opposed to the single-string `add_tag` case the item above fixes)
+      unconditionally emitted a raw wrapper tag and recursed. Initially
+      thought to need a human decision on `<tt>`/`<code>` specifically (a
+      Markdown code span is verbatim by spec, so naively wrapping
+      already-converted nested-markup text in backticks would display
+      literal asterisks instead of preserving nested emphasis) — but that
+      turned out to be moot: RDoc's own parser captures `<tt>`/`<code>`
+      content as one literal string from the start, never as nested nodes,
+      so they never reach `handle_tag`'s multi-node branch at all. A
+      look-alike like `<tt>foo <b>bar</b> baz</tt>` was already correct
+      before this item, via the `add_tag` fix above alone. So this item
+      ended up scoped to `<b>`/`<em>`/`<s>`/`<del>` only: {YARD::AgentDocs
+      ::RDocToMarkdown#handle_tag} now wraps the recursively-converted
+      content in `simple_tag` instead of a raw HTML tag for that branch.
+      Verified against a real CommonMark parser (`commonmarker`) that
+      same-delimiter nesting (e.g. `**foo **bar** baz**`, from a bold word
+      nested inside a `<b>` tag) still parses as nested `<strong>`, not a
+      prematurely-closed span, so no escaping/flattening was needed.
+      Exercised by extending the `TagConversion` fixture (`example/rdoc/
+      lib/tag_conversion.rb`, `example/rdoc/doc/TagConversion.md`) with a
+      "Nested styled content" case covering `<b>`/`<em>`/`<s>` nesting and
+      the `<tt>`/`<code>` look-alike (confirming it needed no change).
 - [x] Prose/summary containing Markdown metacharacters (backticks, `*`, `_`,
       `[`) — turned out not to need an escaping policy at all (CommonMark
       keeps a bare metacharacter's effects confined to its own line/bullet);
@@ -5952,8 +5959,11 @@ single hardcoded filename to `Dir.glob("example/rdoc/lib/**/*.rb")`,
 matching the main fixture's discovery convention, so a future
 `example/rdoc/lib` addition needs no test-file edit.
 
-**Deliberately not covered:** nested/multi-node styled content (mechanism
-3) — see the follow-up checklist item; no fixture case exists for it yet.
+**Mechanism 3 (nested/multi-node styled content) resolved in a follow-up
+pass** — see the now-checked-off "still leaks raw HTML for styled inline
+markup spanning multiple inline nodes" item above for the corrected
+analysis (the anticipated `<tt>`/`<code>` special case turned out to be
+moot) and its `RDocToMarkdown#handle_tag`/fixture detail.
 
 ## Implementation
 
