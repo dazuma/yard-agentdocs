@@ -4,14 +4,25 @@ module YARD
   module AgentDocs
     ##
     # A byte-for-byte port of `YARD::Docstring#summary`'s first-sentence-or-
-    # first-paragraph extraction (`yard/docstring.rb`), with one behavior
-    # change: a small set of abbreviations that always introduce follow-up
-    # prose (`"e.g."`, `"i.e."`, `"cf."`, `"vs."`, `"a.k.a."`, `"viz."`) are
-    # never treated as ending a sentence, so `"...enum-like field, e.g.
-    # \`val1\`, \`val2\`."` no longer truncates to a dangling `"...e.g."` —
-    # see "Docstring#summary's abbreviation-blind truncation" under
-    # "Decisions" in devdocs/DESIGN.md for the full rationale, including why
-    # `"etc."`/`"et al."` are deliberately *not* on the list.
+    # first-paragraph extraction (`yard/docstring.rb`), with two behavior
+    # changes:
+    #
+    # 1. A small set of abbreviations that always introduce follow-up prose
+    #    (`"e.g."`, `"i.e."`, `"cf."`, `"vs."`, `"a.k.a."`, `"viz."`) are
+    #    never treated as ending a sentence, so `"...enum-like field, e.g.
+    #    \`val1\`, \`val2\`."` no longer truncates to a dangling `"...e.g."`
+    #    — see "Docstring#summary's abbreviation-blind truncation" under
+    #    "Decisions" in devdocs/DESIGN.md for the full rationale, including
+    #    why `"etc."`/`"et al."` are deliberately *not* on the list.
+    # 2. A leading sentence of {LOW_INFORMATION_WORD_LIMIT} words or fewer
+    #    (e.g. `"Optional."`, `"Output only."`) is merged with the sentence
+    #    that follows it, provided one exists in the same paragraph —
+    #    unlike case 1, the leading sentence here is a real, correctly
+    #    parsed sentence, just not an informative one on its own. See
+    #    "Docstring#summary extracting a real, complete, but
+    #    zero-information first sentence" under "Decisions" in
+    #    devdocs/DESIGN.md. Only one merge ever happens, even if the
+    #    resulting second sentence is itself short.
     #
     # Every other behavior — paragraph breaks, paren/bracket-nesting
     # (tracked as one combined depth, not real matching, the same
@@ -32,6 +43,32 @@ module YARD
       SKIP_ABBREVIATIONS = ["e.g.", "i.e.", "cf.", "vs.", "a.k.a.", "viz."].freeze
       private_constant :SKIP_ABBREVIATIONS
 
+      # The maximum word count (inclusive) a leading sentence can have and
+      # still be considered a low-information annotation eligible to be
+      # merged with the sentence that follows it — see the module doc's
+      # second behavior change. Chosen to cover the measured real-world
+      # patterns (`"Optional."` at 1 word, `"Output only."`/`"Input only."`
+      # at 2) without needing a fixed vocabulary list.
+      LOW_INFORMATION_WORD_LIMIT = 2
+      private_constant :LOW_INFORMATION_WORD_LIMIT
+
+      # A leading sentence only counts as a low-information annotation if,
+      # besides its final period, it's made up of nothing but
+      # {LOW_INFORMATION_WORD_LIMIT} (or fewer) plain, hyphenatable words —
+      # deliberately excludes anything containing an inline `{Class#method}`
+      # reference, backtick-quoted code, or a second embedded period (e.g.
+      # an ellipsis' trailing dots, already treated as one candidate
+      # "sentence" by {#raw_end_index}'s decimal/ellipsis handling), all of
+      # which are real content, not a short field-behavior annotation, even
+      # when word-count alone would call them short. Built from
+      # {LOW_INFORMATION_WORD_LIMIT} instead of hardcoding it twice.
+      LOW_INFORMATION_PATTERN = /
+        \A[[:alpha:]]+(?:-[[:alpha:]]+)*
+        (?:\ [[:alpha:]]+(?:-[[:alpha:]]+)*){0,#{LOW_INFORMATION_WORD_LIMIT - 1}}
+        \z
+      /x
+      private_constant :LOW_INFORMATION_PATTERN
+
       ##
       # @param docstring [String, ::YARD::Docstring, nil]
       # @return [String] the first sentence (or first paragraph, if it has
@@ -49,33 +86,73 @@ module YARD
 
       private
 
-      # Scans +stripped+ for the index its summary should end at (the
+      # The index +stripped+'s summary should end at: {#raw_end_index}'s
+      # result, extended by one more sentence when that first sentence is a
+      # low-information leading annotation (see the module doc's second
+      # behavior change and {#low_information_extension_start}). Never
+      # extends more than once, even if the resulting second sentence is
+      # itself short.
+      def end_index(stripped)
+        first_index = raw_end_index(stripped)
+        extension_start = low_information_extension_start(stripped, first_index)
+        return first_index if extension_start.nil?
+
+        extension_start + raw_end_index(stripped[extension_start..])
+      end
+
+      # Scans +text+ for the index its summary should end at (the
       # character just before a sentence-ending "." or a paragraph break),
-      # falling back to the last index of +stripped+ if neither ever
-      # occurs. Ported from `Docstring#summary`'s `length.times` loop,
-      # with {#abbreviation_before?} gating the "." branch — the "\r"/"\n"
+      # falling back to the last index of +text+ if neither ever occurs.
+      # Ported from `Docstring#summary`'s `length.times` loop, with
+      # {#abbreviation_before?} gating the "." branch — the "\r"/"\n"
       # (paragraph break) branch is intentionally untouched, since no
       # fixture or dogfood evidence has ever shown a paragraph ending
-      # mid-abbreviation.
-      def end_index(stripped)
+      # mid-abbreviation. Also reused, on a substring, by {#end_index} to
+      # scan for a low-information leading sentence's follow-up.
+      def raw_end_index(text)
         num_parens = 0
-        stripped.length.times do |index|
-          case stripped[index, 1]
+        text.length.times do |index|
+          case text[index, 1]
           when "."
-            next_char = stripped[index + 1, 1].to_s
-            if num_parens <= 0 && next_char =~ /^\s*$/ && !abbreviation_before?(stripped, index)
+            next_char = text[index + 1, 1].to_s
+            if num_parens <= 0 && next_char =~ /^\s*$/ && !abbreviation_before?(text, index)
               return index - 1
             end
           when "\r", "\n"
-            next_char = stripped[index + 1, 1].to_s
-            return stripped[index - 1, 1] == "." ? index - 2 : index - 1 if next_char =~ /^\s*$/
+            next_char = text[index + 1, 1].to_s
+            return text[index - 1, 1] == "." ? index - 2 : index - 1 if next_char =~ /^\s*$/
           when "{", "(", "["
             num_parens += 1
           when "}", ")", "]"
             num_parens -= 1
           end
         end
-        stripped.length - 1
+        text.length - 1
+      end
+
+      # Whether the leading sentence ending at +first_index+ (an index into
+      # +stripped+, as returned by {#raw_end_index}) is a low-information
+      # annotation that should be merged with the sentence following it —
+      # see the module doc's second behavior change. Returns the index in
+      # +stripped+ the follow-up scan should start from (the whitespace
+      # right after the leading sentence's period, kept so {#raw_end_index}
+      # sees the same leading-whitespace shape it always does), or +nil+ if
+      # no merge should happen: +first_index+ doesn't end on a real
+      # sentence period (as opposed to the paragraph-break fallback), the
+      # candidate doesn't match {LOW_INFORMATION_PATTERN}, nothing follows
+      # it, or what follows is a new paragraph (a "\r"/"\n"
+      # survives {#smart_summary}'s newline collapse only at an original
+      # blank-line paragraph break — a single line-wrap collapses to a
+      # plain space and so never blocks the merge).
+      def low_information_extension_start(stripped, first_index)
+        return nil unless stripped[first_index + 1, 1] == "."
+        return nil unless stripped[0..first_index] =~ LOW_INFORMATION_PATTERN
+
+        rest_start = first_index + 2
+        offset = stripped[rest_start..].to_s.index(/[^ \t]/)
+        return nil if offset.nil? || stripped[rest_start + offset, 1] =~ /[\r\n]/
+
+        rest_start
       end
 
       # Whether the "." at +text[period_index]+ is the final character of

@@ -335,6 +335,43 @@ class Stopwatch
   #
   attr_accessor :label_style
 
+  ##
+  # Optional. The number of decimal places to include when formatting
+  # elapsed time as a string. Defaults to `3`.
+  #
+  # Exercises the low-information leading-sentence merge: a naive
+  # first-sentence scan would otherwise summarize this attribute as just
+  # `"Optional."`, with the actually useful content invisible until the
+  # full entry below the Member Summary.
+  #
+  # @return [Integer]
+  #
+  attr_accessor :display_precision
+
+  ##
+  # Advanced only. A manual offset, in seconds, added to every {#measure}
+  # reading to compensate for known clock drift. Defaults to `0.0`.
+  #
+  # Same merge as {#display_precision}, but proves the heuristic also
+  # accepts a two-word leading sentence, not just a one-word one.
+  #
+  # @return [Float]
+  #
+  attr_accessor :clock_bias
+
+  ##
+  # Deprecated.
+  #
+  # Use {#tag} instead; new code should not read or write this directly.
+  #
+  # Proves the merge does *not* cross a paragraph break: even though
+  # `"Deprecated."` is short enough to qualify, the explanation above is a
+  # separate paragraph, so the summary must stay just `"Deprecated."`.
+  #
+  # @return [String, nil]
+  #
+  attr_accessor :legacy_tag
+
   protected
 
   ##

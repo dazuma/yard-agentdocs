@@ -26,9 +26,17 @@ describe ::YARD::AgentDocs::DocstringSummary do
     end
 
     it "returns just the first sentence" do
-      doc = ::YARD::Docstring.new("DOCSTRING. Another sentence")
-      assert_equal("DOCSTRING.", doc.summary)
-      assert_equal("DOCSTRING.", holder.smart_summary(doc))
+      # YARD's own spec uses "DOCSTRING. Another sentence" here, but that
+      # placeholder's first sentence happens to be a single plain word —
+      # exactly the shape the new low-information-leading-sentence merge
+      # (see "low-information leading sentence merge" below) targets, which
+      # would make this coincidentally exercise that behavior instead of
+      # the plain first-sentence extraction this test is actually for. Use
+      # a first sentence with more than {LOW_INFORMATION_WORD_LIMIT} words
+      # instead so the two stay independent.
+      doc = ::YARD::Docstring.new("A short docstring. Another sentence")
+      assert_equal("A short docstring.", doc.summary)
+      assert_equal("A short docstring.", holder.smart_summary(doc))
     end
 
     it "returns the first paragraph when it has no sentence-ending period" do
@@ -188,6 +196,58 @@ describe ::YARD::AgentDocs::DocstringSummary do
     it "still ends the sentence at 'et al.' (not on the skip-list, can legitimately end a sentence)" do
       text = "Originally proposed by Smith et al. It has since been revised."
       assert_equal("Originally proposed by Smith et al.", holder.smart_summary(text))
+    end
+  end
+
+  # New behavior: a short, real, correctly-parsed leading sentence (see
+  # {LOW_INFORMATION_WORD_LIMIT}, private but exercised end to end here) is
+  # merged with the sentence that follows it, rather than left standing
+  # alone as a zero-information summary. Unlike the abbreviation skip-list
+  # above, no misparse is involved — the period genuinely ends a sentence —
+  # so these assert the corrected literal text rather than parity with
+  # `Docstring#summary`.
+  describe "low-information leading sentence merge" do
+    it "merges a one-word leading sentence with the sentence that follows it" do
+      text = "Optional. Custom metadata about the secret. Annotations are distinct from labels."
+      assert_equal("Optional. Custom metadata about the secret.", holder.smart_summary(text))
+    end
+
+    it "merges a two-word leading sentence with the sentence that follows it" do
+      text = "Output only. The value is populated by the server. Ignored on input."
+      assert_equal("Output only. The value is populated by the server.", holder.smart_summary(text))
+    end
+
+    it "does not merge a three-word leading sentence (above the word limit)" do
+      text = "Not always set. More detail follows in this paragraph."
+      assert_equal("Not always set.", holder.smart_summary(text))
+    end
+
+    it "leaves a low-information leading sentence alone when nothing follows it" do
+      text = "Optional."
+      assert_equal("Optional.", holder.smart_summary(text))
+    end
+
+    it "does not merge across a paragraph break (blank line)" do
+      text = "Optional.\n\nCustom metadata about the secret."
+      assert_equal("Optional.", holder.smart_summary(text))
+    end
+
+    it "still merges across a single line-wrap newline (not a paragraph break)" do
+      text = "Optional.\nCustom metadata about the secret."
+      assert_equal("Optional. Custom metadata about the secret.", holder.smart_summary(text))
+    end
+
+    it "only merges once, even when the newly-merged-in sentence is itself short" do
+      text = "Optional. Brief. Custom metadata about the secret, described at length here."
+      assert_equal("Optional. Brief.", holder.smart_summary(text))
+    end
+
+    it "does not merge when the leading sentence's period is skipped as an abbreviation" do
+      # "e.g." is only 1 "word" by whitespace-splitting, but abbreviation_before?
+      # already prevents its period from ending a sentence at all, so this
+      # never reaches the merge decision in the first place.
+      text = "An enum-like field, e.g. `val1`, `val2`. More prose."
+      assert_equal("An enum-like field, e.g. `val1`, `val2`.", holder.smart_summary(text))
     end
   end
 

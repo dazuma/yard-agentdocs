@@ -32,7 +32,10 @@ Call the reset method to start over.
 
 **Instance Attributes**
 
+- `#clock_bias` — Advanced only. A manual offset, in seconds, added to every `#measure` reading to compensate for known clock drift.
+- `#display_precision` — Optional. The number of decimal places to include when formatting elapsed time as a string.
 - `#label_style` — The formatting style applied when rendering `#tag` for display — `"plain"`, `"bold"`, `"colored"`, etc.
+- `#legacy_tag` — Deprecated.
 - `#log_level` — The severity level to log at, e.g. `"debug"`, `"info"`, or `"warn"`.
 - `#rounding_mode` — Which way to round elapsed time when display precision truncates a fractional second, i.e. `:up` or `:down`.
 
@@ -88,6 +91,32 @@ scope.
 
 ## Instance Attributes
 
+### #clock_bias
+
+- **Type:** `Float`
+
+Advanced only. A manual offset, in seconds, added to every `#measure`
+reading to compensate for known clock drift. Defaults to `0.0`.
+
+Same merge as `#display_precision`, but proves the heuristic also
+accepts a two-word leading sentence, not just a one-word one.
+
+* **Defined in:** `example/lib/stopwatch.rb:360`
+
+### #display_precision
+
+- **Type:** `Integer`
+
+Optional. The number of decimal places to include when formatting
+elapsed time as a string. Defaults to `3`.
+
+Exercises the low-information leading-sentence merge: a naive
+first-sentence scan would otherwise summarize this attribute as just
+`"Optional."`, with the actually useful content invisible until the
+full entry below the Member Summary.
+
+* **Defined in:** `example/lib/stopwatch.rb:349`
+
 ### #label_style
 
 - **Type:** `String`
@@ -101,6 +130,20 @@ on the skip-list — it can legitimately end a sentence, so this
 summary should still stop right after it.
 
 * **Defined in:** `example/lib/stopwatch.rb:336`
+
+### #legacy_tag
+
+- **Type:** `String, nil`
+
+Deprecated.
+
+Use `#tag` instead; new code should not read or write this directly.
+
+Proves the merge does *not* cross a paragraph break: even though
+`"Deprecated."` is short enough to qualify, the explanation above is a
+separate paragraph, so the summary must stay just `"Deprecated."`.
+
+* **Defined in:** `example/lib/stopwatch.rb:373`
 
 ### #log_level
 

@@ -935,7 +935,7 @@ may follow; that doc tracks status across all of them.
       inherited YARD limitation — see "`Docstring#summary`'s abbreviation-
       blind truncation: a ported, abbreviation-aware reimplementation"
       under "Decisions"
-- [ ] (design) `Docstring#summary` extracting a real, complete, but
+- [x] (design) `Docstring#summary` extracting a real, complete, but
       zero-information first sentence as the entire Member Summary
       bullet/`index.md` entry — distinct root cause from the abbreviation
       item above (no sentence-boundary misparse here: the leading sentence
@@ -945,11 +945,12 @@ may follow; that doc tracks status across all of them.
       before the actual description, so the cheap-summary view renders as
       just `` — Optional. `` or similar, arguably worse than the
       abbreviation case (no fragment at all, not even a partial phrase).
-      The already-fixed `DocstringSummary#smart_summary` skip-list has no
-      seam for this — it's not an abbreviation, just an uninformative real
-      sentence — so this needs its own design treatment. Measured on the
-      2026-07-21 `google-cloud-secret_manager-v1` dogfood run: 77
-      occurrences across 32 of 120 rendered files — see devdocs/Dogfood.md
+      Measured on the 2026-07-21 `google-cloud-secret_manager-v1` dogfood
+      run: 77 occurrences across 32 of 120 rendered files — see
+      devdocs/Dogfood.md. Fixed with a structural (not vocabulary-based)
+      merge heuristic in `DocstringSummary#smart_summary` — see
+      "`Docstring#summary` extracting a low-information first sentence:
+      structural merge, not a vocabulary skip-list" under "Decisions"
 
 ### Cross-referencing scenarios
 
@@ -5368,6 +5369,71 @@ word-boundary false-positive guard) and a regression guard proving
 Verified against the full `example/lib`/`example/doc` suite, byte-for-byte
 (the `Stopwatch#log_level`/`#rounding_mode`/`#label_style` fixture
 attributes), plus `toys rubocop`/`toys yardoc` clean.
+
+### `Docstring#summary` extracting a low-information first sentence: structural merge, not a vocabulary skip-list
+
+Settles the "`Docstring#summary` extracting a real, complete, but
+zero-information first sentence" checklist item under "Documentation
+content / prose patterns", flagged by the 2026-07-21
+`google-cloud-secret_manager-v1` dogfood run (see devdocs/Dogfood.md).
+
+**Considered and rejected: an explicit skip-list of the measured strings**
+(`"Optional."`, `"Required."`, `"Output only."`, `"Input only."`), mirroring
+the abbreviation fix's shape. Rejected because it's a categorically
+different kind of list: `"e.g."`/`"i.e."`/etc. are a closed set of English
+abbreviations that will never need extension, while these four are
+gapic-specific convention — an open-ended vocabulary that would need
+re-opening every time a differently-worded generated-code convention (a
+different codegen house style, or a hand-written gem using `"Public."`/
+`"Beta."`/`"Deprecated."`) showed up in a future dogfood run.
+
+**The fix: a structural heuristic, not a vocabulary match.** A leading
+sentence merges with the sentence that follows it (extending the Member
+Summary bullet/`index.md` entry by one more sentence) when: (1) it matches
+`DocstringSummary::LOW_INFORMATION_PATTERN` — 1–2 whitespace-separated
+alphabetic (optionally hyphenated) tokens plus a period, nothing else; (2) a
+next sentence actually exists; and (3) that next sentence is in the same
+paragraph (no blank-line break). Chosen over a plain word-count check —
+tried first, but false-positived on two existing parity fixtures purely by
+coincidence of token count: `"Aliasing {Test.test}. Done."` (the reference
+token `{Test.test}.` is one whitespace-delimited "word") and `"hello... me"`
+(the ellipsis's last two dots land inside the ≤2-word candidate). The regex
+excludes both by requiring the tokens be plain words — no braces, no
+embedded punctuation. Never recurses: even if the newly-merged-in second
+sentence is itself short, only one merge ever happens. The word-limit
+(`LOW_INFORMATION_WORD_LIMIT = 2`) and the same-paragraph condition were
+specified directly by the user, not inferred.
+
+**Implementation shape.** `DocstringSummary#end_index`'s original
+character-by-character scan is now `#raw_end_index`, unchanged; `#end_index`
+calls it once for the leading sentence, decides via
+`#low_information_extension_start` whether to extend, and if so calls
+`#raw_end_index` again on the remaining substring (paren-depth and
+abbreviation handling both apply fresh to that second scan) — no
+recursion, no change to the paragraph-break fallback branch. Zero template
+changes needed: `DocstringSummary` was already mixed into every call site
+from the abbreviation fix above, so fixing the module was sufficient.
+
+**One existing ported-fixture collision.** `test/test_docstring_summary.rb`'s
+"returns just the first sentence" parity case used YARD's own spec fixture
+`"DOCSTRING. Another sentence"` — but `"DOCSTRING"` is itself a real
+one-word low-information-shaped candidate, so it now collides with this
+feature instead of testing plain first-sentence extraction in isolation.
+Changed to `"A short docstring. Another sentence"` with a comment
+explaining why, keeping the two behaviors independently testable.
+
+Exercised by three new `Stopwatch` attributes: `#display_precision`
+(1-word merge, `"Optional. ..."`), `#clock_bias` (2-word merge,
+`"Advanced only. ..."`), and `#legacy_tag` (paragraph-break contrast case —
+`"Deprecated."` alone in its own paragraph correctly does *not* merge with
+a separate-paragraph explanation). Unit tests cover the word-limit boundary,
+no-next-sentence, paragraph-break-blocks-merge, single-newline-still-merges
+(a line-wrap collapses to a plain space before this logic ever runs, so it
+never counts as a paragraph break), no-recursion, and the
+abbreviation-interaction case.
+
+Verified against the full `example/lib`/`example/doc` suite, byte-for-byte,
+plus `toys rubocop`/`toys yardoc` clean.
 
 ### Attribute-side wiring for `@note`/`@example`/`@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo`, plus `note_line`'s first-tag-only fix
 
