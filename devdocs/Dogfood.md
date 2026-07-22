@@ -25,7 +25,7 @@ first.
 |---|---|---|
 | YARD (self-run) | Done — findings promoted to DESIGN.md | 2 findings (1 crash) |
 | `hermes-client` | Done (2026-07-21) — 2 checklist items promoted to DESIGN.md | 2 findings, no crash |
-| `rubocop` | Queued (2026-07-21) | Scale + macro-defined methods |
+| `rubocop` | Done (2026-07-21) — 0 checklist items promoted to DESIGN.md (1 crash, confirmed pre-existing YARD-core bug) | Scale + macro-defined methods |
 | `parser` | Queued (2026-07-21) | Racc-generated mega-classes |
 | `toys` | Queued (2026-07-21) | Human-written docs, embedded `toys-core` copy, large `--files` guide, installed-gem generation |
 | `google-cloud-secret_manager-v1` | Done (2026-07-21) — 3 checklist items promoted to DESIGN.md | 3 findings, no crash |
@@ -769,3 +769,243 @@ test than a fourth confirmation would be.
    one-word leading sentences vs. accepting it as an inherited YARD
    limitation, same disposition as the duck-typing/`@note`-split cases this
    run confirmed are unchanged from stock YARD).
+
+### 4. `rubocop`
+
+**Status:** run complete (2026-07-21); no new checklist items promoted to
+DESIGN.md — every finding either replicates an already-fixed/already-accepted
+disposition or turned out to be a pre-existing YARD-core bug outside this
+project's control. New evidence gathered for the "no custom handler classes"
+open question (see below) and folded into DESIGN.md's open-question note,
+per the procedure's step 6 — not resolved.
+
+**Why this gem:** see "Queued candidates" above — already Bundler-vendored
+(`rubocop-1.88.1`, no extra fetch/pin needed), the largest corpus run yet
+(919 source files, ~3x YARD's), and specifically queued to test whether
+cops' `def_node_matcher`/`NodePattern` macro-defined methods are silently
+invisible to YARD's static parser — a different metaprogramming flavor than
+any prior run's `prepend`/`config_attr` cases.
+
+**Setup:** generated with `--markup markdown` (no `.yardopts` ships in the
+installed gem — confirmed by absence, then confirmed empirically: grepped
+`lib/**/*.rb` for markdown-only syntax or rdoc-only syntax and found
+Markdown-dialect tells — `**bold**` in 16 files, `[text](url)` links in 2 —
+and zero rdoc-only tells, e.g. no `rdoc-ref`), against the Bundler-resolved
+`rubocop-1.88.1` gem's `lib/**/*.rb` (919 files), run from within the gem's
+own directory (so `**Defined in:**` paths came out relative to it, e.g.
+`lib/rubocop/cop/style/redundant_sort.rb`). No `--exclude` needed — unlike
+YARD's own run, nothing under `lib/` is template-DSL or vendored-shim source.
+Extra `--files`: `LICENSE.txt`; `README.md` as the readme. Disposable
+script: `/private/tmp/.../scratchpad/dogfood_rubocop.rb` (not committed).
+Result: 1,035 output files (1,032 classes/modules + 2 guide pages +
+`index.md`) from 3,247,460 bytes of source across 919 files. Generation
+completed successfully (not aborted) despite one handler-level crash logged
+to stderr — see Finding 1.
+
+**Findings:**
+
+1. **Crash logged to stderr, but non-fatal and confirmed to be a
+   pre-existing YARD-core bug, not agentdocs-specific.**
+   `YARD::Handlers::Ruby::MixinHandler` raises
+   `NoMethodError: undefined method 'mixins' for an instance of
+   YARD::CodeObjects::ConstantObject` while processing
+   `lib/rubocop/ext/processed_source.rb:20`'s
+   `RuboCop::ProcessedSource.include RuboCop::Ext::ProcessedSource`. Root
+   cause, confirmed by direct read: `lib/rubocop/ast_aliases.rb:6` defines
+   `RuboCop::ProcessedSource` as a plain constant assignment
+   (`ProcessedSource = AST::ProcessedSource`, aliasing a class from the
+   external `rubocop-ast` gem, never parsed as part of this corpus) — YARD's
+   `ConstantHandler` registers this as a `ConstantObject`, not a class
+   `Proxy`, so when the later `.include` statement's `MixinHandler` looks up
+   `RuboCop::ProcessedSource` and calls `.mixins` on whatever it finds, it
+   gets the `ConstantObject` and crashes (`ConstantObject` has no `.mixins`
+   method) instead of resolving to (or gracefully failing on) a class.
+   **Confirmed non-fatal and non-agentdocs-specific:** unlike the YARD run's
+   `alias_original` crash (which aborted the *entire* run because it fired
+   during *template rendering*), this fires during YARD's *parse-time
+   handler* phase, which YARD's own CLI already wraps in a per-statement
+   rescue — generation continued and completed normally, 1,035 files
+   produced. Reproduced the identical crash generating the same two files
+   through YARD's own stock `-f`/`-t default` (HTML) template
+   side-by-side — confirming this is a pre-existing YARD-core parser bug
+   (a gap in `MixinHandler`'s constant-vs-class assumption), not something
+   this project's template introduces or could fix without patching YARD
+   itself, which is out of scope. **No information actually lost:**
+   `RuboCop::ProcessedSource` still renders correctly as a constant entry
+   (`- **Value:** \`AST::ProcessedSource\``, confirmed in `RuboCop.md`), and
+   `RuboCop::Ext::ProcessedSource` still renders fully as its own file with
+   its own methods — the only thing missing is the (invisible-anyway, since
+   `AST::ProcessedSource` isn't in-corpus) mixin relationship itself. Only 1
+   occurrence in the whole corpus.
+
+2. **`def_node_matcher`/`def_node_search`-defined methods render correctly
+   at real scale — because rubocop's own maintainers enforce compensating
+   `@!method` documentation via their own custom cop, not because YARD
+   understands the macro.** 534 `def_node_matcher`/`def_node_search` call
+   sites found; **521 (97.6%) are immediately preceded by a `# @!method
+   name(params)` YARD directive** (confirmed by a direct scan: each
+   call site's preceding 3 source lines checked for `@!method`). Verified
+   one end-to-end: `Style::RedundantSort`'s `def_node_matcher
+   :redundant_sort?, ...` (preceded by `# @!method
+   redundant_sort?(node)`) renders `### #redundant_sort?` with the correct
+   `(node)` signature in both `## Member Summary` and its own entry in
+   `RedundantSort.md` — no gap. This convention isn't just author diligence:
+   `lib/rubocop/cop/internal_affairs/node_matcher_directive.rb` is rubocop's
+   own custom lint cop (`InternalAffairs/NodeMatcherDirective`) that flags
+   any `def_node_matcher`/`def_node_search` call missing a preceding
+   `@!method` comment — the compensating documentation is *enforced by
+   RuboCop linting itself*, not incidental. The remaining 13 (2.4%)
+   "uncompensated" hits are not real gaps on inspection: several are
+   `@!method`-directive example text or `RESTRICT_ON_SEND` arrays (not real
+   calls), and the two genuine call sites
+   (`lib/rubocop/cop/lint/useless_access_modifier.rb:283,310`) construct the
+   matcher's *name* from a user-configurable string at runtime
+   (`matcher_name = :"#{m}_method?"`) — a fully dynamic name with no single
+   static call site any static tool (YARD or otherwise) could statically
+   document, the same category as already-accepted "genuinely dynamic,
+   nothing to fix" gaps.
+
+3. **A second, structurally different metaprogramming macro,
+   `ExcludeLimit#exclude_limit`, defines a real instance method
+   (`define_method`) with a genuinely static, single-call-site name — but
+   gets no compensating `@!method` directive, and is completely invisible
+   in the output.** `lib/rubocop/cop/exclude_limit.rb:35-44`'s
+   `exclude_limit(parameter_name, method_name: transform(parameter_name))`
+   macro (`define_method(:"#{method_name}=") { |value| ... }`) is called at
+   class-body scope with a literal string argument at each of 8 call sites
+   (e.g. `lib/rubocop/cop/metrics/block_nesting.rb:40`'s `exclude_limit
+   'Max'`, which defines `#max=`) — unlike Finding 2's dynamic case, the
+   resulting method name *is* statically determinable from the source (a
+   `@!method max=(value)` directive could be hand-written, exactly as
+   `def_node_matcher` calls already are), but none of the 8 call sites has
+   one. Confirmed completely absent from rendered output: `#max=` does not
+   appear anywhere in `BlockNesting.md` — not in `## Member Summary`, not in
+   `## Instance Methods`, not in `**Inherited & Mixed-in Members**` (checked
+   the full file). Affects 11 cop classes total (5 direct call sites +
+   `Metrics::MethodLength`/`ClassLength`/`ModuleLength`/`BlockLength` via the
+   shared `CodeLength` mixin + `Metrics::CyclomaticComplexity`/`AbcSize` via
+   the shared `MethodComplexity` mixin), 12 missing setter methods overall
+   (`ParameterLists` has 2: `#max=`/`#max_optional_parameters=`) — low
+   prevalence (12 of several thousand rendered methods across the corpus)
+   but a complete, silent loss for each, and the first case this project's
+   dogfood runs have found where the "no custom handler classes" principle's
+   optimistic half — "gem authors compensate with real YARD directives" —
+   doesn't hold. See "What works" below for why this isn't itemized as a new
+   checklist item.
+
+**What works, no changes recommended** (confirms existing decisions/fixes
+hold up on a fourth, much-larger-scale real gem, and replicates two
+already-fixed template bugs staying fixed):
+
+- **`@example` at real, heavy scale renders cleanly.** Nearly every cop
+  docstring includes one or more `@example` blocks (often several, each with
+  its own `*Title*` when `EnforcedStyle`-dependent, e.g.
+  `Style::ConditionalAssignment`'s two titled examples for
+  `assign_to_condition`/`assign_inside_condition`) mixing bad/good
+  bare-indented code — all render as clean, correctly-delimited ` ```ruby `
+  fences in the expected order, titles included, at a scale (roughly one
+  `@example` per class across ~1,032 classes/modules) far beyond any prior
+  run.
+- **The `@safety` custom tag (rubocop's own convention, not a YARD builtin)
+  drops cleanly with zero leaks at real scale.** 136 of 919 files use it
+  (`Unknown tag @safety` warning each time); grepped the full output corpus
+  for `@safety`-block prose fragments (e.g. "This cop is unsafe...") and
+  found zero genuine leaks — the one substring hit
+  (`RuboCop::Cop::Security::YAMLLoad.md`) is a Ruby comment *inside* an
+  `@example` code fence ("Psych 3 is unsafe by default"), not a leaked tag.
+  Confirms "Custom user-defined tags" `(stretch)` holds at 10x+ the prior
+  runs' scale.
+  - Also observed one real, malformed-tag typo in rubocop's own source
+    (`lib/rubocop/cop/team.rb:83-84`: `@deprecated.` with a stray trailing
+    period, and `@return Array<offenses>` missing its `[...]` brackets) —
+    both degrade gracefully (dropped/misparsed without crashing or leaking
+    raw tag syntax into output), not a template issue, just evidence
+    malformed real-world tags don't break anything.
+- **`Docstring#summary`'s two already-fixed prose-truncation bugs
+  (abbreviation-blind "e.g."/"i.e." truncation, and low-information
+  one-word leading sentences) replicate as fixed, not regressed.** Grepped
+  the whole corpus for dangling `e.g.`/`i.e.` at end-of-line (the
+  pre-fix failure shape) — the string `e.g.` appears 53 times across the
+  corpus, always mid-sentence with real content after it (e.g.
+  `RuboCop::Cop::Style::MutableConstant`'s Member Summary bullet: "Checks
+  whether some constant value isn't a mutable literal (e.g. array or
+  hash)."), zero truncated. Also checked for the low-information
+  one-word-sentence pattern (`"Optional."`/`"Required."`-shaped bullets) —
+  zero hits; rubocop's own docstring style doesn't happen to use that idiom
+  (a negative replication result, not a gap — the fix has no reason to
+  regress on a gem that doesn't exercise the pattern).
+- **No empty/broken output files** across 1,035 files; smallest files are
+  all genuine minimal exception classes (e.g. `RuboCop::IncorrectCopNameError`,
+  a bare `< StandardError` with no methods) or genuine private-API markers
+  (`RuboCop::Server::ServerStopRequest` — superclass + `**Private API.**`
+  only), matching the established "correctly minimal, not accidentally
+  empty" pattern.
+- **File-count/size scale confirmed manageable.** 919 source files → 1,035
+  output files generated in one run with no resource issues — the largest
+  corpus yet, more than 3x YARD's 287 files and 8x secret_manager's 120 —
+  but no individual class approached the "100+ methods" scale the
+  file-granularity "escape valve" was deferred against (largest source file
+  is `lib/rubocop.rb` at 756 lines, mostly autoloads; largest real cop file
+  is `lib/rubocop/cop/style/conditional_assignment.rb` at 671 lines). That
+  specific stress test remains open for `parser`'s racc-generated
+  12–15K-line files, still queued.
+
+**Measurements:**
+
+| Measurement | Toy fixture | YARD run | `hermes-client` run | `google-cloud-secret_manager-v1` run | `rubocop` run |
+|---|---|---|---|---|---|
+| Doc corpus vs. source size | **+37%** | **‑24.7%** | **+34.3%** | **‑21.2%** | **‑9.7%** (2,932,989B / 3,247,460B) |
+| Per-entry `**Defined in:**` overhead | **8.6%** | **~11.0%** | **~11.7%** | **~10.4%** | **~13.0%** (380,177B / 2,932,989B) — highest yet |
+| Abbreviation/low-info summary truncation | crash / not probed | not probed | 43/22 of 63 files, "e.g."/"i.e." (bug, since fixed) | 77/32 of 120 files, "Optional."/etc. (bug, since fixed) | **0 — both fixes confirmed holding**; "e.g." pattern present (53 hits, all intact), low-info pattern absent from this gem's style |
+
+The `Defined in:` overhead measurement continues the trend both prior real
+runs established (growing from the toy fixture's 8.6%, not shrinking as
+DESIGN.md originally expected) and sets a new high at ~13.0% — consistent
+with rubocop's shape (many short, focused cop classes, each paying the full
+per-file `**Defined in:**` line cost relative to its own modest content).
+Token economy (‑9.7%) lands between the two "thin wrapper" runs
+(`hermes-client` +34.3%, toy fixture +37%) and the two "heavy method body"
+runs (YARD ‑24.7%, secret_manager ‑21.2%) — cop classes have real logic
+(AST traversal, autocorrection) but each is individually small, and the
+docstrings (full prose + often several `@example` blocks per cop) are
+unusually dense per class, landing this gem in between rather than
+confirming either extreme.
+
+**Evidence for the "no custom handler classes" open question (not
+resolved, per the procedure's step 6 — logged here, folded into DESIGN.md's
+existing open-question note as new evidence only):** this is the fourth
+data point, and the first genuinely mixed one. `def_node_matcher`/
+`def_node_search` (Finding 2) replicates the `google-cloud-secret_manager-v1`
+run's `config_attr` result — real metaprogramming, fully covered by the
+gem's own compensating `@!method` directives, this time shown to be
+*enforced by the gem's own internal linting* rather than just author
+diligence, which is a stronger form of the same "authors compensate"
+pattern. But `exclude_limit` (Finding 3) is the first case across all four
+runs where a statically-nameable, macro-defined method has **no**
+compensating directive and is silently, completely invisible — the
+"authors compensate" half of the principle's optimism doesn't hold
+universally. Not itemized as a new DESIGN.md checklist item: like the
+already-accepted `prepend` gap ("`prepend` content strategy" under
+"Decisions"), closing it would require a custom `Handler` subclass to
+understand the `ExcludeLimit#exclude_limit` macro's semantics specifically
+— exactly the "no custom handler classes" principle already declines to do,
+so this is new evidence *for* the open question (whether to revisit the
+principle), not a template bug to fix under it. Left for the same
+deliberate, dedicated cross-run revisit both the procedure's step 6 and
+DESIGN.md's open-question note already call for, now with one clear
+"authors don't always compensate" data point (`exclude_limit`) in hand
+alongside two "they do" ones (`config_attr`, `def_node_matcher`). `prepend`
+is a related but distinct third category, not really an "authors don't
+compensate" case: it predates this run's framing entirely, since no
+`@!method`-equivalent directive exists at all for distinguishing `prepend`
+from `include` — there's no compensating annotation a `prepend`-using
+author *could* write, whereas `exclude_limit`'s missing `@!method` is a
+directive that could exist (exactly like `def_node_matcher`'s) and simply
+wasn't written.
+
+**Checklist items harvested:** none. Every finding above either (a) confirms
+an already-implemented fix holds (Finding on `Docstring#summary`, both
+patterns), (b) confirms an already-accepted permanent limitation
+(`exclude_limit`, same disposition as `prepend`), or (c) is a pre-existing
+YARD-core bug outside this project's fixable surface (the `MixinHandler`
+crash). No `example/lib` fixture work follows from this run.

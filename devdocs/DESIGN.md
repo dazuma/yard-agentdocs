@@ -1165,7 +1165,26 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   "Prioritization and roadmap") surfaces more cases where stock handlers
   discard data the output format wants, revisit the principle once,
   deliberately — rather than accumulating "permanent gap" decisions one at
-  a time.
+  a time. **Evidence so far (not yet revisited, still deferred):** three
+  dogfood runs have hit real macro-defined-method metaprogramming beyond
+  `prepend` — `google-cloud-secret_manager-v1`'s `config_attr` and
+  `rubocop`'s `def_node_matcher`/`def_node_search` (the latter enforced by
+  rubocop's own internal `InternalAffairs/NodeMatcherDirective` lint cop)
+  both render correctly, fully covered by the gem author's own compensating
+  `@!method`/`@!attribute` directives — no stock-handler gap in either case.
+  But the same `rubocop` run also found `ExcludeLimit#exclude_limit` (a
+  `define_method`-based macro with a statically-nameable, single-literal
+  call site, e.g. `exclude_limit 'Max'`) with **no** compensating directive
+  anywhere across its 8 call sites/11 affected cop classes — the resulting
+  methods (e.g. `Metrics::BlockNesting#max=`) are completely invisible in
+  the rendered output, confirmed by direct inspection. Unlike `prepend`
+  (where no compensating directive could exist at all), an `@!method`
+  directive for `exclude_limit`-defined methods could exist, exactly like
+  `def_node_matcher`'s — the gem's own maintainers just didn't write one.
+  First real data point where the "gem authors compensate" optimism this
+  principle has been running on doesn't hold universally. Full detail in
+  the `rubocop` entry under "Runs" in `devdocs/Dogfood.md`.
+
 ## Decisions
 
 ### File granularity: one file per class/module, members as sections
