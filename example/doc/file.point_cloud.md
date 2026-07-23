@@ -1,3 +1,8 @@
+---
+type: Guide
+title: "Working with point clouds"
+---
+
 # Working with point clouds
 
 A short guide beyond the top-level README, exercising a `--files` guide

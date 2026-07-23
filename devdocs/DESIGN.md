@@ -1270,20 +1270,9 @@ silently overridden by picking these up.
       `devdocs/OKF.md`; its option *(c)* (raising the preamble
       accommodation upstream as a spec issue) is worth pursuing alongside
       whichever fix lands here, independent of this checklist.
-- [ ] (design) Frontmatter on README/`--files` guide pages — found while
-      starting work on the class/module frontmatter item above: OKF's
-      requirement is frontmatter on *every* non-reserved `.md` file, but
-      `file.README.md`/`file.point_cloud.md`-style pages go through a
-      different template entry point (`serialize_extra_file` in
-      `templates/default/fulldoc/agentdocs/setup.rb`) that renders raw
-      `file.contents` with no `type`/`title`/`description` computed at
-      all — those fields need their own answer here (what `type` for a
-      guide? is `description` even derivable without a docstring to
-      summarize?), distinct from the class/module item's answers. Left
-      unaddressed, the tree isn't literally OKF-conformant even once the
-      class/module item lands. Deliberately kept a separate item rather
-      than folded into the class/module one, since the two have different
-      source data and shouldn't block each other.
+- [x] (design) Frontmatter on README/`--files` guide pages — see
+      "Frontmatter on README/`--files` guide pages: uniform `type: Guide`,
+      no `description`" under "Decisions".
 
 ## Open questions
 
@@ -6065,16 +6054,76 @@ line, same shape as `metadata.erb`), rendered from `page.erb` before the
 title line via `<%= erb(:frontmatter).strip %>`, blank line, then the
 existing `# <%= object.type %> <%= object.path %>`. `frontmatter_type`/
 `frontmatter_description` live in `module/agentdocs/setup.rb` under a new
-`# @group Frontmatter` — no new `lib/` mixin, since nothing outside this
-one template needs the escaping helper yet (YAGNI; revisit if/when the
-README/guide-frontmatter or `index.md` `okf_version` items need the same
-escaping).
+`# @group Frontmatter`. The YAML-double-quoting logic itself was extracted
+to `lib/yard/agentdocs/frontmatter.rb` (`Frontmatter#yaml_quote`) once the
+README/guide item below needed the identical escaping for its own
+`title:` — not duplicated ahead of that need, per this project's usual
+YAGNI-until-a-second-caller-exists rule (see "Extracting generic logic
+into `lib/` mixins" under "Implementation").
 
 **Exercised**: every class/module file in `example/doc` and `example/
 rdoc/doc` (25 + 2 files) gained a frontmatter block — not just a couple of
 representative ones — since this is a mechanical, per-file addition with
 no per-object branching left undemonstrated once the no-docstring/
 private-API/cross-reference cases above are covered.
+
+### Frontmatter on README/`--files` guide pages: uniform `type: Guide`, no `description`
+
+Settles the second "OKF interop" checklist item, extending the class/
+module frontmatter decision above to the tree's remaining non-reserved
+`.md` files — the README and any `--files` guides, both rendered through
+`fulldoc/agentdocs/setup.rb#serialize_extra_file`:
+
+```yaml
+---
+type: Guide
+title: "README"
+---
+```
+
+- **`type`**: a single, uniform `Guide` for every extra file, README
+  included — no `README`-vs-`Guide` split. Matches the mechanical,
+  non-proliferating approach the class/module item already took (an
+  exception class still renders plain `Ruby Class`), and the template
+  already treats the README and arbitrary `--files` guides identically
+  (same `serialize_extra_file` path, same `file.<name>.md` naming, per
+  "Arbitrary `--files` guides" above).
+- **`title`**: `file.title` — the exact value `index.md`'s own `##
+  Guides` section already displays (YARD's own fallback: an explicit `#
+  @title` comment, else the file's basename). Unlike the class/module
+  item's `title` (a Ruby FQN, always YAML-safe unquoted), an extra file's
+  title is arbitrary human-supplied text with no safety guarantee, so
+  it's always double-quoted via the same `Frontmatter#yaml_quote` the
+  class/module `description` uses — surfaced and fixed while
+  implementing, before either fixture or template landed on the
+  unquoted form.
+- **No `description`.** Unlike a docstring, an extra file's body is
+  unstructured, dialect-dependent (Markdown or RDoc) prose with its own
+  real heading structure — extracting a "first sentence" summary from
+  that would mean designing a second, riskier heuristic (skip the H1?
+  handle a body opening with a list or fence? which dialect's parser?)
+  for a field OKF marks merely recommended, not required. Left
+  unimplemented rather than guessed at; can be added later without a
+  breaking change if real usage calls for it.
+
+**Implementation**: `serialize_extra_file` now builds a plain
+`"---\ntype: Guide\ntitle: ...\n---\n\n"` string ahead of the existing
+`markdownify`-converted content, rather than an `.erb` partial — matches
+this method's existing style (it already builds `content` via plain Ruby,
+not a template), and a fixed two-line block with no conditional doesn't
+need one. `Frontmatter#yaml_quote` (shared with the class/module
+`description` field) gained its own `test/test_frontmatter.rb`, directly
+round-tripping each edge case above through `YAML.safe_load` rather than
+only indirectly through the fixture tree — per "Extracting generic logic
+into `lib/` mixins" under "Implementation".
+
+**Exercised**: both guides in the main fixture tree (`example/doc/
+file.README.md`, `file.point_cloud.md`, covering the `# @title`-set and
+fallback-to-basename `title` cases) and the rdoc-dialect fixture's README
+(`example/rdoc/doc/file.README.md`, proving the frontmatter block itself
+is dialect-independent — only `content` runs through RDoc conversion).
+
+## Implementation
 
 The `agentdocs` template is implemented and generates output *identical*
 (byte-for-byte) to `example/doc` when run against `example/lib` — verified by

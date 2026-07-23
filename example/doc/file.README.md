@@ -1,3 +1,8 @@
+---
+type: Guide
+title: "README"
+---
+
 # yard-agentdocs example
 
 A tiny toy library of geometric primitives and a stopwatch utility. It

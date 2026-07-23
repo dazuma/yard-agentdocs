@@ -3,6 +3,7 @@
 include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::DocstringSummary
 include ::YARD::AgentDocs::ErbWithTrimMode
+include ::YARD::AgentDocs::Frontmatter
 include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::NodocFilter
 include ::YARD::AgentDocs::TextLayout
@@ -27,10 +28,22 @@ end
 # any one class/module); {#current_dir} is already pinned at the doc root
 # unconditionally for this whole template (see below), so no further
 # override is needed here.
+#
+# Every extra file gets the same OKF-conformance frontmatter: a uniform
+# `type: Guide` (README and `--files` guides render identically here, so
+# neither earns its own `type`) and `title:` from `file.title` — the same
+# value `index.md`'s own `## Guides` section already displays, always
+# quoted since it's free-form text (a `# @title` comment, or a bare
+# filename), never a guaranteed-safe identifier. No `description`: unlike
+# a docstring, an extra file's body is unstructured, dialect-dependent
+# prose with its own real heading structure, and OKF only requires
+# `type` — see "Frontmatter on README/`--files` guide pages" under
+# "Decisions".
 def serialize_extra_file(file)
   self.object = ::YARD::Registry.root
+  frontmatter = "---\ntype: Guide\ntitle: #{yaml_quote(file.title)}\n---\n\n"
   content = markdownify(file.contents, demote_headings: false)
-  Templates::Engine.with_serializer("file.#{file.name}.md", options.serializer) { content }
+  Templates::Engine.with_serializer("file.#{file.name}.md", options.serializer) { "#{frontmatter}#{content}" }
 end
 
 def serialize_index(objects)

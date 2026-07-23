@@ -1,3 +1,8 @@
+---
+type: Guide
+title: "README"
+---
+
 # Greeter example
 
 A minimal **RDoc**-dialect fixture accompanying `Greeter`, exercising this

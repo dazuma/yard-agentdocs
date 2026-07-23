@@ -6,6 +6,7 @@ include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::DocstringSummary
 include ::YARD::AgentDocs::ErbWithTrimMode
 include ::YARD::AgentDocs::ExampleTags
+include ::YARD::AgentDocs::Frontmatter
 include ::YARD::AgentDocs::Markdownify
 include ::YARD::AgentDocs::MemberListing
 include ::YARD::AgentDocs::MemberRoster
@@ -39,8 +40,7 @@ def frontmatter_description
   summary = markdownify(smart_summary(object.docstring))
   return nil if summary.empty?
 
-  escaped = summary.gsub("\\", "\\\\\\\\").gsub('"', '\\"')
-  %("#{escaped}")
+  yaml_quote(summary)
 end
 
 # @group Ancestry (superclass_line overridden for classes; modules have no
