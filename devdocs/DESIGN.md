@@ -1256,20 +1256,11 @@ silently overridden by picking these up.
       every class/module file: `type`/`title`/`description`, description
       always double-quoted" under "Decisions". `resource` remains
       deferred to the dogfood milestone, per that entry.
-- [ ] (design) Root `index.md` restructured for OKF conformance — three
-      sub-issues, in decreasing severity: the "How to navigate these docs"
-      preamble is prose, not the §6 concept-listing structure §9 requires
-      of reserved files (candidate fix: relocate to its own linked concept
-      file, e.g. `navigating.md`, leaving a one-bullet pointer carrying the
-      single most load-bearing rule); add an `okf_version: "0.1"`
-      frontmatter block (root `index.md` only); and align list-item bullet
-      glyphs with the spec's example surface form (`* ` and a spaced
-      hyphen, vs. our `- ` and em-dash) — cheap, but check against the
-      "Prose/summary containing Markdown metacharacters" decision first,
-      since some summaries contain hyphens. See "Part 1" (subsection 2) in
-      `devdocs/OKF.md`; its option *(c)* (raising the preamble
-      accommodation upstream as a spec issue) is worth pursuing alongside
-      whichever fix lands here, independent of this checklist.
+- [x] (design) Root `index.md` restructured for OKF conformance — see "Root
+      `index.md` restructured for OKF conformance: `navigating.md`,
+      `okf_version`, and `* `/spaced-hyphen list rows" under "Decisions".
+      Option *(c)* (raising the preamble accommodation upstream as a spec
+      issue) remains a separate, not-yet-taken action.
 - [x] (design) Frontmatter on README/`--files` guide pages — see
       "Frontmatter on README/`--files` guide pages: uniform `type: Guide`,
       no `description`" under "Decisions".
@@ -6122,6 +6113,69 @@ file.README.md`, `file.point_cloud.md`, covering the `# @title`-set and
 fallback-to-basename `title` cases) and the rdoc-dialect fixture's README
 (`example/rdoc/doc/file.README.md`, proving the frontmatter block itself
 is dialect-independent — only `content` runs through RDoc conversion).
+
+### Root `index.md` restructured for OKF conformance: `navigating.md`, `okf_version`, and `* `/spaced-hyphen list rows
+
+Settles the third, last "OKF interop" checklist item. Three changes to
+`fulldoc/agentdocs/index.erb`/`setup.rb`, per `devdocs/OKF.md`'s "Part 1"
+subsection 2:
+
+- **The navigation preamble is relocated**, not deleted. The "How to
+  navigate these docs" prose (path derivation, member lookup, inherited/
+  mixed-in-member policy, the `*`-vs-`-` trailing-metadata marker rule)
+  moves verbatim onto its own generator-owned page, `navigating.md` —
+  `type: Guide` frontmatter, same uniform type the README/`--files` item
+  above already established, no new type value. Took OKF.md's option
+  *(a)*. Rather than inventing a new index heading just to hold a single
+  pointer bullet, the pointer folds into the **existing** `## Guides`
+  section as its first entry, rendered unconditionally (not gated behind
+  `options.files.empty?` the way project-supplied guides are) — `index.md`
+  ends up with exactly two sections, both genuine §6 concept-listings, no
+  third one invented for a single link. The pointer's description is the
+  user-specified text ("How to look up Ruby classes, modules, methods, and
+  other members, and how to interpret entries in this knowledge bundle."),
+  not OKF.md's original "single most load-bearing rule" draft text.
+  Option *(c)* (raising the preamble accommodation upstream as a spec
+  issue) is a separate, not-yet-taken action — nothing here depends on it.
+- **`okf_version: "0.1"`** added as `index.md`'s only frontmatter (no
+  `type`/`title` — the spec exempts reserved files from those, root
+  `index.md` only per §6).
+- **List rows switch to the spec's exact surface form**: `* ` instead of
+  `- `, and a spaced hyphen (`" - "`) instead of the em dash `summary_suffix`
+  emits everywhere else. Scoped narrowly: `index_summary_suffix` (a
+  `fulldoc/agentdocs`-local method, `index.erb`'s only caller) stops
+  delegating to the shared `TextLayout#summary_suffix` and builds its own
+  `" - #{indent_continuation(markdown)}"` suffix directly, so the em dash
+  used by Member Summary bullets, Params, Returns, etc. across the rest of
+  the tree is untouched — OKF's §6 surface form governs reserved index
+  files, not general body prose, and changing the shared helper would have
+  meant either an unwanted separator change across the whole body grammar
+  or a parameter with no other caller. Verified before committing to it,
+  not assumed safe: grepped the existing corpus for a literal `" - "`
+  inside any summary (none — only mid-word hyphens like `upper-case`,
+  `axis-aligned`, which don't collide with a spaced separator), matching
+  the "Prose/summary containing Markdown metacharacters" decision's
+  general finding that a bare metacharacter's effects stay confined to its
+  own line/bullet. Residual, accepted (not defended against) risk: a
+  future real-world summary containing a genuine spaced hyphen would read
+  ambiguously to a naive line-splitting consumer — left as a documented
+  tradeoff per this project's usual defer-to-dogfood-evidence stance
+  rather than added escaping logic for a hypothetical.
+
+**Implementation**: `setup.rb#serialize_navigating` writes `navigating.md`
+as a plain heredoc string (content is fixed on every run — no per-object
+interpolation, and not sourced from a `--files` guide — same "plain string,
+not an `.erb` partial" precedent `serialize_extra_file`'s own frontmatter
+construction set), called from `init` before `serialize_index`. `index.erb`
+gained the `okf_version` frontmatter block, dropped the old preamble
+section and the `unless options.files.empty?` guide-section guard, and
+added the `navigating.md` pointer as `## Guides`'s first row.
+
+**Exercised**: both fixture trees (`example/doc`, `example/rdoc/doc`) —
+`navigating.md` is byte-identical in both, proving the content is
+dialect-independent, and both `index.md`s show the full new shape
+(`okf_version` frontmatter, `navigating.md` pointer, `* `/spaced-hyphen
+rows) rather than just the main fixture.
 
 ## Implementation
 

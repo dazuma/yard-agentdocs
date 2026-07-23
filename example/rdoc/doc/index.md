@@ -1,39 +1,15 @@
+---
+okf_version: "0.1"
+---
+
 # yard-agentdocs rdoc-dialect fixture — API Reference
-
-## How to navigate these docs
-
-- **Path derivation:** a class/module's file path mirrors its fully-qualified
-  name, with `::` becoming a directory separator — e.g. `Foo::Bar` is
-  `Foo/Bar.md`, `Foo::Bar::Baz` is `Foo/Bar/Baz.md`. If you already know the
-  FQN you're after, go straight to that path; the index below is only for
-  discovering a name you don't have yet.
-- **Member lookup:** every constant, attribute, and method is its own `### `
-  heading inside its class/module's file — `` ### NAME `` for constants,
-  `` ### #name `` for instance methods/attributes, `` ### .name `` for class
-  methods. `grep -n '^### '` in one file lists every member there with its
-  exact line number; e.g. `grep -rn '^### #each' .` finds the `#each` method
-  across the whole tree without knowing which class it belongs to.
-- **Inherited and mixed-in members aren't duplicated in full.** A
-  class/module's file documents only members defined in its own source,
-  plus a names-only **Inherited & Mixed-in Members** list in `## Member
-  Summary` naming what its immediate superclass and directly-`include`d/
-  `extend`ed modules each contribute — one hop only, not the full ancestry
-  chain, and not anything from outside this project's own parsed source.
-  For the actual docs behind any of those names, follow the
-  `**Superclass:**`, `**Includes:**`, or `**Extends:**` link near the top
-  of the file to that type's own file.
-- **Trailing metadata uses `*`, not `-`.** A member's own content bullets
-  (`**Params:**`, `**Returns:**`, `**Raises:**`, etc.) always use `- `.
-  Deprecation/note/abstract flags, aliasing, and trailing `**Since:**`/
-  `**Version:**`/`**Author:**`/`**Defined in:**` lines always use `* `
-  instead, and stack with no blank line between them — a deliberate marker
-  change so they never render as part of the preceding content list.
 
 ## Guides
 
-- [`README`](file.README.md)
+* [`Navigating these docs`](navigating.md) - How to look up Ruby classes, modules, methods, and other members, and how to interpret entries in this knowledge bundle.
+* [`README`](file.README.md)
 
 ## Classes & modules
 
-- [`Greeter`](Greeter.md) — Builds a greeting string.
-- [`TagConversion`](TagConversion.md) — Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.
+* [`Greeter`](Greeter.md) - Builds a greeting string.
+* [`TagConversion`](TagConversion.md) - Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.

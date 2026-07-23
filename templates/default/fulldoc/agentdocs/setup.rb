@@ -12,9 +12,56 @@ include ::YARD::AgentDocs::VisibilityInfo
 def init
   options.serializer.extension = "md" if options.serializer
   objects = run_verifier(options.objects).reject(&:root?).reject { |o| bare_nodoc?(o) }
+  serialize_navigating
   serialize_index(objects)
   options.files.each { |file| serialize_extra_file(file) }
   objects.each { |object| serialize(object) }
+end
+
+# Generator-owned page holding the path-derivation/member-lookup/etc.
+# reading conventions for this tree — formerly an `index.md` preamble,
+# relocated here so `index.md` itself is a conformant OKF §6 concept-listing
+# (see "Root index.md restructured for OKF conformance" under "Decisions").
+# Content is identical on every run (no per-object interpolation, and not
+# sourced from a `--files` guide), so it's a plain string, same precedent as
+# {#serialize_extra_file}'s own frontmatter construction.
+def serialize_navigating
+  content = <<~MARKDOWN
+    ---
+    type: Guide
+    title: "Navigating these docs"
+    ---
+
+    # Navigating these docs
+
+    - **Path derivation:** a class/module's file path mirrors its fully-qualified
+      name, with `::` becoming a directory separator — e.g. `Foo::Bar` is
+      `Foo/Bar.md`, `Foo::Bar::Baz` is `Foo/Bar/Baz.md`. If you already know the
+      FQN you're after, go straight to that path; the index is only for
+      discovering a name you don't have yet.
+    - **Member lookup:** every constant, attribute, and method is its own `### `
+      heading inside its class/module's file — `` ### NAME `` for constants,
+      `` ### #name `` for instance methods/attributes, `` ### .name `` for class
+      methods. `grep -n '^### '` in one file lists every member there with its
+      exact line number; e.g. `grep -rn '^### #each' .` finds the `#each` method
+      across the whole tree without knowing which class it belongs to.
+    - **Inherited and mixed-in members aren't duplicated in full.** A
+      class/module's file documents only members defined in its own source,
+      plus a names-only **Inherited & Mixed-in Members** list in `## Member
+      Summary` naming what its immediate superclass and directly-`include`d/
+      `extend`ed modules each contribute — one hop only, not the full ancestry
+      chain, and not anything from outside this project's own parsed source.
+      For the actual docs behind any of those names, follow the
+      `**Superclass:**`, `**Includes:**`, or `**Extends:**` link near the top
+      of the file to that type's own file.
+    - **Trailing metadata uses `*`, not `-`.** A member's own content bullets
+      (`**Params:**`, `**Returns:**`, `**Raises:**`, etc.) always use `- `.
+      Deprecation/note/abstract flags, aliasing, and trailing `**Since:**`/
+      `**Version:**`/`**Author:**`/`**Defined in:**` lines always use `* `
+      instead, and stack with no blank line between them — a deliberate marker
+      change so they never render as part of the preceding content list.
+  MARKDOWN
+  Templates::Engine.with_serializer("navigating.md", options.serializer) { content }
 end
 
 # Renders one extra file (the README, or a `--files` guide) onto its own
@@ -55,19 +102,26 @@ def indexed_object_path(object)
   "#{object.path.split('::').join('/')}.md"
 end
 
-# " — summary" suffix for one index row, run through the same
-# `TextLayout#summary_suffix`/`Markdownify#markdownify` pipeline
-# `module/agentdocs`'s `nested_summary_line` uses (dialect conversion,
-# heading demotion, inline `{Name}` reference resolution; still "absence
-# means empty" — no suffix at all when the object has no doc comment). Sets
-# {#object} to +object+ first so `summary_suffix`'s cross-reference
-# resolution/self-reference checks use *that row's* namespace as context —
-# but {#current_dir} is overridden below to stay pinned at the doc root
-# regardless, since every row's summary is rendered onto the one `index.md`
-# file, not onto +object+'s own page.
+# " - summary" suffix for one index row — dialect conversion, heading
+# demotion, and inline `{Name}` reference resolution reuse the same
+# `Markdownify#markdownify` pipeline `module/agentdocs`'s
+# `nested_summary_line` uses; still "absence means empty" — no suffix at
+# all when the object has no doc comment. Sets {#object} to +object+ first
+# so cross-reference resolution/self-reference checks use *that row's*
+# namespace as context — but {#current_dir} is overridden below to stay
+# pinned at the doc root regardless, since every row's summary is rendered
+# onto the one `index.md` file, not onto +object+'s own page.
+#
+# Deliberately doesn't delegate to the shared `TextLayout#summary_suffix`
+# (used everywhere else in the tree — Member Summary bullets, Params,
+# etc.): those stay `" — "` (em dash), unaffected. Only `index.md`'s own
+# `* [Title](url) - description` rows use OKF's `" - "` (spaced hyphen)
+# surface form, per §6 — see "Root index.md restructured for OKF
+# conformance" under "Decisions".
 def index_summary_suffix(object)
   self.object = object
-  summary_suffix(smart_summary(object.docstring))
+  markdown = markdownify(smart_summary(object.docstring))
+  markdown.empty? ? "" : " - #{indent_continuation(markdown)}"
 end
 
 def serialize(object)
