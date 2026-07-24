@@ -27,67 +27,15 @@ first.
 | `hermes-client` | Done (2026-07-21) — 2 checklist items promoted to DESIGN.md | 2 findings, no crash |
 | `rubocop` | Done (2026-07-21) — 0 checklist items promoted to DESIGN.md (1 crash, confirmed pre-existing YARD-core bug) | Scale + macro-defined methods |
 | `parser` | Done (2026-07-21) — 1 checklist item promoted to DESIGN.md | Racc-generated mega-classes |
-| `toys` | Queued (2026-07-21) | Human-written docs, embedded `toys-core` copy, large `--files` guide, installed-gem generation |
+| `toys` | Done (2026-07-23) — 0 checklist items promoted to DESIGN.md | Human-written docs, embedded `toys-core` copy, large `--files` guide at scale, installed-gem generation, no crash |
 | `google-cloud-secret_manager-v1` | Done (2026-07-21) — 3 checklist items promoted to DESIGN.md | 3 findings, no crash |
 | `minitest` | Done (2026-07-21) — 2 checklist items promoted to DESIGN.md | RDoc `:nodoc:`/`:stopdoc:`/`:startdoc:` at scale |
 
 ## Queued candidates
 
-`toys` added 2026-07-21 after the `hermes-client` run completed (see "Runs"
-below). `rubocop`, `parser`, and `minitest` — the other candidates once
-listed here — have all since run to completion; see their entries under
-"Runs" (and the Status table above) rather than this section, which now
-only tracks what's still outstanding.
-
-### `toys`
-
-**Why this gem:** the user's own gem (reasons below given directly by the
-user, verified against the local checkout at
-`~/Documents/Development/oss/toys/toys` and the installed `toys-0.22.0`
-gem before queuing):
-
-1. Familiar territory — the user's own gem, like `hermes-client`.
-2. **Documentation is human-written**, unlike `hermes-client`'s
-   almost-entirely-agent-written docstrings — a useful contrast on the same
-   axis (own-gem familiarity) but the opposite authorship source, which may
-   surface different prose habits (verified: `hermes-client`'s docstrings
-   were confirmed agent-authored during that run's write-up; `toys`'
-   predate this project's agent-assisted workflow).
-3. **Large `--files` entries exercising links/size/prose at scale.**
-   Confirmed via `toys/.yardopts`: extra files are `README.md` (381 lines),
-   `LICENSE.md` (21 lines), `CHANGELOG.md` (725 lines), and
-   `docs/guide.md` — **4,748 lines**, by far the largest guide file this
-   template has ever rendered (dwarfing the toy fixture's one-file
-   `example/docs/point_cloud.md`), a real stress test of the "arbitrary
-   `--files` guides" checklist item's inline-reference/size handling at a
-   scale nothing has hit yet.
-4. **Embeds another gem's source purely for documentation.** `.yardopts`
-   points at `./core-docs/toys/**/*.rb` and `./core-docs/toys-core.rb` —
-   a vendored copy of `toys-core`'s `lib/` (51 files, 584KB, confirmed
-   present verbatim, each file headed by a `**_Defined in the toys-core
-   gem_**` note) kept alongside `toys`' own `lib/toys/**/*.rb` (12 files,
-   140KB) purely so `toys`' own generated docs include `toys-core`'s API
-   without a cross-gem multi-run setup. Untested shape: two source trees
-   for two different gems, parsed into one shared registry/output corpus,
-   with `toys-core`'s own classes/modules appearing under their own
-   namespace but attributed to a different gem's source paths.
-
-**Generate from the installed gem, not the local checkout** — this is the
-point of running `toys` at all, per the user: confirms the whole
-`--files`/embedded-source/`.yardopts` setup survives being generated from
-a real end-user install, not just the dev repo. Verified this is meaningful
-to test, not redundant with the local checkout: the gemspec's `spec.files`
-deliberately packages `core-docs/**/*.rb`, `docs/*.md`, and `.yardopts`
-into the shipped gem (confirmed present in the installed `toys-0.22.0` at
-`~/.local/share/mise/installs/ruby/4.0.5/lib/ruby/gems/4.0.0/gems/toys-0.22.0`:
-`core-docs/` — 51 files, `docs/guide.md`, `.yardopts`, `lib/toys/` — 12
-files — all match the local checkout's counts), specifically so an
-installed `toys` gem can regenerate its own docs standalone — this run is
-the first time anything here would exercise that path rather than assuming
-it works. Total installed gem size ~1.0MB.
-
-**Not yet run** — queued only, per the user's explicit instruction not to
-start it in this session.
+None outstanding as of 2026-07-23 — `toys` (added 2026-07-21) was the last
+one listed here and has since run to completion; see its entry under "Runs"
+(and the Status table above). Add new candidates here as they're picked.
 
 ## Procedure (applies to every run)
 
@@ -1472,3 +1420,223 @@ content" categories (see "What works" above).
    `<code>` in `Markdownify#markdownify`'s existing post-processing step,
    or survey `RDoc::Markup::ToMarkdown` more broadly for other raw-HTML
    leftovers first).
+
+### 7. `toys`
+
+**Status:** run complete (2026-07-23); zero new checklist items promoted to
+DESIGN.md. This run's value is confirmatory, not discovery: it validates
+four already-decided/implemented behaviors against real evidence at a scale
+nothing had exercised yet (embedded-second-gem source attribution, large
+`--files` guide at scale, hand-written prose style, unresolved-cross-reference
+handling) rather than surfacing new gaps.
+
+**Why this gem:** the user's own gem, human-written docs (unlike
+`hermes-client`'s agent-written docstrings — see that run's entry), queued
+2026-07-21 specifically for three untested shapes: a large `--files` guide at
+real scale (`docs/guide.md`, 4,748 lines/166,300 bytes — the largest guide
+file this template has rendered, dwarfing the toy fixture's one-file
+`example/docs/point_cloud.md`), a gem that embeds a *second* gem's source
+purely for documentation (`core-docs/` is a vendored, verbatim copy of
+`toys-core`'s `lib/`, each file headed by a hand-written `**_Defined in the
+toys-core gem_**` note — two source trees, one shared registry, `toys-core`
+classes appearing under their own namespace but attributed to a different
+gem's file paths), and generating from a real installed end-user gem rather
+than a dev checkout (confirms the gemspec's packaged `core-docs/**/*.rb`,
+`docs/*.md`, and `.yardopts` survive `gem install` and can regenerate docs
+standalone).
+
+**Setup:** generated from the **installed** `toys-0.22.0` gem at
+`~/.local/share/mise/installs/ruby/4.0.5/lib/ruby/gems/4.0.0/gems/toys-0.22.0`
+(per explicit instruction — not the local git checkout at
+`~/Documents/Development/oss/toys`), using this project's own
+in-development `lib`/`templates` (not a separately installed
+`yard-agentdocs` gem — there is none; `gem list yard-agentdocs` is empty).
+Markup dialect confirmed as `markdown` both from the installed gem's own
+`.yardopts` (`--markup=markdown --markup-provider redcarpet`) and by
+inspection (backtick code spans, `{ClassName}` cross-refs, bullet lists —
+no RDoc `+word+`/`:nodoc:` idioms anywhere; confirmed 0 `:nodoc:`/
+`:stopdoc:`/`:startdoc:` occurrences in the source). Ran with `--markup
+markdown --markup-provider redcarpet` (redcarpet available as a system gem;
+not a project dependency, so the disposable script activates it directly
+with `gem "redcarpet"` rather than going through `bundler/setup`, which
+would otherwise reject it as unlisted). Source: `lib/toys/**/*.rb` +
+`lib/toys.rb` (11 files) + `core-docs/toys/**/*.rb` +
+`core-docs/toys-core.rb` (51 files) = 63 files, 602,604 bytes — mirroring
+the installed gem's own `.yardopts` file list exactly. Extra `--files`:
+`README.md` (15,390B), `LICENSE.md` (1,094B), `CHANGELOG.md` (42,643B),
+`docs/guide.md` (166,300B) — 225,427 bytes combined, roughly 27% of the
+total input corpus. Disposable script:
+`/private/tmp/.../scratchpad/dogfood_toys.rb` (not committed). Output left
+uncommitted at `tmp/toys/` in this repo (gitignored) per the user's request
+to review it directly, rather than the usual scratch-only convention.
+Result: 132 output files (126 classes/modules + 4 guide pages + `index.md` +
+`navigating.md`) from 828,031 bytes of combined source (602,604 code +
+225,427 guide files), 1.1MB total output. Generation completed in a few
+seconds — **exit 0, zero stderr output** (no crash, no warnings at all,
+confirmed via a dedicated stdout/stderr-captured re-run), the cleanest run
+of any gem so far — a genuine data point given the run deliberately probed
+one YARD-core warning-triggering edge case (see Finding 1 below) that stock
+YARD *does* warn on but this project's own resolution path doesn't.
+
+**Findings:**
+
+1. **Confirmed, not new: unresolved `{ClassName}`/`{Class.method}`
+   cross-references are left completely alone (braces included), per
+   `CrossReferencing#resolve_references`'s existing documented contract —
+   this run supplies the first real-world evidence the behavior fires
+   correctly outside the hand-authored fixture, and that stock YARD's own
+   fallback is arguably worse for agent consumption.** Two genuine
+   occurrences, both real documentation defects in `toys`' own source, not
+   agentdocs bugs: `Toys::Testing#toys_exec_tool`'s docstring writes
+   `{Toys::Exec::Result}` (`lib/toys/testing.rb:136`) when the real class is
+   `Toys::Utils::Exec::Result` (confirmed via the same method's own
+   `@return` tag, which resolves correctly) — a stale/wrong namespace typo;
+   and `Toys::ContextualError`'s docstring writes `{ContextualError.capture}`
+   (`core-docs/toys/errors.rb:48`) when no `.capture` method exists anywhere
+   in the parsed corpus — a dangling reference to something either removed
+   or never added. Rendered output in both cases: the literal `{...}` text,
+   unchanged, exactly as `cross_referencing.rb`'s doc comment promises.
+   **Side-by-side comparison with stock YARD's own `-f`/`-t default` (HTML)
+   template on the same file** (narrow single-file re-run, not the full
+   corpus) shows the *opposite* failure mode: stock YARD emits a `[warn]:
+   Cannot resolve link to ContextualError.capture from text: ...` to stderr
+   and silently degrades to plain, **unlinked**, plain-text output with the
+   unresolvable qualifier stripped (`Exec::Result`, `ContextualError.capture`
+   — the latter coincidentally readable since it was already short, the
+   former silently drops the correct `Toys::Utils::` prefix and shows a
+   *wrong-looking but plausible* class name with no indication anything
+   failed). Confirmed via a full narrow-file regeneration that this
+   project's own resolver produces **zero** stderr output for the same
+   input where stock YARD warns — consistent with `cross_referencing.rb`
+   implementing its own regex-based `{...}` resolution rather than
+   delegating to YARD's warning-emitting `resolve_links`/`htmlify`
+   machinery (per "Docstring markup dialect" in DESIGN.md's "Decisions").
+   **Assessment, not a new checklist item:** the existing "leave broken
+   references alone, never partially rewrite" design reads as the *better*
+   choice for this project's purpose on this real evidence — literal
+   `{Name}` braces are an unambiguous, greppable signal to an agent reader
+   that a cross-reference was attempted and failed, versus stock HTML's
+   silent, misleadingly-plausible plain text with the same information
+   loss and no diagnostic trail. Already a settled `Decision`, not
+   re-opened; logged here only as confirming real-world evidence, per
+   `feedback_design_doc_logging_cadence` (this doc, not DESIGN.md, per the
+   "log only when asked, except inside the TDD loop" policy — no DESIGN.md
+   edit made for this finding since it changes no decision).
+
+2. **No new "no custom handler classes" evidence — a clean negative
+   result, unlike `minitest`'s.** Grepped `lib/toys`/`core-docs` for
+   `define_method`/`method_missing`/`prepend`/`class_eval`/`instance_eval`:
+   every `prepend` hit is inside `@param prepend [true,false]` doc comments
+   (a DSL keyword argument named `prepend`, not a runtime `Module#prepend`
+   call) — zero real metaprogramming hits anywhere in either source tree.
+   Confirms this run's central axes (embedded second-gem source, guide
+   scale, cross-reference resolution) are orthogonal to the metaprogramming
+   axis, same disposition as `minitest`'s equivalent check.
+
+**What works, no changes recommended** (confirms existing decisions/fixes
+hold up on a seventh real gem, the first hand-written-docs run since
+`hermes-client`/`toys-core`'s own contrast pairing, and the first
+two-source-tree/embedded-second-gem run of any kind):
+
+- **Two-source-tree merging (own `lib/toys` + vendored `core-docs/toys-core`
+  copy) works exactly as intended, with no observed rendering artifacts.**
+  Spot-checked `Toys.md` (the reopened top-level module — defined across
+  `lib/toys.rb`, `lib/toys/version.rb`, `core-docs/toys/dsl/base.rb`, and
+  `core-docs/toys-core.rb` simultaneously): the `**Defined in:**` line
+  correctly lists all four source files for the class-level entry, and each
+  individual constant/method/attribute below it carries its own single
+  correct file:line pointer to whichever of the four it actually came from
+  — no cross-contamination, no duplicate members, no dropped members from
+  either tree. The hand-authored `**_Defined in the toys-core gem_**` note
+  toys' own authors write at the top of every `core-docs/` file's docstring
+  renders as ordinary prose (visible in both the file's `description`
+  frontmatter and body) — a real author convention this project's cross-gem
+  attribution feature doesn't need to know about or special-case, since the
+  authors solved cross-gem clarity themselves at the source level. 341
+  occurrences of that note across the corpus, appearing in 114 of the 126
+  rendered class/module files (vs. 51 `core-docs/` source files — most
+  `core-docs/` files define more than one class/module, and the note
+  repeats per-member as well as at the class level) — confirming this is
+  pervasive, not incidental.
+- **Large `--files` guide (166,300 bytes / 4,748 lines) renders cleanly at
+  the largest scale tested yet, with headings and internal anchor links
+  intact.** Heading-level counts match the source almost exactly (58 total
+  `#`-prefixed lines in the source vs. 57 in the output — the one-line
+  difference is the source's `<!-- # @title Toys User Guide -->` HTML-
+  comment-wrapped YARD title directive being correctly excluded from the
+  real heading count, not a rendering loss); `##`/`###`/`####` counts match
+  exactly (13/67/27 both sides). No heading demotion applied to this file
+  (unlike the RDoc-conversion path's `demote_headings` post-processing
+  noted in the `minitest` run) — expected, since this input is already
+  native Markdown, not a converted dialect. Spot-checked two internal
+  anchor links (`#defining-flags`, `#custom-acceptors`) against their
+  corresponding rendered heading text (`### Defining flags`, `### Custom
+  acceptors`) — both match GFM's slug-generation rules exactly, so in-guide
+  navigation isn't broken by the pass-through.
+- **The two already-fixed `Docstring#summary` bugs stay fixed.** 113
+  `e.g.`/`i.e.` occurrences in the source; grepped the full rendered corpus
+  for the truncation bug's signature pattern (a rendered line ending
+  exactly at `e.g.`/`i.e.`) — the 3 hits found are ordinary mid-sentence
+  line wraps inside list continuations, not truncations (confirmed by
+  reading surrounding context in `Toys/DSL/Flag.md`). Low-information
+  one-word-leading-sentence pattern: zero occurrences, another negative
+  result consistent with `rubocop`/`minitest`'s (this gem's docstring style
+  doesn't write terse one-word field docs either).
+- **`@overload` renders correctly at real usage sites, confirming the
+  `reference_local_handwritten_gem_checkouts` memory's specific citations.**
+  Spot-checked `Toys::Context#set` (2-way overload, plus an `#__set` alias
+  cross-reference), `Toys::DSL::Tool#static`/`#set` (2-way overloads each),
+  and `Toys::Middleware.spec` (3-way overload) — all render with correct
+  per-overload signature blocks, params, and returns, matching the toy
+  fixture's established shape. 569 total per-overload signature blocks
+  rendered across the corpus (a mix of true multi-signature `@overload`
+  members and ordinary single-signature methods, not separately broken out
+  by count here).
+- **No empty/broken output files** across all 132; smallest class/module
+  files (`Toys/NotRunnableError.md` at 310 bytes and similar) are genuine
+  minimal single-line-`StandardError`-subclass files, not accidental
+  empties.
+- **Deprecated/private-API/alias markers all render correctly at scale.**
+  136 `(private API)` markers, 80 `**Alias for:**` cross-references, 1
+  `**Deprecated.**` flag (`Toys::DSL::Tool#alias_tool`, with its
+  replacement-guidance text intact) — all spot-checked render with correct
+  placement and linking, no new edge cases beyond what prior runs already
+  confirmed.
+
+**Measurements:**
+
+| Measurement | Toy fixture | YARD run | `hermes-client` run | `secret_manager` run | `rubocop` run | `parser` run | `minitest` run | `toys` run |
+|---|---|---|---|---|---|---|---|---|
+| Doc corpus vs. source size | **+37%** | **‑24.7%** | **+34.3%** | **‑21.2%** | **‑9.7%** | **‑86.6%** | **+74.1%** raw (caveat) | **+4.3%** total (863,827B / 828,031B); **+3.1%** class/module-only (621,544B / 602,604B) |
+| Per-entry `**Defined in:**` overhead | **8.6%** | **~11.0%** | **~11.7%** | **~10.4%** | **~13.0%** | **~29.2%** | **~9.46%** | **~8.62%** (53,578B / 621,544B, class/module files only) — lowest of any real-gem run |
+| Abbreviation/low-info summary truncation | crash / not probed | not probed | 43/22 of 63 files (bug, fixed) | 77/32 of 120 files (bug, fixed) | 0 — fixes holding | 0 — fixes holding | 0 — fixes holding | 0 — fixes holding |
+| `:nodoc:`/`:stopdoc:`/`:startdoc:` bare-token docstrings | n/a | not probed | n/a | n/a | n/a | 3, incidental | 138/523 (~26.4%) | 0 — markdown-dialect gem, doesn't use RDoc directives at all |
+| Unresolved `{...}` cross-references left literal | not probed | not probed | not probed | not probed | not probed | not probed | not probed | 2 (both confirmed pre-existing `toys` doc defects, not agentdocs bugs) |
+
+**Honest read on statistical significance:** at 63 source files/602,604
+source bytes (or 828,031B including the four guide files), this is the
+second-largest real-gem corpus after `rubocop`/`parser`, and the first to
+combine two independently-sized source trees (`toys`' own 11 files vs.
+`toys-core`'s vendored 51) plus the largest `--files` guide by a wide
+margin — a meaningfully different *shape* of scale (breadth across two
+logical gems and one huge guide) rather than just more of the same shape
+already tested. The near-exact source/output size parity (+3.1% for
+class/module files alone) lands close to `secret_manager`'s ‑21.2% and
+`rubocop`'s ‑9.7% rather than either extreme, consistent with the
+`hermes-client` run's "token economy tracks docs-to-code density, not
+toy-vs-real" correction — `toys`' terse-but-real hand-written docstring
+style produces a middling ratio, not an outlier. The zero-crash,
+zero-checklist-item outcome is itself informative given the gem was chosen
+specifically to stress three previously-untested shapes (embedded second
+gem, guide at scale, installed-gem generation) — all three held up without
+needing any template change, the strongest "the design is solid" signal
+of any run so far, though it also means this run adds less *new* falsifiable
+evidence toward the "no custom handler classes" and other open questions
+than `minitest`'s did.
+
+**Checklist items harvested:** none. Every observation above either
+confirms an already-fixed bug stays fixed, confirms an already-decided
+design choice ({@link} resolution's "leave broken refs alone") produces
+good real-world output, or is a real defect in `toys`' own source
+documentation (out of scope, not this project's to fix). No DESIGN.md edit
+made for this run.
