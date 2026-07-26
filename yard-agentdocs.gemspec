@@ -28,6 +28,7 @@ require "yard/agentdocs/version"
   spec.require_paths = ["lib"]
 
   spec.add_dependency "rdoc", ">= 6.0"
+  spec.add_dependency "simple_xdg", "~> 0.1"
   spec.add_dependency "yard", "~> 0.9"
   spec.required_ruby_version = ">= 3.4"
 
