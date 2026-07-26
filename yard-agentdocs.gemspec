@@ -20,6 +20,9 @@ require "yard/agentdocs/version"
 
   spec.files = ::Dir.glob("lib/**/*.rb") +
                ::Dir.glob("templates/**/*") +
+               # FNM_DOTMATCH so the tools' `.toys.rb` files are included.
+               ::Dir.glob("toys/**/*", ::File::FNM_DOTMATCH)
+                    .reject { |path| ::File.basename(path).match?(/\A\.\.?\z/) } +
                (::Dir.glob("*.md") - ["CLAUDE.md", "AGENTS.md"]) +
                [".yardopts"]
   spec.require_paths = ["lib"]

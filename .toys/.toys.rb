@@ -19,3 +19,10 @@ end
 expand :gem_build
 
 expand :gem_build, name: "install", install_gem: true
+
+# Dogfooding: make the tools this gem ships (which users get via
+# `load_gem "yard-agentdocs"`) available in this repo too. `load_gem` would
+# activate the gem and so put its `lib` on the load path; loading straight off
+# disk doesn't, so do it by hand.
+$LOAD_PATH.unshift(::File.expand_path("../lib", __dir__))
+load(::File.expand_path("../toys", __dir__))
