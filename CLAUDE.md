@@ -71,6 +71,8 @@ Run `toys test` and `toys rubocop` before committing.
   to run only that one.
 - **Ruby support:** `required_ruby_version >= 3.4`. All files use `# frozen_string_literal: true`.
 - **Docs as a gate:** `toys yardoc` fails on undocumented objects, so document public API as you add it.
+- **Changelog:** `CHANGELOG.md` is updated automatically by the release process. Never edit it as part
+  of a task, and don't propose editing it.
 - **Top-level constant references:** prefix references to Ruby core/stdlib and external-gem constants with
   a leading `::` (e.g. `::File`, `::Gem::Version`, `::YARD`), to avoid ambiguous resolution within nested
   namespaces. Do not prefix relative constants defined within the current namespace, and do not prefix
