@@ -29,11 +29,6 @@ module YARD
   # documentation in a format designed for coding agents to look up
   # efficiently, rather than for human browsing.
   #
-  # This gem is under initial development; see CLAUDE.md for the current
-  # design status. The `agentdocs` output format is implemented as a set of
-  # YARD templates under `templates/`, registered by `lib/yard-agentdocs.rb`;
-  # invoke it with `yard doc -f agentdocs`.
-  #
   module AgentDocs
   end
 end

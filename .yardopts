@@ -3,6 +3,7 @@
 --markup=markdown
 --main=README.md
 ./lib/yard/agentdocs.rb
+./lib/yard/agentdocs/version.rb
 -
 README.md
 LICENSE.md
