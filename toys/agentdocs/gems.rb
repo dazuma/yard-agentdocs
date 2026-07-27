@@ -33,7 +33,9 @@ long_desc \
   "",
   "Default gems — the ones shipped with Ruby itself — are left out unless" \
     " `--include-default` is given, since many of them are C-backed and" \
-    " document poorly."
+    " document poorly.",
+  "",
+  "To remove bundles again, see `agentdocs gems clean`."
 
 flag :all, "-a", "--all",
      desc: "Build every installed version of every installed gem",
