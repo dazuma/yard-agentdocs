@@ -20,6 +20,14 @@ checklist items carry (design)/(mech)/(stretch) priority markers — see
 DESIGN.md's "Prioritization and roadmap" for what they mean and how the next
 item gets picked.
 
+The gem also ships user-facing Toys tools in `toys/` (included in the gemspec, so users get
+them via `load_gem "yard-agentdocs"`): `agentdocs build` documents a project directory,
+`agentdocs gems` documents installed gems into
+`<XDG data home>/yard-agentdocs/gems/<name>-<version>`, and `agentdocs gems clean` removes
+those bundles again. Each tool file holds only the Toys DSL and prompting; the behavior lives
+in `lib/yard/agentdocs/{builder,gem_builder,gem_cleaner}.rb`, so it is unit-tested and
+documented independently.
+
 ## Purpose
 
 `yard-agentdocs` will be a Ruby gem implementing a [YARD](https://yardoc.org/) plugin. It provides a YARD
