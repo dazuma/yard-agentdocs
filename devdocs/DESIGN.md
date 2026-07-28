@@ -1222,34 +1222,46 @@ may follow; that doc tracks status across all of them.
       `agentdocs build`/`agentdocs gems` tools. Scope is also now settled
       (one lookup-scoped skill, generation subordinate; see "Agent skill
       scope" under "Decisions"), so what remains is writing it — **blocked
-      only on the bundle identity/freshness item just below**, whose answer
-      the skill has to state as a rule. See also "Navigation guidance:
-      preamble plus skill" under "Decisions"
-- [ ] (design) Bundle identity and freshness — what a consumer reads to
-      decide *which* bundle answers a question, and whether what it says is
-      still true. Two sub-problems, both currently unanswerable from the
-      output alone. *Version resolution:* `agentdocs gems` writes
-      `<name>-<version>`, so an agent must resolve which version the project
-      actually uses before it can compute a path — and `Gemfile.lock`, `gem
-      list`, and an active Bundler context routinely disagree; nothing in a
-      bundle says which gem release it was generated from, so a wrong guess
-      reads as a plain cache miss. *Staleness:* a project-local `agentdocs/`
-      tree (from `agentdocs build`) is stale the moment its source changes,
-      with no signal an agent can cheaply check — worse than a miss, since
-      confidently-wrong signatures are exactly what the format exists to
-      prevent. What's in scope here is only what the *output* discloses and
-      how a consumer is told to interpret it: a version, a source
-      fingerprint, a generated-at stamp, or OKF's deferred `resource`
-      identity URI. Constrained by "Frontmatter on every class/module
-      file"'s deliberate omission of `timestamp` (churns every file on every
-      regen for no informational gain) — so any such signal belongs in the
-      root `index.md` alone, or in a new reserved file, never in per-page
-      frontmatter. The consumer-side half is the rule the skill states when
-      the answer is absent, stale, or unknown: rebuild, use it with a
-      caveat, or fall back to source. Producing the signal is tool
-      behavior, tracked with the tools rather than here. Raised by the
-      2026-07-27 skill-scope discussion (see "Agent skill scope" under
-      "Decisions")
+      only on the staleness item just below**, whose answer the skill has to
+      state as a rule. Two further things the skill must specify, folded in
+      here rather than tracked separately because neither needs any output
+      change — both are consumer-side procedure, which this item already
+      owns. *Version resolution:* a `gems` bundle's version is path-encoded
+      (`<name>-<version>`), so the skill has to state a resolution order for
+      deciding which version the project actually uses — `Gemfile.lock`, an
+      active Bundler context, and `gem list` routinely disagree — with a
+      wrong guess landing as a clean, self-announcing miss that recovers by
+      building.
+      *Dependencies `gems` can't see:* `GemBuilder.default_spec_dirs` globs
+      the global specifications dir plus the default-gems dir, so git- and
+      path-sourced dependencies are invisible to it and have no bundle path
+      to compute at all; the skill needs a rule for that case (build against
+      the checkout, or go to source). Only the skill's *rule* is this item's
+      business — whether the location convention should cover such
+      dependencies at all is tracked under "Open questions" ("Bundles for
+      dependencies that aren't installed releases"). See also "Navigation
+      guidance: preamble plus skill" under "Decisions"
+- [ ] (design) Staleness of a bundle built over mutable source — a
+      project-local `agentdocs/` tree (from `agentdocs build`) is stale the
+      moment its source changes, and nothing in the output lets a consumer
+      cheaply notice. This is the failure mode the format exists to prevent:
+      not a miss, which is self-announcing and recovers by rebuilding, but a
+      confidently-wrong signature. Scoped to bundles over **mutable** input
+      only — a `gems` bundle documents an installed release whose source
+      can't change, so it is never stale in this sense and needs nothing
+      here. The format question: does the bundle record something a consumer
+      can check in one read — a source fingerprint, a git SHA, a max source
+      mtime — or do we decline to solve it and have the skill state a
+      conservative rule instead (rebuild before trusting a project-local
+      tree)? If something is recorded, "Frontmatter on every class/module
+      file"'s deliberate omission of `timestamp` constrains where it can go:
+      per-page frontmatter would churn every file on every regen for no
+      informational gain, so a freshness signal belongs in the root
+      `index.md` alone, or in a new reserved file. Emitting the signal is
+      tool behavior, tracked with the tools rather than here; what's in
+      scope is what the output discloses and the rule the skill states when
+      the answer is absent or stale. Raised by the 2026-07-27 skill-scope
+      discussion (see "Agent skill scope" under "Decisions")
 - [x] (design) README and extra files (guides) — scoped to the README only;
       arbitrary `--files` guides remain unaddressed. See "README rendering:
       own page via `options.readme`, no heading demotion" under "Decisions".
@@ -1366,6 +1378,30 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   source-position ranges across otherwise-unrelated statements) —
   squarely inside what this principle already declines to build. Full
   detail in the `minitest` entry under "Runs" in `devdocs/Dogfood.md`.
+- **Bundles for dependencies that aren't installed releases** — raised by
+  the 2026-07-27 skill-scope discussion. `agentdocs gems` builds from
+  installed gem specifications only (`GemBuilder.default_spec_dirs` globs
+  the global specifications dir plus the default-gems dir), so a git- or
+  path-sourced dependency has no bundle path to compute and no supported
+  way to get one. The skill-side half — a fallback rule for that case — is
+  already tracked under "Accompanying agent skill"; what's open here is
+  whether the *location convention* should extend to non-release sources at
+  all. That convention is a consumption contract rather than tool
+  ergonomics: `agentdocs gems` forces its output location precisely "so an
+  agent looking for a gem's docs has one path to compute rather than a
+  convention to discover", and a git dependency has no `<name>-<version>`
+  that identifies it. Candidate directions if extended: a git SHA or ref in
+  the version position, a digest of the source path, or a separate root
+  alongside `gems/`. The alternative is staying releases-only and letting
+  non-release dependencies fall back to a project-local `agentdocs build`
+  tree. **Interacts with the staleness checklist item:** a git checkout or
+  path source is *mutable* input — `git pull`, or a checkout being actively
+  edited — so any bundle for one lands on the staleness side of that item's
+  split rather than the immutable-release side, and would need whatever
+  freshness signal it settles on. Parked here rather than dropped because
+  of the same straddle that nearly lost it: the tool-side mechanics belong
+  with the tools, but the path convention and the freshness consequence are
+  consumption design.
 
 ## Decisions
 
@@ -6209,8 +6245,8 @@ rows) rather than just the main fixture.
 ### Agent skill scope (2026-07-27): one lookup-scoped skill, three owners of guidance
 
 Settles the scope half of the "Accompanying agent skill" checklist item
-(the *writing* of it is still open, and now blocked on the bundle
-identity/freshness item added alongside this entry). The question raised:
+(the *writing* of it is still open, and now blocked on the staleness item
+added alongside this entry). The question raised:
 an agent can do two things with this project — **generate** a bundle for a
 gem or project, and **use** an existing bundle to answer an API question —
 so is that one skill with two steps, or two skills, or one skill plus a
@@ -6302,6 +6338,37 @@ fires reliably, or the build side accrues genuine judgment content
 (choosing a markup dialect, diagnosing a YARD failure, monorepo bundling,
 freshness policy, CI integration) rather than CLI restatement. Splitting
 later costs nothing; splitting now costs a permanent duplicate.
+
+**Correction, same day: "bundle identity and freshness" was logged as one
+checklist item, and shouldn't have been.** The original item covered both
+version resolution and staleness under a "what a consumer reads to decide
+which bundle answers a question, and whether it's still true" umbrella. The
+umbrella doesn't hold, and it obscured the disposition of both halves.
+They don't apply to the same bundles: a `gems` bundle documents an installed
+release (immutable input) and carries path-encoded version identity, so it
+is never stale and has nothing to disclose about which release it describes;
+a `build` bundle has mutable input and no identity at all, so staleness is
+its whole problem and "which version" means nothing for it. They also fail
+differently in kind — a version mismatch is a clean, self-announcing miss
+that recovers by rebuilding, whereas staleness is a silent wrong answer. And
+under the three-owner rule above they land with different owners: version
+resolution needs no output change at all (environment interrogation, i.e.
+pure skill procedure), while staleness is the only half carrying a real
+format question. Restructured accordingly — staleness kept as the standalone
+(design) item, version resolution folded into the skill item as procedure
+the skill must specify. Recorded so the two aren't re-merged later on the
+strength of the same superficial framing, and because the original wording
+("nothing in a bundle says which gem release it was generated from") would
+have sent a future session hunting for a frontmatter field to solve a
+non-problem: the bundle's directory name *is* that assertion. A third
+concern surfaced in the same pass and was likewise kept out of the staleness
+item — git- and path-sourced dependencies are invisible to `agentdocs gems`,
+which is a coverage gap rather than an identity or freshness question. Its
+skill-side half is folded into the skill item as a rule the skill needs; the
+question of whether the bundle-location convention should cover non-release
+sources at all is tracked under "Open questions" ("Bundles for dependencies
+that aren't installed releases"), since it straddles tool work (out of scope
+here) and the consumption contract (in scope).
 
 ## Implementation
 
