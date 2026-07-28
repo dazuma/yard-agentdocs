@@ -1215,12 +1215,41 @@ may follow; that doc tracks status across all of them.
       site), and carry workflow — how to generate docs for a dependency
       that lacks them, where per-gem trees live, when to fall back to
       source via the `**Defined in:**` pointers. Format mechanics stay out
-      (defer to the preamble) so the two artifacts can't drift. **Gated on
-      the dogfood milestone:** its core content is the generation/lookup
-      workflow, which depends on integration decisions (how a consuming
-      project invokes the template per-dependency, where output lands)
-      that dogfooding will settle — writing it earlier means guessing.
-      See "Navigation guidance: preamble plus skill" under "Decisions"
+      (defer to the preamble) so the two artifacts can't drift. **The
+      dogfood gate is lifted** (2026-07-27): both integration decisions it
+      waited on — how a consuming project invokes the template
+      per-dependency, and where output lands — are settled by the shipped
+      `agentdocs build`/`agentdocs gems` tools. Scope is also now settled
+      (one lookup-scoped skill, generation subordinate; see "Agent skill
+      scope" under "Decisions"), so what remains is writing it — **blocked
+      only on the bundle identity/freshness item just below**, whose answer
+      the skill has to state as a rule. See also "Navigation guidance:
+      preamble plus skill" under "Decisions"
+- [ ] (design) Bundle identity and freshness — what a consumer reads to
+      decide *which* bundle answers a question, and whether what it says is
+      still true. Two sub-problems, both currently unanswerable from the
+      output alone. *Version resolution:* `agentdocs gems` writes
+      `<name>-<version>`, so an agent must resolve which version the project
+      actually uses before it can compute a path — and `Gemfile.lock`, `gem
+      list`, and an active Bundler context routinely disagree; nothing in a
+      bundle says which gem release it was generated from, so a wrong guess
+      reads as a plain cache miss. *Staleness:* a project-local `agentdocs/`
+      tree (from `agentdocs build`) is stale the moment its source changes,
+      with no signal an agent can cheaply check — worse than a miss, since
+      confidently-wrong signatures are exactly what the format exists to
+      prevent. What's in scope here is only what the *output* discloses and
+      how a consumer is told to interpret it: a version, a source
+      fingerprint, a generated-at stamp, or OKF's deferred `resource`
+      identity URI. Constrained by "Frontmatter on every class/module
+      file"'s deliberate omission of `timestamp` (churns every file on every
+      regen for no informational gain) — so any such signal belongs in the
+      root `index.md` alone, or in a new reserved file, never in per-page
+      frontmatter. The consumer-side half is the rule the skill states when
+      the answer is absent, stale, or unknown: rebuild, use it with a
+      caveat, or fall back to source. Producing the signal is tool
+      behavior, tracked with the tools rather than here. Raised by the
+      2026-07-27 skill-scope discussion (see "Agent skill scope" under
+      "Decisions")
 - [x] (design) README and extra files (guides) — scoped to the README only;
       arbitrary `--files` guides remain unaddressed. See "README rendering:
       own page via `options.readme`, no heading demotion" under "Decisions".
@@ -6176,6 +6205,103 @@ added the `navigating.md` pointer as `## Guides`'s first row.
 dialect-independent, and both `index.md`s show the full new shape
 (`okf_version` frontmatter, `navigating.md` pointer, `* `/spaced-hyphen
 rows) rather than just the main fixture.
+
+### Agent skill scope (2026-07-27): one lookup-scoped skill, three owners of guidance
+
+Settles the scope half of the "Accompanying agent skill" checklist item
+(the *writing* of it is still open, and now blocked on the bundle
+identity/freshness item added alongside this entry). The question raised:
+an agent can do two things with this project — **generate** a bundle for a
+gem or project, and **use** an existing bundle to answer an API question —
+so is that one skill with two steps, or two skills, or one skill plus a
+requirement that the user pre-build?
+
+**Settled: one skill, scoped to lookup, with generation as a short
+subordinate step that points at the tools rather than restating them.**
+This is also what the checklist item already scoped before the question was
+asked ("carry workflow — how to generate docs for a dependency that lacks
+them"), so the outcome extends the existing decision rather than reversing
+it; the new information is that the shipped `agentdocs gems` tool reduces
+the fallback to a single command line, where the item had anticipated a
+multi-step workflow.
+
+**Why the two tasks aren't peers, despite looking symmetric.** Skill count
+should track *distinct trigger conditions that need a description resident
+in the agent's context*, and the two triggers are asymmetric:
+
+- **Lookup fires implicitly.** "Use gem X to do Y" mentions neither docs
+  nor this project. Nothing but an always-loaded description can make an
+  agent look in a bundle instead of grepping vendored source — the same
+  upstream-discovery argument that justified having a skill at all (see
+  "Navigation guidance: preamble plus skill" above). This is the hard
+  trigger and the skill's whole reason to exist.
+- **Generation fires explicitly.** "Build agentdocs for X" names the tool;
+  a user typing it has already installed the gem deliberately. It needs no
+  resident description to be discovered, and `toys agentdocs build --help`
+  / `toys agentdocs gems --help` are already exhaustive manuals that cannot
+  drift from the code because they *are* the code.
+
+**The anti-drift rule extends from two owners to three.** The existing rule
+split *how* (preamble) from *when and why* (skill). Generation adds a third
+surface, so:
+
+- `navigating.md` (in-band, generator-owned) owns **format mechanics** —
+  path derivation, heading grammar, grep recipes, the inherited-member
+  policy.
+- The tools' own `long_desc` owns **CLI mechanics** — the `--` separator,
+  `--all` semantics, `.yardopts` handling, `--rebuild`, output locations.
+- The skill owns **routing and judgment only** — prefer these docs over
+  source; where a bundle lives; check whether one exists; if missing, one
+  build command; when to give up and follow `**Defined in:**` into source.
+
+This is what dissolves the "too much for one skill" worry: the residue
+after excluding both mechanics surfaces is short (roughly 40–60 lines), and
+a second skill would consist mostly of a third copy of the `long_desc`
+surface — precisely the drift failure the two-owner rule was written to
+prevent.
+
+**Portability is prioritized over harness-specific affordances.** The skill
+targets a single, harness-neutral `SKILL.md`, not a Claude-Code-style
+directory with on-demand `reference/*.md` files. Consequence worth stating,
+because it constrains every later editing decision: the skill stays short
+by *excluding* content, not by deferring it to sub-files. That makes the
+three-owner rule load-bearing rather than stylistic.
+
+**Toys may be assumed present, with an explicit degradation branch.** The
+skill can assume Toys is installed. If it isn't, the skill says so and
+sends the agent to do what it would have done without the skill (source,
+or an HTML yardoc site) — it does not try to install anything. An early
+bail-out branch is a legitimate shape for a skill, which is instructions
+rather than code; the failure mode to guard against is a skill that
+*partially* applies, so the branch has to be an unambiguous abort at the
+top, not a caveat buried mid-procedure.
+
+**One invocation form, once Toys catches up.** A future Toys release will
+support `toys do --gem=yard-agentdocs ...` (in progress separately in the
+Toys repo; the README's Quick start already documents this form
+deliberately), removing the `load_gem "yard-agentdocs"` wiring prerequisite.
+Until it ships, the skill has to handle both forms; afterward it can name
+one. Worth checking which is current when the skill is actually written.
+
+**Considered and rejected:**
+
+- **Two skills (lookup + generation).** Rejected on trigger dilution and
+  the third-copy drift surface above. Distribution was *not* the deciding
+  factor — a split could ship as one directory or one plugin.
+- **Generation-only skill, user pre-builds, lookup left to
+  `navigating.md`.** Rejected: it inverts the value curve. Bundles are most
+  valuable for exactly the gem nobody thought to build in advance, and
+  `navigating.md` cannot fire before the agent has already found the docs.
+- **Multi-file skill with the build workflow in `reference/building.md`.**
+  Rejected by the portability priority above, not on its merits — it is the
+  natural answer on a harness that supports progressive disclosure.
+
+**The tell for revisiting this.** Split generation out when either shows
+up: the skill's description has to name generation explicitly before it
+fires reliably, or the build side accrues genuine judgment content
+(choosing a markup dialect, diagnosing a YARD failure, monorepo bundling,
+freshness policy, CI integration) rather than CLI restatement. Splitting
+later costs nothing; splitting now costs a permanent duplicate.
 
 ## Implementation
 
