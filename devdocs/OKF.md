@@ -1,291 +1,372 @@
 # OKF and yard-agentdocs
 
-Analysis of the **Open Knowledge Format (OKF)** draft spec and what it means
-for this project. Written July 2026 against OKF **v0.1 (Draft)**.
+Analysis of the **Open Knowledge Format (OKF)** spec and what it means for
+this project. Rewritten 2026-08-03 against OKF **v0.2**, superseding the
+July 2026 writeup against v0.1.
 
 - Spec: <https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md>
-- Supporting material reviewed: the OKF `README.md` (motivation, reference
-  producer/consumer agents), the three checked-in example bundles
-  (`bundles/ga4`, `bundles/stackoverflow`, `bundles/crypto_bitcoin`), and the
-  surrounding repo tooling (`toolbox/mdcode` metadata-as-code sync tool, the
-  `samples/discovery` agent skill, the `reference_agent` producer and its
-  `viz.html` graph-viewer consumer).
+- Supporting material reviewed for the original v0.1 pass: the OKF
+  `README.md` (motivation, reference producer/consumer agents), the three
+  checked-in example bundles (`bundles/ga4`, `bundles/stackoverflow`,
+  `bundles/crypto_bitcoin`), and the surrounding repo tooling
+  (`toolbox/mdcode` metadata-as-code sync tool, the `samples/discovery`
+  agent skill, the `reference_agent` producer and its `viz.html` graph-viewer
+  consumer). The v0.2 spec is self-contained (§1) and this pass reads it
+  as such.
 
-This document is analysis and brainstorm only. Nothing here is a decision;
-adopting any of it goes through the normal design workflow (checklist item →
-hand-authored `example/` changes → approval → tests/implementation), and the
-one already-recorded decision it would touch ("No YAML front matter", under
-"Output format: per-file Markdown template" in DESIGN.md) would need to be
-explicitly revisited, not silently overridden.
+**What changed since the last revision of this document.** The July pass was
+a gap analysis of a *nonconformant* tree: it proposed adding frontmatter,
+relocating the index preamble, and declaring `okf_version`. All three were
+adopted and implemented (see the three "OKF interop" entries under
+"Decisions" in `DESIGN.md`), so `example/doc` and `example/rdoc/doc` have
+been conformant bundles since July. This revision therefore does the
+opposite job: it establishes that conformance *survives* the v0.2 bump, and
+asks what the new spec makes newly *available*.
 
-## What OKF is
+As before, this document is analysis and recommendation only. Nothing here
+is a decision; anything adopted goes through the normal design workflow
+(checklist item → hand-authored `example/` changes → approval →
+tests/implementation).
+
+## What OKF is (v0.2)
 
 OKF represents *knowledge* — metadata, context, curated insight — as a
 **bundle**: a directory tree of UTF-8 markdown files. Each non-reserved
-`.md` file is a **concept** (unit of knowledge) whose **concept ID** is its
-bundle-relative path minus `.md`. Structure:
+`.md` file is a **concept** whose **concept ID** is its bundle-relative path
+minus `.md`. The v0.1 substrate is unchanged:
 
 - **Frontmatter (YAML)** on every concept: `type` is REQUIRED (free-form
-  string, no central registry — e.g. `BigQuery Table`, `Playbook`,
-  `Reference`); `title`, `description`, `resource` (canonical URI of the
-  described asset), `tags`, `timestamp` are recommended; arbitrary extra
-  keys are allowed and consumers must tolerate/preserve them.
+  string, no central registry); `title`, `description`, `resource`, `tags`
+  are recommended; arbitrary extra keys are allowed and consumers must
+  tolerate and preserve them.
 - **Body**: free-form markdown, structural markdown preferred. No required
-  sections; `# Schema`, `# Examples`, `# Citations` are *conventional*
-  headings.
-- **Reserved filenames** at any level: `index.md` (directory listing for
+  sections; `# Schema`, `# Examples`, and (new in v0.2) `# Computation` are
+  *conventional* headings.
+- **Reserved filenames** at any level: `index.md` (§8, directory listing for
   progressive disclosure — sections of `* [Title](url) - description`
-  bullets, no frontmatter except an optional `okf_version` block at the
-  bundle root) and `log.md` (newest-first, date-grouped update history).
-- **Cross-links**: plain markdown links; bundle-absolute form
-  (`/tables/customers.md`) recommended over relative. Link semantics are
-  untyped — the relationship kind lives in surrounding prose. Broken links
-  are legal (not-yet-written knowledge).
-- **Consumption is permissive by design**: consumers MUST NOT reject
-  bundles for unknown types/keys, missing optional fields, broken links, or
-  missing indexes.
+  bullets) and `log.md` (§9, newest-first, date-grouped update history).
+- **Cross-links**: plain markdown links; bundle-absolute (`/tables/customers.md`)
+  recommended over relative. Link semantics are untyped. Broken links are
+  legal.
+- **Consumption is permissive**: consumers MUST NOT reject bundles for
+  unknown types/keys, missing optional fields, broken links, or missing
+  indexes.
 
-Conformance (§9) reduces to three hard requirements:
+What v0.2 adds is a stance on *machine-authored* corpora (§1): when most
+concepts are agent-generated, a consumer needs to know where a concept came
+from, how much to trust it, whether it is still true, and whether a number
+was produced the sanctioned way. Four new optional frontmatter families and
+one new concept type serve that:
+
+- **Provenance** — `sources` (§5.1): a list of materials a concept derives
+  from, each entry carrying a REQUIRED `resource` plus optional `id`,
+  `title`, and the credibility signals `author`, `usage_count`,
+  `last_modified`; `usage_window` is written once as a sibling. Per-claim
+  attribution is a markdown footnote whose label is a `sources[].id`.
+- **Trust** — `generated: { by, at }` and `verified: [{ by, at }, …]`
+  (§5.2), with actors written in the `<producer>/<version>` /
+  `human:<id>` / `process:<id>` convention (§7). Consumers derive a **trust
+  tier** from `verified` alone (§5.3): absent ⇒ unverified, non-`human:`
+  actors ⇒ machine-confirmed, a `human:` actor ⇒ human-reviewed.
+- **Lifecycle** — `status: draft | stable | deprecated` (§5.4, absent ⇒
+  `stable`) and `stale_after: YYYY-MM-DD` (§5.5, an absolute date so
+  staleness is a plain date comparison).
+- **Attestation** — `type: Attested Computation` (§10) plus `runtime`,
+  `parameters`, `computation`, `executor`, `attester`: a sanctioned way to
+  compute a value, so a consumer can confirm the blessed computation ran
+  rather than agent-improvised SQL.
+
+Also new: the `references/` directory convention (§6.3) for mirroring
+external material, run instructions, or code as first-class concepts.
+
+The relationship to this project is unchanged and still unusually good. OKF
+adds frontmatter and reserves index/log filenames; we add a much more
+prescriptive *body* grammar (heading sigils, signature blocks, `**Params:**`
+bullets) that OKF deliberately leaves unspecified. They compose.
+
+## Part 1 — Conformance against v0.2
+
+**The tree is already v0.2-conformant.** §11's three hard conditions are
+verbatim v0.1 §9's:
 
 1. Every non-reserved `.md` file has a parseable YAML frontmatter block.
 2. Every frontmatter block has a non-empty `type`.
-3. `index.md`/`log.md`, where present, follow the §6/§7 structures.
+3. `index.md`/`log.md`, where present, follow §8/§9 (v0.1's §6/§7,
+   renumbered but unchanged).
 
-Notably, OKF's stated motivations overlap heavily with this project's:
-human- and agent-readable without SDKs, cheap file reads over API round
-trips, progressive disclosure via indexes, diffable/portable/git-native.
-The two efforts arrived independently at almost the same substrate
-(markdown tree + predictable paths + index files). The differences are that
-OKF adds frontmatter and reserves index/log filenames, while we add a much
-more prescriptive *body* grammar (heading sigils, signature blocks,
-`**Params:**` bullets) that OKF deliberately leaves unspecified. They
-compose: an agentdocs tree can be a valid OKF bundle without giving up any
-of its body conventions.
+Current output satisfies all three: class/module pages carry
+`type`/`title`/`description`, extra files and `navigating.md` carry
+`type: Guide`/`title`, and the root `index.md` is a §8 concept listing in
+the spec's exact `* [Title](url) - desc` surface form with `okf_version` as
+its only frontmatter.
 
-## Part 1 — What conformance would take
+Both of v0.2's **breaking** changes (§13.1) retire v0.1 features this
+project deliberately never emitted:
 
-Gap analysis of the current `example/doc` output against §9:
+| §13.1 breaking change | Our exposure |
+|---|---|
+| `timestamp` superseded by `generated: { by, at }` | None — `timestamp` was explicitly omitted, on churn grounds |
+| Body `# Citations` list superseded by `sources` | None — no citations list is emitted; H1 is reserved for the page title |
 
-| Requirement | Current state | Gap |
-|---|---|---|
-| Frontmatter with `type` on every concept file | None — an explicit prior decision | **The** gap; every class/module file needs a block |
-| Root `index.md` follows §6 | Nav preamble prose + a link-list section | Preamble is not §6 structure; needs relocation or a spec-side accommodation |
-| Per-directory `index.md` | Absent (e.g. no `Geometry/index.md`) | None — indexes are optional; consumers may synthesize |
-| `log.md` structure | Absent | None — optional |
-| Cross-link form | Relative links | None for conformance (both forms legal); spec *recommends* bundle-absolute |
+The `timestamp` omission is worth calling out because it was decided for an
+unrelated reason ("would churn every file on every regen for no
+informational gain", under "Frontmatter on every class/module file") and
+turned out to be forward-compatible by accident, not by foresight. Every
+other v0.2 change is additive-optional (§13.2), so absence yields a plain,
+valid concept.
 
-So conformance is two concrete changes:
+### The one thing that is now wrong
 
-### 1. Frontmatter on every class/module file
+`okf_version: "0.1"` — in `templates/default/fulldoc/agentdocs/index.erb`
+and both fixture trees' `index.md`. It is not a conformance failure (§12
+makes the declaration optional entirely), but it now actively misinforms: a
+v0.2 consumer reading `"0.1"` will arm the §13.1 legacy fallbacks — look for
+a `timestamp` when `generated` is absent, parse a `# Citations` body list —
+that can never fire on our output. Declaring `"0.2"` is simply accurate, and
+requires no other change to the tree.
 
-Minimal conforming block, using data the template already computes (the
-title is the H1's content; the description is the same summary sentence the
-index list already extracts):
+### Not required, still not required
 
-```yaml
----
-type: Ruby Class            # or "Ruby Module"
-title: Geometry::Circle
-description: A circle, defined by its radius.
----
-```
+- **Per-directory `index.md`** (`Geometry/index.md`): optional under §8, and
+  the flat root index plus deterministic FQN→path derivation already covers
+  discovery. Unchanged from the v0.1 assessment; still YAGNI.
+- **`log.md`**: optional. See Part 3 for the API-changelog idea it enables.
+- **Body heading conventions**: `# Schema`/`# Examples`/`# Computation` are
+  H1s; our body reserves H1 for the title and uses `**Examples:**` labels
+  inside member entries. No conformance issue, and restructuring bodies to
+  chase them would trade away the grep grammar for nothing.
+- **Bundle-absolute links**: recommended by §6.1, ours are relative. Both
+  legal. Low-cost, low-urgency, unchanged.
 
-Points worth settling deliberately when this is taken up:
+## Part 2 — What v0.2 newly offers
 
-- **`type` vocabulary.** Types are producer-defined; something
-  self-explanatory like `Ruby Class` / `Ruby Module` matches the style of
-  the spec's examples (`BigQuery Table`). Finer distinctions (exception
-  classes, mixin modules) fit better as `tags` or extension keys than as
-  type proliferation, since consumers route on `type`.
-- **Token cost.** A 3-field block is roughly 5 lines / ~30 tokens per file
-  read, against the "minimize tokens per lookup" goal. It is small but not
-  free, and `title`/`description` duplicate information already present in
-  the H1 and first prose sentence. The honest framing: those ~30 tokens buy
-  compatibility with every OKF consumer; an agent reading the file directly
-  loses almost nothing (frontmatter is self-explanatory and skimmable).
-- **Fields to omit.** `timestamp` (generation time) would churn every file
-  on every regeneration for no informational gain — omit it, or derive it
-  from source-control data if it ever earns its keep. `resource` is
-  discussed in Part 2; it can be added later without a breaking change.
-- **The reversal.** This reverses the recorded "No YAML front matter"
-  decision. That decision predates knowing about OKF; the new fact is that
-  frontmatter is the price of admission to an emerging interchange format
-  whose goals align with ours. Still a user call.
+Ordered by cost/benefit for this project, best first.
 
-### 2. Root `index.md` restructuring
+### 1. `status: deprecated` — the clear win
 
-Three sub-issues, in decreasing severity:
+§5.4's `status` is a three-value lifecycle field, absent ⇒ `stable`. A
+class-level YARD `@deprecated` maps onto `status: deprecated` exactly, and
+the template already has the data: `Geometry::Circle` renders a
+`**Deprecated.**` block in its body today, and it is the fixture's only
+class-level case (the four other `@deprecated` tags in `example/lib` are
+method- or overload-level, and stay in the body — frontmatter is per-concept,
+i.e. per class/module).
 
-- **The navigation preamble.** §6 says an index body is "one or more
-  sections, each grouping concepts under a heading" of link bullets, and
-  §9(3) makes reserved-file structure a hard conformance condition. Our
-  "How to navigate these docs" preamble is prose, not a concept listing.
-  Options:
-  - *(a)* Move the preamble to its own concept file (e.g.
-    `navigating.md`, `type: Reference`), linked first from `index.md`.
-    Cleanly conformant, and consistent with the preamble's own design
-    intent (self-describing, in-band, one file read away) — the cost is
-    that it's now one hop away instead of zero, and an agent that opens
-    only `index.md` doesn't see the mechanics. That cost could be softened
-    with a one-bullet pointer whose description carries the single most
-    load-bearing rule (the FQN→path derivation).
-  - *(b)* Keep the preamble in place and accept technical nonconformance,
-    leaning on the permissive-consumer mandate (a consumer that chokes on
-    extra prose in an index violates the spirit of §9's consumer rules).
-    Pragmatic, but "conformant except where inconvenient" is a weak claim
-    to print on the tin.
-  - *(c)* Raise it upstream: the spec is a v0.1 draft, and "an index MAY
-    open with introductory prose before its sections" is a tiny,
-    compatible accommodation the OKF authors may well accept (their own
-    README-style bundles would benefit). See Part 2.
-  Recommendation: pursue *(c)* while doing *(a)* — *(a)* is correct under
-  the spec as written today, and *(c)* may later let the pointer bullet
-  grow back into a short preamble.
-- **`okf_version` declaration.** Add the spec's optional frontmatter block
-  to the root `index.md` only: `okf_version: "0.1"`. Cheap, and it is the
-  one explicit self-identification hook the format offers.
-- **List formatting.** The spec's examples use `* [Title](url) - desc`;
-  we emit `- [Title](url) — desc`. §6 specifies structure, not bullet
-  glyphs, and both are identical list markup under CommonMark, so this is
-  almost certainly fine as-is. But since the interop payoff comes from
-  naive consumers (some of which will regex rather than parse), matching
-  the spec's exact surface form (`* ` and spaced hyphen) is nearly free —
-  worth doing while touching the file anyway. Caveat: our em-dash
-  separator was chosen deliberately for summary readability, and some
-  summaries contain hyphens; switching to ` - ` needs a quick check
-  against DESIGN.md's "Prose/summary containing Markdown metacharacters"
-  decision before committing to it.
+The cost profile is unusually good by this project's standards: one line,
+only on the rare deprecated page, nothing added to the other ~24 files, no
+new heuristic to design, and no churn across regenerations since the value
+is derived from a source tag rather than from wall-clock time. The payoff is
+that "is this class deprecated" becomes answerable from frontmatter instead
+of body-grammar parsing — the machine-queryable-spine argument in Part 3
+below, but with a *standard* key rather than a producer extension.
 
-### Not required, but adjacent
+Sub-questions it would have to settle (which is why it is a format decision,
+not a mechanical one): whether `@deprecated` on a module behaves the same as
+on a class (it should), whether anything should map to `draft`, and whether
+`status: stable` is ever emitted explicitly or always left implicit (leave
+it implicit — absent already means `stable`, and emitting it would add a
+line to every file to say nothing).
 
-- **Per-directory `index.md`** (`Geometry/index.md` listing the nested
-  classes): optional under OKF, and our flat root index plus deterministic
-  FQN→path derivation already covers discovery. Skip unless a real
-  consumer shows the need (YAGNI).
-- **Body heading conventions.** OKF's conventional `# Schema` /
-  `# Examples` / `# Citations` sections are H1s; our body reserves H1 for
-  the title and uses `**Examples:**` labels inside member entries. No
-  conformance issue (conventions are SHOULD-when-applicable), and
-  restructuring bodies to chase them would trade away our grep grammar for
-  nothing — don't.
-- **Bundle-absolute links** (`/Geometry/Point.md` instead of relative):
-  recommended by §5.1 for move-stability. Our links are generated, so
-  move-stability matters less, but absolute links are also what the OKF
-  viewer and similar consumers rewire most reliably. Low-cost, low-urgency;
-  reasonable to fold in if/when frontmatter lands.
+### 2. Freshness vocabulary — and where it can't go
 
-### Verdict
+This is the part that touches live work. The open `(design)` checklist item
+"Staleness of a bundle built over mutable source" asks whether a bundle
+should record "a source fingerprint, a git SHA, a max source mtime", and
+constrains any such signal to "the root `index.md` alone, or in a new
+reserved file." v0.2 answers the *vocabulary* half and closes off the
+location the item assumed.
 
-Conformance is cheap: one small frontmatter block per file, a relocated
-preamble, and an `okf_version` line. Nothing about the body format — the
-part of this project that actually carries its value — needs to change.
-Given the low cost, if conformance is adopted it should be unconditional
-(the default and only mode), not an opt-in flag; a flag would mean two
-output formats to test and document for ~30 tokens of savings.
+The vocabulary now exists and fits:
 
-## Part 2 — Interoperability ideas
+- `generated: { by, at }` (§5.2) — `by` is REQUIRED within the block and
+  would be `yard-agentdocs/<version>` under the §7 actor convention; `at` is
+  optional and defined as "the content's last **meaningful change**".
+- `stale_after: YYYY-MM-DD` (§5.5) — an absolute date, deliberately not a
+  relative TTL.
+- `sources[].last_modified` (§5.1) — "when the source itself last changed",
+  explicitly distinguished from `generated.at`.
 
-Ordered roughly by leverage per effort. These are brainstorm items, not a
-roadmap; each would become a checklist item only if/when picked up.
+The location problem: §8 says index files contain no frontmatter "with one
+exception: a bundle-root `index.md` MAY carry an `okf_version` key", and §12
+repeats that this is "the only place frontmatter is permitted in an
+`index.md`". Read together, the exception is scoped to that one key — and
+§11(3) makes reserved-file structure one of the three hard conformance
+conditions. So putting `generated`/`stale_after` in the root `index.md`
+trades away conformance for them, which is the wrong trade for a project
+whose whole reason to care about OKF is interop. Three ways out:
 
-1. **Emit conformant bundles; get the OKF consumer ecosystem for free.**
-   The direct payoff of Part 1: any OKF consumer — the reference repo's
-   `viz.html` graph viewer, catalog UIs, consumption agents that already
-   know how to traverse index files and frontmatter — can ingest a
-   generated API-reference tree with zero special-casing. The graph viewer
-   alone is a nontrivial freebie: it renders cross-links (superclass,
-   mixins, `@see`, param types) as a navigable class-relationship graph,
-   which is exactly the structure our output already encodes as links.
+- **(a) A bundle-level concept file** — e.g. `bundle.md`, with a `type` of
+  its own, carrying `generated`, `stale_after`, `resource`, and `sources`
+  for the tree as a whole, and linked from `index.md`'s existing `##
+  Guides` section the way `navigating.md` already is. Fully conformant (it
+  is an ordinary non-reserved concept, so frontmatter is unrestricted), one
+  extra file, one extra read, zero per-page churn — and it gives the
+  deferred `resource` identity bridge somewhere to land in the same move.
+  This is the strongest option the staleness item did not have in July.
+- **(b) Per-page `generated`** — worth *re-examining* rather than citing as
+  settled, because v0.2 changed the semantics that killed `timestamp`.
+  `generated.at` is "last meaningful change", not generation time; derived
+  from source (a git commit date, or a max mtime over `object.files`) it
+  would be stable across regenerations, so the churn objection does not
+  automatically transfer. Against it: mtime is meaningless in a fresh clone,
+  git dates require a git repo and a per-object blame-ish query, and "which
+  files define this class" is already a multi-file answer. Real work for a
+  signal option (a) delivers in one file.
+- **(c) Decline, and have the skill state a conservative rule** (rebuild a
+  project-local tree before trusting it). Still viable; v0.2 does not weaken
+  it. Note the asymmetry that makes this defensible: a `gems` bundle
+  documents an immutable installed release and is never stale, so declining
+  only costs something for `agentdocs build` trees.
 
-2. **Extension frontmatter keys as a machine-queryable spine.** OKF
-   consumers preserve and tolerate arbitrary keys, so we can carry
-   structured facts that today exist only as body prose: e.g. `gem`,
-   `gem_version`, `constant` (the FQN), `superclass`, `includes`,
-   `extends`. That lets a consumer filter/route ("all exception classes in
-   gem X", "everything that includes Enumerable") by parsing five lines of
-   YAML instead of our body grammar. Discipline required: every key added
-   is tokens on every read and a duplication of body content, so each must
-   earn its place — start with none beyond the Part 1 trio and add only
-   against demonstrated consumer need (same YAGNI bar as everything else).
+Note also that `generated.by` is usable *without* `at` — a stable,
+non-churning `generated: { by: yard-agentdocs/<version> }` on every page
+would identify the producer and its version and nothing else. Cheap and
+honest, but it answers a question nobody has asked; it belongs in the
+same-evidence-required bucket as everything else in Part 3.
 
-3. **`resource` as the identity bridge.** OKF's `resource` field is "a URI
-   that uniquely identifies the underlying asset." For a class concept the
-   natural candidates are a rubydoc.info URL, a source URL at the release
-   tag, or a `rubygems.org` gem URL. This is what would let an aggregator
-   deduplicate/merge knowledge about the same class arriving from
-   different bundles (our generated reference vs. someone's hand-curated
-   notes) — the same join key the OKF enrichment tooling uses to bind
-   docs to BigQuery tables. Needs the dogfood milestone to settle what
-   URI is actually derivable at generation time.
+### 3. `sources` — real fit, but gated
 
-4. **Layered enrichment: generated reference as the base layer.** The OKF
-   repo's whole toolchain (reference agent, `mdcode`, enrichment samples)
-   is built around agents *enriching* a bundle over time. That suggests a
-   powerful division for us: the generated tree is a regeneration-owned
-   base layer, and curated knowledge — playbooks, recipes, gotchas,
-   "which of these five methods you actually want" guidance — lives in
-   *separate* concept files (e.g. `guides/`, `playbooks/`) that link into
-   the generated pages via ordinary OKF cross-links. Regeneration never
-   clobbers curation because ownership is per-file; broken links during
-   API drift are legal OKF and detectable by a linter. This directly
-   addresses the "no conceptual on-ramp" gap flagged by the July 2026
-   evaluation (the README/guides checklist item) with an interop-standard
-   answer rather than a bespoke one.
+Every member and page already carries `**Defined in:** \`path/to/file.rb\``.
+§5.1's `sources` is the standard frontmatter home for exactly that, and it
+would make provenance machine-queryable instead of body prose. With an
+absolute `resource` (a source URL at the release tag) it doubles as the
+identity bridge that `resource` was deferred for. And `sources[].last_modified`
+is the spec-blessed shape for per-concept recency — a consumer could tell
+*which pages* went stale rather than only that the tree did.
 
-5. **`log.md` as an API changelog.** OKF's reserved log format (date
-   headings, `**Update**`/`**Creation**`/`**Deprecation**` bullets) maps
-   startlingly well onto "what changed in this gem's API between v1 and
-   v2" — a question agents ask constantly during upgrades and one that
-   diffing two doc trees answers poorly. A generator that compares the
-   previous tree (or YARD registry) against the current one and emits
-   log entries would make the bundle answer upgrade questions in one read.
-   Likely post-dogfood; the diffing machinery is real work.
+Two honest caveats before this looks better than it is: `last_modified` is
+day-granular, so it cannot see a file edited minutes ago (the exact failure
+the staleness item is about), and the field otherwise duplicates content the
+body already carries. Same YAGNI bar as the rest of Part 3 — gated on
+dogfood evidence that a consumer actually wants it.
 
-6. **Distribution: gems shipping their own knowledge bundle.** A bundle
-   is "a subdirectory within a larger repository" per §3, so a gem could
-   ship its generated tree in the packaged gem or repo (the metadata-as-
-   code pattern `mdcode` promotes). An agent working in a project could
-   then resolve "docs for gem X vX.Y" to a local directory via Bundler,
-   with no network and no generation step. This is really a distribution
-   question for the existing skill roadmap item (which already owns "where
-   per-gem trees live, how to generate missing ones") — OKF's contribution
-   is that the answer would use a public convention rather than a private
-   one.
+### 4. Trust tiers don't model what we produce
 
-7. **Cross-domain linking in mixed bundles.** Because OKF is
-   domain-agnostic, one organization's bundle can contain both data-catalog
-   concepts (the spec's home turf) and API reference. A `BigQuery Table`
-   concept's "how do I read this from Ruby" section could link straight to
-   the client class's concept file in the same tree. We don't have to do
-   anything to enable this beyond conformance — it's an argument for why
-   conformance matters: it makes our output *composable into* knowledge
-   corpora we don't control.
+§5.3 derives three tiers from `verified` alone: unverified, machine-confirmed,
+human-reviewed. A deterministically generated API reference has no honest
+place on that ladder. We cannot claim `verified` — the generator *produced*
+the content, so it has not independently confirmed it against anything —
+which leaves us in **unverified**, the same tier as an unreviewed LLM guess,
+despite being a mechanical transformation of authoritative source. §1's
+motivation ("when most concepts are machine-generated… how much should I
+trust it?") assumes extraction-by-LLM and doesn't model
+derivation-by-compiler.
 
-8. **Engage upstream while it's a draft.** OKF v0.1 is explicitly a draft
-   in a repo soliciting contributions, and its examples are entirely
-   data-catalog-shaped. An API-reference producer is exactly the kind of
-   second domain that pressure-tests a "universal" format. Concretely
-   worth raising: the index-preamble accommodation (Part 1's option *(c)*),
-   and possibly a conventional `type` vocabulary note for code-reference
-   concepts so independent producers (a Python/Sphinx analog, a TypeScript
-   analog) converge on compatible types. Filing issues costs little and
-   buys standing if the format gets traction.
+Emitting `verified: { by: process:… }` to escape the bottom tier would be
+overclaiming, and this project should not do it. The right response is
+upstream feedback (Part 4), not a frontmatter change.
 
-9. **Skill + bundle pairing.** The OKF repo's `samples/discovery`
-   demonstrates the same pattern our roadmap already contains: a SKILL.md
-   that routes an agent into a knowledge bundle. When our skill item comes
-   off its dogfood gate, "the tree is an OKF bundle" becomes part of the
-   skill's pitch — an OKF-aware agent needs to be taught only *where* the
-   bundle is, not *how* to traverse it, because index files, frontmatter,
-   and link semantics are already shared convention. Shrinks the exact
-   drift surface the preamble/skill division of labor was designed to
-   manage.
+### 5. Attested computations — not our domain
+
+§10 is the largest addition in v0.2 and is entirely irrelevant here.
+Runtimes, executors, receipts, and attesters exist so a consumer can confirm
+a *number* was computed the sanctioned way; nothing in Ruby API reference is
+a sanctioned computation over a warehouse. Recorded explicitly as
+inapplicable so a future session doesn't re-derive the question from the
+spec's prominence.
+
+### 6. Incidental, no action
+
+- **`references/` (§6.3)** is a naming convention with no conformance force.
+  A Ruby namespace named `References` would produce a colliding root
+  `references/` directory — cosmetic, not a violation.
+- **Footnote attribution (§5.1)** introduces `[^label]` as meaningful
+  syntax. We emit no footnotes; a docstring that happens to contain `[^…]`
+  is the pre-existing Markdown-metacharacter concern already settled under
+  "Prose/summary containing Markdown metacharacters", not a new one.
+- **`tags`** stays optional and unemitted. §3.1 clarifies that OKF specifies
+  no tag-aggregation file format, so nothing is expected of a producer here.
+
+## Part 3 — Interoperability ideas
+
+Carried forward from the v0.1 writeup, minus the items conformance already
+delivered, updated where v0.2 changes the picture. These are brainstorm
+items, not a roadmap.
+
+1. **The OKF consumer ecosystem, already earned.** Conformance is done, so
+   any OKF consumer — the reference repo's `viz.html` graph viewer, catalog
+   UIs, consumption agents that traverse index files and frontmatter — can
+   ingest a generated tree with no special-casing. The graph viewer renders
+   cross-links (superclass, mixins, `@see`, param types) as a navigable
+   class-relationship graph, which is exactly what our output already
+   encodes as links. Nothing to do; worth remembering as the reason the
+   remaining items are worth anything.
+
+2. **Extension frontmatter keys as a machine-queryable spine.** Consumers
+   preserve and tolerate arbitrary keys, so structured facts that today live
+   only in body prose (`gem`, `gem_version`, `constant`, `superclass`,
+   `includes`, `extends`) could be filtered on by parsing five lines of YAML.
+   Discipline unchanged: every key is tokens on every read and a duplication
+   of body content. v0.2 shifts one item off this list — deprecation is now
+   a *standard* key (`status`), not an extension — which is precisely why
+   it's the one worth doing first.
+
+3. **`resource` as the identity bridge.** Unchanged from v0.1: a URI that
+   uniquely identifies the underlying asset (rubydoc.info URL, source URL at
+   the release tag, rubygems.org gem URL) is what lets an aggregator merge
+   knowledge about the same class arriving from different bundles. Still
+   needs the dogfood milestone to settle what is actually derivable at
+   generation time. v0.2 adds a natural home for a bundle-level one (Part 2
+   option (a)) alongside the per-page one.
+
+4. **Layered enrichment: generated reference as the base layer.** The
+   generated tree is a regeneration-owned base layer; curated knowledge —
+   playbooks, recipes, gotchas, "which of these five methods you actually
+   want" — lives in *separate* concept files linking into the generated
+   pages via ordinary cross-links. Regeneration never clobbers curation
+   because ownership is per-file, and broken links during API drift are legal
+   OKF. v0.2 strengthens this: `status: draft`, `verified`, and `sources` are
+   exactly the fields a hand-curated or agent-curated overlay layer wants,
+   and they now mean something standard rather than bespoke.
+
+5. **`log.md` as an API changelog.** §9's date-grouped
+   `**Update**`/`**Creation**`/`**Deprecation**` format still maps well onto
+   "what changed in this gem's API between v1 and v2". The diffing machinery
+   is real work; post-dogfood at the earliest.
+
+6. **Distribution: gems shipping their own knowledge bundle.** A bundle may
+   be "a subdirectory within a larger repository" (§3), so a gem could ship
+   its generated tree. Partly overtaken by events — `agentdocs gems` already
+   gives a computable local path for installed releases — but shipping
+   in-gem would remove the generation step entirely.
+
+7. **Cross-domain linking in mixed bundles.** A `BigQuery Table` concept's
+   "how do I read this from Ruby" section linking straight to a client
+   class's page in the same tree. Needs nothing from us beyond the
+   conformance we have; it is the argument for *why* conformance matters.
+
+8. **Skill + bundle pairing.** When the skill item comes off its block, "the
+   tree is an OKF bundle" is part of its pitch: an OKF-aware agent needs to
+   be told only *where* the bundle is, not *how* to traverse it. Shrinks the
+   drift surface the preamble/skill division of labor manages.
+
+## Part 4 — Upstream engagement
+
+Two things worth raising with the OKF authors, both cheap and both
+strengthened by having a working non-data-catalog producer to point at:
+
+- **The index preamble accommodation** (v0.1 writeup's option *(c)*, still
+  not taken). §8 admits only concept-listing sections, which is why our
+  navigation guidance had to move to `navigating.md`. "An index MAY open
+  with introductory prose before its sections" is a tiny, backward-compatible
+  addition.
+- **A trust tier for deterministic derivation** (Part 2 item 4). The tier
+  ladder collapses "mechanically transformed from authoritative source" into
+  "unverified", alongside unreviewed LLM output. This is concrete,
+  well-evidenced feedback from a second domain, and v0.2's §1 makes clear the
+  spec authors want the machine-authored case modeled well — they just
+  modeled the LLM-extraction half of it.
+
+A third, softer note if the first two land: a conventional `type` vocabulary
+for code-reference concepts, so independent producers (a Python/Sphinx
+analog, a TypeScript analog) converge on compatible values rather than each
+inventing their own.
 
 ## Suggested sequencing
 
-If adopted, the natural order is: Part 1 conformance (frontmatter +
-`okf_version` + preamble relocation) as one or two checklist items under a
-new "OKF interop" or the existing "Indexing & discovery" section; upstream
-engagement (#8) in parallel since it's free; everything else (resource
-URIs, enrichment layering, log.md, distribution) explicitly gated on the
-dogfood milestone, which is where their open inputs get settled anyway.
+The `okf_version` bump is mechanical and independent — do it whenever.
+`status: deprecated` is the one substantive item that stands on its own
+merits and does not wait for anything. Everything else is either input to
+the already-open staleness item (Part 2 item 2) or gated on dogfood evidence
+(`sources`, `resource`, extension keys), exactly as it was under v0.1.
+Upstream engagement (Part 4) is free and parallel.

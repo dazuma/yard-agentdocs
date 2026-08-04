@@ -1253,15 +1253,54 @@ may follow; that doc tracks status across all of them.
       can check in one read — a source fingerprint, a git SHA, a max source
       mtime — or do we decline to solve it and have the skill state a
       conservative rule instead (rebuild before trusting a project-local
-      tree)? If something is recorded, "Frontmatter on every class/module
-      file"'s deliberate omission of `timestamp` constrains where it can go:
-      per-page frontmatter would churn every file on every regen for no
-      informational gain, so a freshness signal belongs in the root
-      `index.md` alone, or in a new reserved file. Emitting the signal is
-      tool behavior, tracked with the tools rather than here; what's in
-      scope is what the output discloses and the rule the skill states when
-      the answer is absent or stale. Raised by the 2026-07-27 skill-scope
-      discussion (see "Agent skill scope" under "Decisions")
+      tree)? Emitting the signal is tool behavior, tracked with the tools
+      rather than here; what's in scope is what the output discloses and the
+      rule the skill states when the answer is absent or stale. Raised by
+      the 2026-07-27 skill-scope discussion (see "Agent skill scope" under
+      "Decisions").
+      **Reshaped by the 2026-08-03 OKF v0.2 review**, which supplies the
+      vocabulary and removes the assumed location. *Vocabulary:*
+      `generated: { by, at }` (§5.2, `by` required within the block — an
+      actor, here `yard-agentdocs/<version>` under §7's convention),
+      `stale_after: YYYY-MM-DD` (§5.5, deliberately an absolute date so
+      staleness is a plain comparison), and `sources[].last_modified` (§5.1,
+      "when the source itself last changed", explicitly distinguished from
+      `generated.at`). *Location:* §8 permits no frontmatter in an index
+      file "with one exception: a bundle-root `index.md` MAY carry an
+      `okf_version` key", and §12 repeats that this is the only place
+      frontmatter is permitted in an `index.md` — so the exception is scoped
+      to that one key, and §11(3) makes reserved-file structure a hard
+      conformance condition. Putting a freshness signal in the root
+      `index.md` therefore trades away conformance, which is the wrong trade
+      for a project whose reason to care about OKF is interop. Three
+      candidate resolutions, and note that the constraint driving the old
+      "root `index.md` alone, or a new reserved file" wording — "Frontmatter
+      on every class/module file"'s deliberate omission of `timestamp`,
+      which would churn every file on every regen — no longer rules out the
+      per-page option by itself:
+      *(a) A bundle-level concept file* (e.g. `bundle.md`) carrying
+      `generated`, `stale_after`, `resource`, and `sources` for the tree as
+      a whole, linked from `index.md`'s `## Guides` section the way
+      `navigating.md` already is. Fully conformant — an ordinary
+      non-reserved concept, so its frontmatter is unrestricted — one extra
+      file, one extra read, zero per-page churn, and it gives the deferred
+      `resource` identity bridge somewhere to land.
+      *(b) Per-page `generated`*, worth re-examining rather than citing the
+      `timestamp` decision as settled: v0.2 defines `generated.at` as the
+      content's last **meaningful change**, not generation time, so derived
+      from source (a git commit date, a max mtime over `object.files`) it
+      would be stable across regenerations and the churn objection doesn't
+      transfer. Against it: mtime is meaningless in a fresh clone, git dates
+      need a repo and a per-object query, and "which files define this
+      class" is already a multi-file answer — real work for a signal (a)
+      delivers in one file.
+      *(c) Decline, and let the skill state the conservative rule.* Still
+      viable; v0.2 doesn't weaken it, and the asymmetry that makes it
+      defensible is unchanged — a `gems` bundle documents an immutable
+      release and is never stale, so declining only costs something for
+      `agentdocs build` trees.
+      See also the (stretch) `sources`/`resource` item under "OKF interop",
+      which is the same fields viewed as provenance rather than freshness
 - [x] (design) README and extra files (guides) — scoped to the README only;
       arbitrary `--files` guides remain unaddressed. See "README rendering:
       own page via `options.readme`, no heading demotion" under "Decisions".
@@ -1284,14 +1323,15 @@ may follow; that doc tracks status across all of them.
 
 ### OKF interop
 
-Gap analysis against the **Open Knowledge Format (OKF)** draft spec — see
+Gap analysis against the **Open Knowledge Format (OKF)** spec — see
 `devdocs/OKF.md` for the full writeup — found conformance reduces to two
-concrete changes, plus a third found while starting work on the first (see
-below). All three are (design): each reverses or extends a recorded
-decision and leaves sub-questions unsettled. Adopting any of them is a real
-user call, not a formality — "No YAML front matter" under "Output format:
-per-file Markdown template" would need to be explicitly revisited, not
-silently overridden by picking these up.
+concrete changes, plus a third found while starting work on the first. All
+three are done, so both fixture trees have been conformant bundles since
+July 2026. The remaining items below come from the **2026-08-03 v0.2
+review** (see "OKF v0.2 review" under "Decisions"), which found conformance
+survives the version bump untouched — both of v0.2's breaking changes retire
+v0.1 features this project deliberately never emitted — and asked instead
+what the new spec makes newly available.
 
 - [x] (design) Frontmatter on every class/module file — see "Frontmatter on
       every class/module file: `type`/`title`/`description`, description
@@ -1305,6 +1345,55 @@ silently overridden by picking these up.
 - [x] (design) Frontmatter on README/`--files` guide pages — see
       "Frontmatter on README/`--files` guide pages: uniform `type: Guide`,
       no `description`" under "Decisions".
+- [ ] (mech) Declare `okf_version: "0.2"` instead of `"0.1"` — in
+      `templates/default/fulldoc/agentdocs/index.erb` and both fixture
+      trees' `index.md`. Not a conformance failure (§12 makes the
+      declaration optional entirely), but it now actively misinforms: a
+      v0.2 consumer reading `"0.1"` arms the §13.1 legacy fallbacks — look
+      for a `timestamp` when `generated` is absent, parse a `# Citations`
+      body list — that can never fire on our output, since neither was ever
+      emitted. Mechanical because the tree already conforms to v0.2 as it
+      stands; the declaration is the only stale thing in it. Independent of
+      every other item here. Raised by the 2026-08-03 v0.2 review
+- [ ] (design) `status: deprecated` on a class/module page whose object
+      carries a class-level `@deprecated` — v0.2 §5.4 adds
+      `status: draft | stable | deprecated` (absent ⇒ `stable`), which a
+      YARD `@deprecated` tag maps onto exactly, and the template already
+      has the data (`Geometry::Circle` renders a `**Deprecated.**` body
+      block today, the fixture's only class-level case; the other four
+      `@deprecated` tags in `example/lib` are method- or overload-level and
+      stay in the body, since frontmatter is per-concept). Unusually good
+      cost/benefit for a frontmatter addition: one line, only on the rare
+      deprecated page, nothing added to the other ~24 files, no new
+      heuristic, and no churn across regenerations since the value derives
+      from a source tag rather than wall-clock time — it makes "is this
+      class deprecated" answerable from frontmatter instead of body-grammar
+      parsing, using a *standard* key rather than a producer extension.
+      (design) rather than (mech) because it extends the recorded
+      class/module frontmatter decision with sub-questions that decision
+      didn't face: whether a module's `@deprecated` behaves identically to
+      a class's (it should), whether anything maps to `draft`, and whether
+      `status: stable` is ever emitted explicitly (it shouldn't be — absent
+      already means `stable`, so emitting it costs a line per file to say
+      nothing). Raised by the 2026-08-03 v0.2 review
+- [ ] (stretch) Provenance frontmatter: `sources`, and the `resource`
+      identity URI it would carry — v0.2 §5.1 gives a standard frontmatter
+      home for what every page already states as body prose
+      (`**Defined in:** \`path/to/file.rb\``), making provenance
+      machine-queryable rather than grep-able. With an absolute `resource`
+      (a source URL at the release tag) an entry doubles as the identity
+      bridge `resource` was deferred to the dogfood milestone for, per
+      "Frontmatter on every class/module file" under "Decisions". Held at
+      (stretch) on the same bar as every other extension-key idea in
+      `devdocs/OKF.md` Part 3: the fields duplicate content the body already
+      carries, so they cost tokens on every read and need demonstrated
+      consumer need, not just spec availability. **Interacts with the
+      staleness item** under "Indexing & discovery": `sources[].last_modified`
+      is the spec-blessed shape for per-concept recency, and is the only
+      candidate that would tell a consumer *which pages* went stale rather
+      than only that the tree did — but it is day-granular, so it cannot see
+      a file edited minutes ago, which is the failure that item is actually
+      about. Raised by the 2026-08-03 v0.2 review
 
 ## Open questions
 
@@ -6369,6 +6458,91 @@ question of whether the bundle-location convention should cover non-release
 sources at all is tracked under "Open questions" ("Bundles for dependencies
 that aren't installed releases"), since it straddles tool work (out of scope
 here) and the consumption contract (in scope).
+
+### OKF v0.2 review (2026-08-03): conformance survives untouched, three new items, attestation declined
+
+OKF released **v0.2**, superseding the v0.1 draft the three completed "OKF
+interop" items were built against. `devdocs/OKF.md` is rewritten against it;
+this entry records the disposition so the spec doesn't get re-read from
+scratch next time it moves.
+
+**Conformance survives with no change to the tree.** §11's three hard
+conditions are verbatim v0.1 §9's, and §8/§9 (index/log) are v0.1 §6/§7
+renumbered but unchanged, including the `* [Title](url) - desc` surface form
+the index item already adopted. Both of v0.2's **breaking** changes (§13.1)
+retire v0.1 features this project deliberately never emitted: `timestamp`
+(superseded by `generated.at`) and the body `# Citations` list (superseded
+by `sources`). Everything else in v0.2 is additive-optional (§13.2), so
+absence yields a plain valid concept.
+
+Worth stating plainly because it will otherwise read as foresight: the
+`timestamp` omission was decided on **churn** grounds ("would churn every
+file on every regen for no informational gain", under "Frontmatter on every
+class/module file"), not on any prediction about the spec. Forward
+compatibility was a side effect. The corollary matters for the staleness
+item — see below — because v0.2 redefines the field's replacement in a way
+that partly dissolves the original objection.
+
+**New checklist items, all under "OKF interop" unless noted:**
+
+- *(mech)* Declare `okf_version: "0.2"`. The only thing in the tree that is
+  now wrong: not a conformance failure, but it arms §13.1 legacy fallbacks
+  that can never fire.
+- *(design)* `status: deprecated` from a class-level `@deprecated` (§5.4).
+  The one new field that stands on its own merits — a standard key for a
+  fact the body already states, one line, only on deprecated pages, no
+  churn.
+- *(stretch)* Provenance frontmatter `sources`/`resource` (§5.1), held at
+  the same evidence bar as every other extension-key idea.
+- The open *(design)* **staleness** item under "Indexing & discovery" is
+  reshaped in place rather than duplicated here: v0.2 supplies the
+  vocabulary it was missing (`generated`, `stale_after`,
+  `sources[].last_modified`) and removes the location it assumed (§8/§12
+  restrict root-`index.md` frontmatter to `okf_version` alone, and §11(3)
+  makes that a hard condition), which promotes a bundle-level concept file
+  over the root index as the leading candidate.
+
+**Considered and rejected / inapplicable**, recorded so they aren't
+re-proposed off the spec's own prominence:
+
+- **Attested computations (§10)** — the largest addition in v0.2 and
+  entirely inapplicable. Runtimes, executors, receipts, and attesters exist
+  so a consumer can confirm a *number* was computed the sanctioned way;
+  nothing in Ruby API reference is a sanctioned computation over a
+  warehouse. Not deferred — inapplicable in kind.
+- **Emitting `verified:` to escape the bottom trust tier** — rejected as
+  overclaiming. §5.3 derives three tiers from `verified` alone (absent ⇒
+  unverified, non-`human:` ⇒ machine-confirmed, `human:` ⇒ human-reviewed),
+  and a generator that *produced* the content has not independently
+  confirmed it against anything. That leaves us in **unverified**, the same
+  tier as an unreviewed LLM guess, despite being a mechanical transformation
+  of authoritative source. The tier ladder simply doesn't model
+  derivation-by-compiler; the response is upstream feedback, not a
+  frontmatter change.
+- **Freshness signals in the root `index.md`** — rejected on the §8/§12
+  reading above. Adding `generated`/`stale_after` there would trade
+  conformance for the signal, which inverts the whole reason to track OKF.
+- **`references/` (§6.3)** — a naming convention with no conformance force.
+  A Ruby namespace named `References` would produce a colliding root
+  `references/` directory; cosmetic, not a violation, no action.
+- **Footnote attribution (§5.1)** — introduces `[^label]` as meaningful
+  syntax, but we emit no footnotes, and a docstring containing `[^…]` is the
+  pre-existing concern already settled under "Prose/summary containing
+  Markdown metacharacters", not a new one.
+- **`tags`** — still optional and unemitted; §3.1 clarifies OKF specifies no
+  tag-aggregation file format, so nothing is expected of a producer.
+- **Per-directory `index.md`, `log.md`, bundle-absolute links, and the
+  conventional `# Schema`/`# Examples`/`# Computation` H1s** — unchanged
+  from the v0.1 assessment in `devdocs/OKF.md`; all still optional, all
+  still declined for the same reasons.
+
+**Upstream actions, still not taken.** Both are free and parallel to
+everything above, and both are stronger now that a working
+non-data-catalog producer exists to point at: the index-preamble
+accommodation (v0.1 writeup's option *(c)*, carried forward from the root
+`index.md` entry above), and a trust tier that models deterministic
+derivation from authoritative source rather than collapsing it into
+"unverified".
 
 ## Implementation
 
