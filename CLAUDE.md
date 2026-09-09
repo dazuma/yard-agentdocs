@@ -86,3 +86,20 @@ Run `toys test` and `toys rubocop` before committing.
   namespaces. Do not prefix relative constants defined within the current namespace, and do not prefix
   Kernel method calls that look like constants (`Array(x)`, never `::Array(x)`).
 - **License:** MIT.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues (`dazuma/yard-agentdocs`), via the `gh` CLI.
+See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, each label string equal to its name.
+See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` plus `docs/adr/` at the repo root.
+See `docs/agents/domain.md`.
