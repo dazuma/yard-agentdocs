@@ -115,15 +115,23 @@ turned out to be forward-compatible by accident, not by foresight. Every
 other v0.2 change is additive-optional (§13.2), so absence yields a plain,
 valid concept.
 
-### The one thing that is now wrong
+### The one thing that was wrong — fixed
 
 `okf_version: "0.1"` — in `templates/default/fulldoc/agentdocs/index.erb`
-and both fixture trees' `index.md`. It is not a conformance failure (§12
-makes the declaration optional entirely), but it now actively misinforms: a
-v0.2 consumer reading `"0.1"` will arm the §13.1 legacy fallbacks — look for
-a `timestamp` when `generated` is absent, parse a `# Citations` body list —
-that can never fire on our output. Declaring `"0.2"` is simply accurate, and
-requires no other change to the tree.
+and both fixture trees' `index.md`. It was not a conformance failure (§12
+makes the declaration optional entirely), but it actively misinformed: a
+v0.2 consumer reading `"0.1"` would arm the §13.1 legacy fallbacks — look
+for a `timestamp` when `generated` is absent, parse a `# Citations` body
+list — that can never fire on our output. **Fixed 2026-09-09:** all three
+sites now declare `"0.2"`, which required no other change to the tree. See
+"`okf_version` bumped to `"0.2"`: a quoted string, and a standing
+re-verification obligation" under "Decisions" in `DESIGN.md` — including why
+the value stays a quoted string, and why dropping the key instead was
+rejected.
+
+Note the obligation this creates for the *next* revision of this document:
+the tree now asserts a specific spec version, so a future OKF release makes
+the declaration stale again until re-verified here.
 
 ### Not required, still not required
 
@@ -364,9 +372,9 @@ inventing their own.
 
 ## Suggested sequencing
 
-The `okf_version` bump is mechanical and independent — do it whenever.
-`status: deprecated` is the one substantive item that stands on its own
-merits and does not wait for anything. Everything else is either input to
-the already-open staleness item (Part 2 item 2) or gated on dogfood evidence
-(`sources`, `resource`, extension keys), exactly as it was under v0.1.
-Upstream engagement (Part 4) is free and parallel.
+The `okf_version` bump was mechanical and independent; it is **done**
+(2026-09-09). `status: deprecated` is the one substantive item that stands
+on its own merits and does not wait for anything. Everything else is either
+input to the already-open staleness item (Part 2 item 2) or gated on dogfood
+evidence (`sources`, `resource`, extension keys), exactly as it was under
+v0.1. Upstream engagement (Part 4) is free and parallel.

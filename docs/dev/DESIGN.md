@@ -1345,16 +1345,10 @@ what the new spec makes newly available.
 - [x] (design) Frontmatter on README/`--files` guide pages — see
       "Frontmatter on README/`--files` guide pages: uniform `type: Guide`,
       no `description`" under "Decisions".
-- [ ] (mech) Declare `okf_version: "0.2"` instead of `"0.1"` — in
-      `templates/default/fulldoc/agentdocs/index.erb` and both fixture
-      trees' `index.md`. Not a conformance failure (§12 makes the
-      declaration optional entirely), but it now actively misinforms: a
-      v0.2 consumer reading `"0.1"` arms the §13.1 legacy fallbacks — look
-      for a `timestamp` when `generated` is absent, parse a `# Citations`
-      body list — that can never fire on our output, since neither was ever
-      emitted. Mechanical because the tree already conforms to v0.2 as it
-      stands; the declaration is the only stale thing in it. Independent of
-      every other item here. Raised by the 2026-08-03 v0.2 review
+- [x] (mech) Declare `okf_version: "0.2"` instead of `"0.1"` — see
+      "`okf_version` bumped to `"0.2"`: a quoted string, and a standing
+      re-verification obligation" under "Decisions". Raised by the
+      2026-08-03 v0.2 review
 - [ ] (design) `status: deprecated` on a class/module page whose object
       carries a class-level `@deprecated` — v0.2 §5.4 adds
       `status: draft | stable | deprecated` (absent ⇒ `stable`), which a
@@ -6543,6 +6537,49 @@ accommodation (v0.1 writeup's option *(c)*, carried forward from the root
 `index.md` entry above), and a trust tier that models deterministic
 derivation from authoritative source rather than collapsing it into
 "unverified".
+
+### `okf_version` bumped to `"0.2"`: a quoted string, and a standing re-verification obligation
+
+The tree now declares `okf_version: "0.2"`, in
+`templates/default/fulldoc/agentdocs/index.erb` and both fixture trees'
+root `index.md`. Purely mechanical, exactly as the 2026-08-03 v0.2 review
+predicted: three one-line edits, no `example/lib` change (the string is
+template-emitted, not source-derived), and the red test named only
+`index.md` in each tree, confirming nothing else in either tree keys off
+the declaration.
+
+Two things settled along the way that the checklist item didn't state:
+
+- **Quoted, not bare `0.2`.** The pre-existing form was already quoted and
+  is retained deliberately. Bare `0.2` is a YAML float, so a consumer that
+  round-trips the frontmatter gets `0.2` back — indistinguishable from a
+  hypothetical `"0.20"`, and wrong the moment the spec reaches a version
+  with two dots. A version is a string that happens to look numeric.
+- **The bump creates a standing obligation, and that is accepted.**
+  Declaring a *specific* version converts "we don't speak to the spec's
+  version" into "we assert conformance to v0.2", so every future OKF
+  release now carries a re-verification task that a missing key would not.
+  Accepted because interop is the entire reason to track OKF, and because
+  `docs/dev/OKF.md` already exists as the place a re-verification pass gets
+  recorded — the obligation has a home. Worth naming rather than treating
+  the bump as free.
+
+**Considered and rejected:** *dropping `okf_version` entirely.* §12 makes
+the declaration optional, so deleting the key would fix the misinformation
+the review identified (a `"0.1"` declaration arms §13.1 legacy fallbacks
+that can never fire on our output) *and* discharge the re-verification
+obligation above, at a cost of one less line per bundle. Rejected: an
+absent key tells a consumer nothing, whereas an accurate one lets it skip
+the fallback probes outright. Silence is cheaper to maintain and worse to
+consume, which is the wrong trade for a producer whose reason to track OKF
+is interop.
+
+`docs/dev/OKF.md` is updated to match, since two of its sections asserted
+the declaration was still outstanding and would otherwise now be false:
+Part 1's "The one thing that was wrong — fixed" (renamed from "…that is now
+wrong"), which also carries the re-verification note forward to whoever
+revises that document against the next spec release, and the closing
+"Suggested sequencing".
 
 ## Implementation
 
