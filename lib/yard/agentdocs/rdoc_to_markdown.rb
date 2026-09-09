@@ -14,7 +14,7 @@ module YARD
     # `+Foo::Bar+`) — leaking literal `<code>...</code>`/`<strong>...
     # </strong>` etc. into what's supposed to be pure Markdown. See
     # "`RDoc::Markup::ToMarkdown` raw-HTML leaks" under "Decisions" in
-    # devdocs/DESIGN.md for the full survey.
+    # docs/dev/DESIGN.md for the full survey.
     #
     # Overrides {#add_tag} (the single choke point `handle_BOLD`/
     # `handle_EM`/`handle_STRIKE`/`handle_TT` funnel single-string content

@@ -7,11 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The `agentdocs` YARD template is implemented and generates output matching `example/doc` when run
 against `example/lib` (see `templates/default/{fulldoc,module,class}/agentdocs/`, registered via
 `lib/yard-agentdocs.rb`), verified by `test/test_agentdocs_template.rb`. Scope is intentionally narrow —
-see `devdocs/DESIGN.md`'s "Example coverage checklist" for what's covered vs. still open. See "Design"
+see `docs/dev/DESIGN.md`'s "Example coverage checklist" for what's covered vs. still open. See "Design"
 below for the full rationale and implementation notes.
 
 Remaining checklist coverage is built test-first and human-gated, per
-`devdocs/DESIGN.md`'s "Coverage workflow (TDD loop)": the user picks the next
+`docs/dev/DESIGN.md`'s "Coverage workflow (TDD loop)": the user picks the next
 checklist item(s), Claude proposes `example/lib`/`example/doc` changes for
 review/iteration, and only once the user explicitly approves those does
 Claude touch `test/test_agentdocs_template.rb` or the template implementation.
@@ -41,9 +41,9 @@ exactly the reference info it needs (e.g. one method's docs) with a single, chea
 
 ## Design
 
-Read [`devdocs/DESIGN.md`](devdocs/DESIGN.md) for the current design thinking and the list of open
+Read [`docs/dev/DESIGN.md`](docs/dev/DESIGN.md) for the current design thinking and the list of open
 questions (output format, file granularity, lookup/indexing, YARD integration mechanics, cross-referencing).
-It's a living document — keep it updated as decisions are made. `devdocs/` is not shipped in the gem.
+It's a living document — keep it updated as decisions are made. `docs/dev/` is not shipped in the gem.
 
 We're designing the output format example-first: `example/lib` will hold hand-written Ruby source
 exercising the YARD features we care about, and `example/doc` will hold the hand-authored target output we

@@ -18,7 +18,7 @@ module YARD
     # `private`/`protected` — omitted entirely — rather than shown-and-
     # flagged. See "A docstring whose entire (stripped) content is a bare
     # RDoc `:nodoc:` ... directive token" under "Decisions" in
-    # devdocs/DESIGN.md.
+    # docs/dev/DESIGN.md.
     #
     # Deliberately narrower than RDoc's full directive set: `:stopdoc:`/
     # `:startdoc:`'s real meaning is a block-scoping toggle across otherwise

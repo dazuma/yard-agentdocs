@@ -30,7 +30,7 @@ describe "agentdocs template" do
 
   # A small, separate fixture run with `--markup rdoc`, covering the
   # `:rdoc`-dialect path end to end (see "Docstring markup dialect" in
-  # devdocs/DESIGN.md) without coupling the main markdown-dialect fixture
+  # docs/dev/DESIGN.md) without coupling the main markdown-dialect fixture
   # set above to the installed rdoc gem's exact conversion output.
   def generate_rdoc(output_dir)
     ::YARD::Registry.clear

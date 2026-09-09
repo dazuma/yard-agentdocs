@@ -24,7 +24,7 @@ def page
 end
 
 # @group Frontmatter (OKF conformance — see "OKF interop" under "Example
-# coverage checklist" in devdocs/DESIGN.md)
+# coverage checklist" in docs/dev/DESIGN.md)
 
 def frontmatter_type
   "Ruby #{object.type == :class ? 'Class' : 'Module'}"

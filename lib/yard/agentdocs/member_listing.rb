@@ -23,7 +23,7 @@ module YARD
     # Class-level and instance-level attributes are queried separately
     # ({#class_attribute_objects}/{#instance_attribute_objects}), the same
     # split {#class_method_objects}/{#instance_method_objects} already use —
-    # see "Class-level attributes" in devdocs/DESIGN.md.
+    # see "Class-level attributes" in docs/dev/DESIGN.md.
     #
     module MemberListing
       ##
@@ -80,7 +80,7 @@ module YARD
       # methods: a superclass's or directly-`include`d module's methods are
       # documented on their own page (and, for a mixin, pointed to via
       # `includes_line`), not duplicated here — see the "Mixin/inheritance
-      # content strategy" decision in devdocs/DESIGN.md. `:inherited` is a
+      # content strategy" decision in docs/dev/DESIGN.md. `:inherited` is a
       # no-op for modules (they have no superclass) but real for classes,
       # since `ClassObject#meths` overrides the base
       # `NamespaceObject#meths` to add it.

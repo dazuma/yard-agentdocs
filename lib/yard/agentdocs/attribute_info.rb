@@ -25,13 +25,13 @@ module YARD
       #   {MethodSignature#signature_return_type}, extended here since this
       #   helper doesn't funnel through {CrossReferencing#type_ref_first}
       #   (see "Union types on the remaining first-type-only tag sites"
-      #   under "Decisions" in devdocs/DESIGN.md). Falls back to `"Object"`
+      #   under "Decisions" in docs/dev/DESIGN.md). Falls back to `"Object"`
       #   when there's no `@return` tag (or one with no declared types) —
       #   a plain, comment-less `attr_reader`/`writer`/`accessor` never gets
       #   one, unlike `Struct.new`/`Data.define`'s synthesized accessors —
       #   matching YARD's own human-facing template default for the same
       #   case (see "Attribute `**Type:**` fallback for a plain… `attr_*`"
-      #   under "Decisions" in devdocs/DESIGN.md)
+      #   under "Decisions" in docs/dev/DESIGN.md)
       #
       def attribute_type(attr)
         types = attr.source_method.tag(:return)&.types
@@ -73,7 +73,7 @@ module YARD
       #   entire description lives inside `@return [Type] Description` has
       #   an empty `docstring` despite having real descriptive text; see
       #   "Attribute description entirely inside a `@!attribute`'s
-      #   `@return`" under "Decisions" in devdocs/DESIGN.md
+      #   `@return`" under "Decisions" in docs/dev/DESIGN.md
       #
       def attribute_docstring(attr)
         docstring = attr.source_method.docstring

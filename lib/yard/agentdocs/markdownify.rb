@@ -10,7 +10,7 @@ module YARD
     # `module`/`class` `agentdocs` templates. Dispatches on `options.markup`
     # (the `--markup` flag YARD is run with) so a docstring authored in
     # either Markdown or RDoc renders correctly in this template's Markdown
-    # output — see "Docstring markup dialect" in `devdocs/DESIGN.md` for the
+    # output — see "Docstring markup dialect" in `docs/dev/DESIGN.md` for the
     # full rationale.
     #
     # Requires the including template to provide an `options` method (the
@@ -25,7 +25,7 @@ module YARD
       # followed by a space/tab or end of line — a heading shallow enough to
       # collide with this format's own `## `/`### ` structural headings. A
       # marker already 4+ `#`s deep is left alone: it can't collide (see
-      # "Output format" in `devdocs/DESIGN.md`), and a marker indented by
+      # "Output format" in `docs/dev/DESIGN.md`), and a marker indented by
       # leading whitespace is already invisible to the column-0-anchored
       # `grep '^## '`/`grep '^### '` this format's lookup mechanism relies
       # on, so it doesn't need demoting either.
@@ -71,7 +71,7 @@ module YARD
       # 4 `#`s, so a prose-embedded heading (RDoc `=`/`==`/`===`, or a
       # literal Markdown `#`/`##`/`###`) can never be mistaken for one of
       # this format's own structural headings — see "Prose-embedded
-      # headings" in `devdocs/DESIGN.md`. Skips backtick-delimited spans (of
+      # headings" in `docs/dev/DESIGN.md`. Skips backtick-delimited spans (of
       # any length, so this also covers a fenced ` ``` ` block) via
       # {CrossReferencing#transform_outside_code_spans}, so a `#` comment
       # line inside a fenced code sample is left alone.

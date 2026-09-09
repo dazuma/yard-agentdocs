@@ -14,7 +14,7 @@ Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.
 A character outside plain word characters or whitespace, inside any styled
 delimiter, converts to literal HTML instead of the equivalent Markdown span —
 see "RDoc::Markup::ToMarkdown raw-HTML leaks" under "Decisions" in
-devdocs/DESIGN.md. Covers the plain shorthand (`word`, `word`, **word**,
+docs/dev/DESIGN.md. Covers the plain shorthand (`word`, `word`, **word**,
 *word*) and the HTML-ish tag form (<tt>, <code>, <b>, <i>, <em>, <s>, <del>)
 alike.
 

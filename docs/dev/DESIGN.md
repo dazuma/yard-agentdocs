@@ -213,7 +213,7 @@ whether agents actually exercise those pointers.
 
 **First run complete (2026-07-20, YARD 0.9.44 self-run)** — findings,
 measurements, and two new checklist items in "Dogfood milestone: first run"
-under "Decisions"; full working notes in `devdocs/Dogfood.md`. Further gems
+under "Decisions"; full working notes in `docs/dev/Dogfood.md`. Further gems
 may follow; that doc tracks status across all of them.
 
 ### Module/class structure
@@ -368,7 +368,7 @@ may follow; that doc tracks status across all of them.
       fallback to the method's own `@return`. Confirmed on real code: 36
       methods across 3 files lose `**Returns:**` entirely on the
       2026-07-21 `google-cloud-secret_manager-v1` dogfood run — see
-      devdocs/Dogfood.md. Root cause and fix turned out broader than the
+      docs/dev/Dogfood.md. Root cause and fix turned out broader than the
       missing `**Returns:**` bullet alone — see "A 2+-`@overload` method's
       own top-level `@return`" under "Decisions"
 - [x] (design) Per-overload `@yield`/`@yieldparam`/`@yieldreturn`,
@@ -507,7 +507,7 @@ may follow; that doc tracks status across all of them.
       back to the raw `meth.namespace.aliases[meth]` symbol instead of a
       resolved object, a display case none of the existing unresolved-
       reference handling covers. Flagged by the 2026-07-20 YARD dogfood run
-      (see devdocs/Dogfood.md). **Resolved (2026-07-20):** new
+      (see docs/dev/Dogfood.md). **Resolved (2026-07-20):** new
       `alias_original_heading(meth)` in `lib/yard/agentdocs/method_signature.rb`
       falls back to `#{meth.scope == :class ? '.' : '#'}#{meth.namespace.aliases[meth]}`
       when `alias_original(meth)` is `nil`, replacing the direct
@@ -651,7 +651,7 @@ may follow; that doc tracks status across all of them.
       rendering as literal prose, unimproved — approximating it as a
       per-object filter (or flag) would misrepresent what those two
       directives actually do. See the `minitest` entry under "Runs" in
-      `devdocs/Dogfood.md` for the prevalence measurement that originally
+      `docs/dev/Dogfood.md` for the prevalence measurement that originally
       motivated this item.
 
 ### Attributes & constants
@@ -698,7 +698,7 @@ may follow; that doc tracks status across all of them.
       `"Returns X."` wrapping) — see "Attribute description entirely
       inside a `@!attribute`'s `@return`: fall back to the tag's text,
       verbatim" under "Decisions". Flagged by the 2026-07-21
-      `hermes-client` dogfood run (see devdocs/Dogfood.md)
+      `hermes-client` dogfood run (see docs/dev/Dogfood.md)
 - [x] (design) Attribute entries never render `@note`/`@example`/
       `@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo` —
       `attribute_entry.erb` only ever called `attribute_type`/
@@ -714,7 +714,7 @@ may follow; that doc tracks status across all of them.
       run: an `@!attribute`-documented `#credentials` attribute's two
       `@note` tags (one a real security warning) and its `@example` were
       silently dropped, as was a separate attribute's `@deprecated` flag —
-      see devdocs/Dogfood.md. Fixed by wiring `attribute_entry.erb` through
+      see docs/dev/Dogfood.md. Fixed by wiring `attribute_entry.erb` through
       `@attribute.source_method`, also fixing `note_line`'s pre-existing
       "reads only the first `@note` tag" limitation and
       `attribute_summary_line`'s missing deprecated/abstract Member Summary
@@ -942,7 +942,7 @@ may follow; that doc tracks status across all of them.
       2026-07-21 `minitest` dogfood run: 42 `<tt>` occurrences across 10 of
       57 rendered files (the tag-form subset of this bug only — the
       shorthand-form and other-tag-family leaks weren't separately measured
-      there). See the `minitest` entry under "Runs" in `devdocs/Dogfood.md`
+      there). See the `minitest` entry under "Runs" in `docs/dev/Dogfood.md`
       for that run's detail. Fixed by {YARD::AgentDocs::RDocToMarkdown}
       (`lib/yard/agentdocs/rdoc_to_markdown.rb`), a `ToMarkdown` subclass
       overriding `add_tag` to always wrap with the Markdown delimiter,
@@ -1007,7 +1007,7 @@ may follow; that doc tracks status across all of them.
       dangling `"...e.g."` in every cheap-summary view (`index.md`/`##
       Member Summary`). Measured, not hypothetical: 43 occurrences across
       22 of 63 rendered files (~35%) on the `hermes-client` dogfood run —
-      see devdocs/Dogfood.md. Fixed with a template-side reimplementation
+      see docs/dev/Dogfood.md. Fixed with a template-side reimplementation
       (`DocstringSummary#smart_summary`) rather than accepted as an
       inherited YARD limitation — see "`Docstring#summary`'s abbreviation-
       blind truncation: a ported, abbreviation-aware reimplementation"
@@ -1024,7 +1024,7 @@ may follow; that doc tracks status across all of them.
       abbreviation case (no fragment at all, not even a partial phrase).
       Measured on the 2026-07-21 `google-cloud-secret_manager-v1` dogfood
       run: 77 occurrences across 32 of 120 rendered files — see
-      devdocs/Dogfood.md. Fixed with a structural (not vocabulary-based)
+      docs/dev/Dogfood.md. Fixed with a structural (not vocabulary-based)
       merge heuristic in `DocstringSummary#smart_summary` — see
       "`Docstring#summary` extracting a low-information first sentence:
       structural merge, not a vocabulary skip-list" under "Decisions"
@@ -1044,7 +1044,7 @@ may follow; that doc tracks status across all of them.
       it (though the same colon-ending fix also improves the still-unhandled
       `:stopdoc:`/`:startdoc:` case cosmetically, from `` `:stopdoc:.` `` to
       `` `:stopdoc: ...` ``, as an incidental side effect, not a deliberate
-      target). See the `parser` entry under "Runs" in devdocs/Dogfood.md for
+      target). See the `parser` entry under "Runs" in docs/dev/Dogfood.md for
       the original measurement.
 
 ### Cross-referencing scenarios
@@ -1324,7 +1324,7 @@ may follow; that doc tracks status across all of them.
 ### OKF interop
 
 Gap analysis against the **Open Knowledge Format (OKF)** spec — see
-`devdocs/OKF.md` for the full writeup — found conformance reduces to two
+`docs/dev/OKF.md` for the full writeup — found conformance reduces to two
 concrete changes, plus a third found while starting work on the first. All
 three are done, so both fixture trees have been conformant bundles since
 July 2026. The remaining items below come from the **2026-08-03 v0.2
@@ -1385,7 +1385,7 @@ what the new spec makes newly available.
       bridge `resource` was deferred to the dogfood milestone for, per
       "Frontmatter on every class/module file" under "Decisions". Held at
       (stretch) on the same bar as every other extension-key idea in
-      `devdocs/OKF.md` Part 3: the fields duplicate content the body already
+      `docs/dev/OKF.md` Part 3: the fields duplicate content the body already
       carries, so they cost tokens on every read and need demonstrated
       consumer need, not just spec availability. **Interacts with the
       staleness item** under "Indexing & discovery": `sources[].last_modified`
@@ -1432,7 +1432,7 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   `def_node_matcher`'s — the gem's own maintainers just didn't write one.
   First real data point where the "gem authors compensate" optimism this
   principle has been running on doesn't hold universally. Full detail in
-  the `rubocop` entry under "Runs" in `devdocs/Dogfood.md`. **A second such
+  the `rubocop` entry under "Runs" in `docs/dev/Dogfood.md`. **A second such
   case, from the `parser` dogfood run:** `Parser::Context` defines 8 boolean
   flag attributes (`in_defined`, `in_kwarg`, etc.) entirely via
   `attr_accessor(*FLAGS)` — a splat over a constant array, not a literal
@@ -1449,7 +1449,7 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   points now (`exclude_limit`, `attr_accessor(*FLAGS)`), alongside two
   "they do" ones (`config_attr`, `def_node_matcher`) and `prepend`'s
   distinct third category. Full detail in the `parser` entry under "Runs"
-  in `devdocs/Dogfood.md`. **A fourth category, from the `minitest`
+  in `docs/dev/Dogfood.md`. **A fourth category, from the `minitest`
   dogfood run:** every prior data point was about content *silently
   disappearing* that a smarter static Handler could in principle recover.
   `minitest`'s `:stopdoc:`/`:startdoc:` block-scoping directives are the
@@ -1466,7 +1466,7 @@ integration mechanics are now decided *and implemented* — see "Decisions" and
   without something functionally identical to a custom Handler (tracking
   source-position ranges across otherwise-unrelated statements) —
   squarely inside what this principle already declines to build. Full
-  detail in the `minitest` entry under "Runs" in `devdocs/Dogfood.md`.
+  detail in the `minitest` entry under "Runs" in `docs/dev/Dogfood.md`.
 - **Bundles for dependencies that aren't installed releases** — raised by
   the 2026-07-27 skill-scope discussion. `agentdocs gems` builds from
   installed gem specifications only (`GemBuilder.default_spec_dirs` globs
@@ -1563,7 +1563,7 @@ generated grammar tables) is a narrow, code-generation-specific extreme, not
 representative of the mid-size hand-written gems this milestone otherwise
 targets — `rubocop`'s 919-file run, by contrast, had no class near 100
 methods. Full detail, including the `**Defined in:**`/token-economy
-measurements, in the `parser` entry under "Runs" in `devdocs/Dogfood.md`.
+measurements, in the `parser` entry under "Runs" in `docs/dev/Dogfood.md`.
 
 ### Output format: per-file Markdown template
 
@@ -1847,7 +1847,7 @@ YARD's own `MethodObject#aliases`/`#is_alias?`), not a docstring tag.
   `meth.namespace.aliases[meth]` (the original's name, per YARD's own
   bookkeeping) among `meth.namespace.meths(scope: meth.scope,
   included: false)` to find the actual original `MethodObject`. **Correction
-  (2026-07-20 YARD dogfood run, see devdocs/Dogfood.md):** this description
+  (2026-07-20 YARD dogfood run, see docs/dev/Dogfood.md):** this description
   undersold the `nil` case — `alias_original` also returns `nil` when
   `meth.is_alias?` is true but the `.find` comes up empty (the original is
   outside the parsed corpus), and unlike this decision's own examples, no
@@ -3271,7 +3271,7 @@ implementation).
   page (not raised by either fixture).
 
 **Reopened in part (2026-07-21 `google-cloud-secret_manager-v1` dogfood
-run, see devdocs/Dogfood.md):** the "not exercised" assumption above —
+run, see docs/dev/Dogfood.md):** the "not exercised" assumption above —
 that a top-level `@return` alongside 2+ overloads is "redundant/unusual" —
 is wrong for real `gapic-generator-ruby`-generated code. Every RPC client
 method there declares 2+ `@overload`s that genuinely vary only in
@@ -3670,7 +3670,7 @@ and `Geometry::Vector` (a class-level example) for `@since`.
   the one pre-existing fixture with a private-API flag.
 
 **Reopened in part (2026-07-21 `google-cloud-secret_manager-v1` dogfood
-run, see devdocs/Dogfood.md):** "on both a method and a non-method
+run, see docs/dev/Dogfood.md):** "on both a method and a non-method
 (class/module or constant) object" above never actually included
 attributes — `attribute_entry.erb` never calls `annotation_lines` (or
 `examples_block`/`trailing_annotation_lines`) at all, so `@deprecated`/
@@ -4929,7 +4929,7 @@ human docstring), so the policy stands: render the boilerplate, don't
 suppress it. Closes the revisit; not expected to be reopened without new
 evidence.
 
-**Reopened in part (2026-07-20 YARD dogfood run, see devdocs/Dogfood.md):**
+**Reopened in part (2026-07-20 YARD dogfood run, see docs/dev/Dogfood.md):**
 new evidence did surface, against the middle claim above, not the policy
 conclusion. "`Struct`/`Data` handlers and `AttributeHandler` generate the
 same boilerplate text through the same `AttributeInfo` rendering path" is
@@ -5433,11 +5433,11 @@ usual practice of not bundling incidental fixes into an unrelated task.
 The dogfood milestone described under "Prioritization and roadmap" — run
 the template against a real, mid-size gem and diff-read the output — is
 underway. Full working notes, the exact generation setup, and the raw
-measurements live in `devdocs/Dogfood.md` (not shipped in the gem, kept
+measurements live in `docs/dev/Dogfood.md` (not shipped in the gem, kept
 separate from this file so exploratory multi-gem material doesn't balloon
 DESIGN.md); this entry records only the durable outcome of the first run,
 matching how "Agent-usefulness evaluation (July 2026)" above logs its
-findings. Further gems queued in `devdocs/Dogfood.md` may add more runs
+findings. Further gems queued in `docs/dev/Dogfood.md` may add more runs
 here later.
 
 **Target:** YARD itself (`yard-0.9.44`, already Bundler-vendored — named as
@@ -5519,7 +5519,7 @@ comes up again.
 milestone — the "no custom handler classes" integration principle, and the
 "Accompanying agent skill" checklist item — since both benefit from seeing
 more than one gem's worth of evidence first. Left for a later run or a
-cross-run correlation pass in `devdocs/Dogfood.md`.
+cross-run correlation pass in `docs/dev/Dogfood.md`.
 
 ### Attribute `**Type:**` fallback for a plain, comment-less `attr_*`: default to `` `Object` ``
 
@@ -5619,7 +5619,7 @@ at all — added to the same fixture.
 
 Settles the "Attribute description entirely inside a `@!attribute`'s
 `@return`" checklist item under "Attributes & constants", flagged by the
-2026-07-21 `hermes-client` dogfood run (see devdocs/Dogfood.md). Exercised
+2026-07-21 `hermes-client` dogfood run (see docs/dev/Dogfood.md). Exercised
 via a new `Geometry::PointCloud#centroid` attribute: a second
 `@!attribute`-based reader alongside the existing `#size`, but — unlike
 `#size` — with no indented free-text paragraph at all, only
@@ -5665,7 +5665,7 @@ path) or any other attribute.
 
 Settles the "`Docstring#summary`'s abbreviation-blind truncation" checklist
 item under "Documentation content / prose patterns", flagged by the
-2026-07-21 `hermes-client` dogfood run (see devdocs/Dogfood.md).
+2026-07-21 `hermes-client` dogfood run (see docs/dev/Dogfood.md).
 
 **The skip-list.** Discussed directly with the user rather than inferred:
 an abbreviation belongs on the list only if its *meaning* requires prose to
@@ -5730,7 +5730,7 @@ attributes), plus `toys rubocop`/`toys yardoc` clean.
 Settles the "`Docstring#summary` extracting a real, complete, but
 zero-information first sentence" checklist item under "Documentation
 content / prose patterns", flagged by the 2026-07-21
-`google-cloud-secret_manager-v1` dogfood run (see devdocs/Dogfood.md).
+`google-cloud-secret_manager-v1` dogfood run (see docs/dev/Dogfood.md).
 
 **Considered and rejected: an explicit skip-list of the measured strings**
 (`"Optional."`, `"Required."`, `"Output only."`, `"Input only."`), mirroring
@@ -5796,7 +5796,7 @@ Settles the "Attribute entries never render `@note`/`@example`/
 `@deprecated`/`@abstract`/`@since`/`@version`/`@author`/`@todo`" checklist
 item under "Attributes & constants" — a partial reopening of "Auxiliary
 one-line tags" above — flagged by the 2026-07-21
-`google-cloud-secret_manager-v1` dogfood run (see devdocs/Dogfood.md).
+`google-cloud-secret_manager-v1` dogfood run (see docs/dev/Dogfood.md).
 
 **The fix is purely mechanical.** `attribute_entry.erb` now calls
 `annotation_lines`/`examples_block`/`trailing_annotation_lines` against
@@ -6191,7 +6191,7 @@ description: "A point in two-dimensional space."
   on every regen for no informational gain) and `resource` (an identity-
   bridge URI — deferred to the dogfood milestone, which needs to settle
   what's actually derivable at generation time; see the still-open
-  "extension frontmatter keys" idea in `devdocs/OKF.md` Part 2).
+  "extension frontmatter keys" idea in `docs/dev/OKF.md` Part 2).
 
 **Implementation**: a new `templates/default/module/agentdocs/
 frontmatter.erb` partial (three lines plus a conditional `description`
@@ -6271,7 +6271,7 @@ is dialect-independent — only `content` runs through RDoc conversion).
 ### Root `index.md` restructured for OKF conformance: `navigating.md`, `okf_version`, and `* `/spaced-hyphen list rows
 
 Settles the third, last "OKF interop" checklist item. Three changes to
-`fulldoc/agentdocs/index.erb`/`setup.rb`, per `devdocs/OKF.md`'s "Part 1"
+`fulldoc/agentdocs/index.erb`/`setup.rb`, per `docs/dev/OKF.md`'s "Part 1"
 subsection 2:
 
 - **The navigation preamble is relocated**, not deleted. The "How to
@@ -6462,7 +6462,7 @@ here) and the consumption contract (in scope).
 ### OKF v0.2 review (2026-08-03): conformance survives untouched, three new items, attestation declined
 
 OKF released **v0.2**, superseding the v0.1 draft the three completed "OKF
-interop" items were built against. `devdocs/OKF.md` is rewritten against it;
+interop" items were built against. `docs/dev/OKF.md` is rewritten against it;
 this entry records the disposition so the spec doesn't get re-read from
 scratch next time it moves.
 
@@ -6533,7 +6533,7 @@ re-proposed off the spec's own prominence:
   tag-aggregation file format, so nothing is expected of a producer.
 - **Per-directory `index.md`, `log.md`, bundle-absolute links, and the
   conventional `# Schema`/`# Examples`/`# Computation` H1s** — unchanged
-  from the v0.1 assessment in `devdocs/OKF.md`; all still optional, all
+  from the v0.1 assessment in `docs/dev/OKF.md`; all still optional, all
   still declined for the same reasons.
 
 **Upstream actions, still not taken.** Both are free and parallel to

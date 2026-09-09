@@ -10,7 +10,7 @@ module YARD
     # module — the same "one reliable hop" set {CrossReferencing}'s
     # `superclass_line`/`includes_line`/`extends_line` already link to),
     # listing just the member *names* it contributes that this object
-    # doesn't already list itself. See devdocs/DESIGN.md's "Names-only
+    # doesn't already list itself. See docs/dev/DESIGN.md's "Names-only
     # inherited/mixin member roster" decision.
     #
     # Requires the including template to provide `object`, plus
