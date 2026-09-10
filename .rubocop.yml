@@ -3,7 +3,7 @@ AllCops:
   SuggestExtensions: false
   TargetRubyVersion: 3.4
   Exclude:
-    - "example/**/*"
+    - "examples/**/*"
 
 # The `agentdocs gems` tool file is named for the tool, not for Bundler's
 # alternative to a Gemfile.

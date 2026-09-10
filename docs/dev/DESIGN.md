@@ -8,7 +8,7 @@ It is a living design document. Format, indexing, cross-referencing, and the
 core YARD integration mechanics are decided and implemented (see
 "Implementation" below) for the scope checked off in "Example coverage
 checklist" — the rest of that checklist (and the still-open question in
-"Open questions") remain to be designed/built as `example/lib` grows.
+"Open questions") remain to be designed/built as `examples/geometry/lib` grows.
 Decisions get logged here as we make them, and open questions stay open (and
 listed) until they're resolved. This file is the source of truth for design;
 keep it in sync as understanding improves.
@@ -63,21 +63,23 @@ template already settled.
 Rather than deciding the output format up front in the abstract, we're building
 it against a concrete worked example:
 
-1. **`example/lib`** — hand-written Ruby source designed to exercise the range of
+1. **`examples/geometry/lib`** — hand-written Ruby source designed to exercise the range of
    Ruby/YARD documentation features we want the plugin to handle well: classes
    and modules (including nesting), inheritance, mixins, singleton methods,
    method overloads, attributes, constants, blocks/yields, visibility
    (public/protected/private), and common YARD tags (`@param`, `@return`,
    `@yield`/`@yieldparam`, `@raise`, `@see`, `@example`, `@deprecated`, `@since`,
    `@abstract`, etc.).
-2. **`example/doc`** — the hand-authored, *ideal* target output for that source:
+2. **`examples/geometry/doc`** — the hand-authored, *ideal* target output for that source:
    what we want an agent to actually see when it looks up each of those
    documented objects. We iterate on this directly (as plain files we read and
    critique) until we're happy with the shape, granularity, and content of the
    output — before writing any plugin code to generate it.
-3. Once `example/doc` is stable, the `(example/lib, example/doc)` pair becomes
-   the primary test fixture for the real implementation: the plugin should
-   generate output equivalent to `example/doc` when run against `example/lib`.
+3. Once `examples/geometry/doc` is stable, the
+   `(examples/geometry/lib, examples/geometry/doc)` pair becomes the primary
+   test fixture for the real implementation: the plugin should generate output
+   equivalent to `examples/geometry/doc` when run against
+   `examples/geometry/lib`.
 
 This lets us iterate quickly on the format (editing markdown by hand) before
 sinking time into the YARD template/handler mechanics needed to generate it.
@@ -94,20 +96,21 @@ implementation code gets touched:
 1. **Human** proposes which unchecked checklist item(s) to tackle next
    (see "Prioritization and roadmap" below for suggested ordering and for
    how much design latitude each item carries).
-2. **Claude** proposes the corresponding additions/edits to `example/lib`
-   (Ruby source exercising the item) and `example/doc` (the hand-authored
+2. **Claude** proposes the corresponding additions/edits to `examples/geometry/lib`
+   (Ruby source exercising the item) and `examples/geometry/doc` (the hand-authored
    target output for it) — for any multi-line tag/docstring text, mirror the
    source comment's exact line breaks, since the template preserves raw text
    verbatim rather than rewrapping it — asking clarifying questions along the
    way where the item raises a design choice not already settled in
    "Decisions".
-3. **Human** reviews the proposed `example/lib`/`example/doc` changes; they
+3. **Human** reviews the proposed
+   `examples/geometry/lib`/`examples/geometry/doc` changes; they
    iterate with Claude as needed until both are satisfied. Nothing outside
-   `example/` (templates, `test/test_agentdocs_template.rb`) is touched during
+   `examples/` (templates, `test/test_agentdocs_template.rb`) is touched during
    this step.
 4. Once the human explicitly says the example changes are good, **Claude**
    implements: confirm `toys test` fails against the new fixture (both
-   `example/lib` source files and `example/doc` output files are
+   `examples/geometry/lib` source files and `examples/geometry/doc` output files are
    discovered automatically — no list to maintain in
    `test/test_agentdocs_template.rb`), then update the template
    implementation until it passes
@@ -126,12 +129,12 @@ the point of doing this test-first.
 ## Example coverage checklist
 
 This is the working checklist of Ruby language features and YARD tags/directives
-that `example/lib` should exercise, so `example/doc` ends up covering the
+that `examples/geometry/lib` should exercise, so `examples/geometry/doc` ends up covering the
 documentation surface an agent is actually likely to hit. Items are grouped by
 category; unchecked boxes are proposed, not yet built. This list is expected to
 grow/shrink as we build the example and find gaps or redundancy.
 
-Checked boxes mean the current `example/lib`/`example/doc` pair and the
+Checked boxes mean the current `examples/geometry/lib`/`examples/geometry/doc` pair and the
 implemented `agentdocs` template actually exercise that scenario end-to-end
 (parsed, rendered, asserted byte-for-byte in `test/test_agentdocs_template.rb`).
 Where a single bullet bundles several genuinely distinct variants (e.g.
@@ -152,12 +155,12 @@ Each unchecked checklist item is marked so that a fresh session can tell how
 much design latitude it involves:
 
 - **(design)** — forces a format decision not yet settled under "Decisions".
-  Expect real back-and-forth in steps 2–3 of the TDD loop; the `example/`
+  Expect real back-and-forth in steps 2–3 of the TDD loop; the `examples/`
   proposal is the medium for *making* the decision, not a formality. Where
   several items share one decision, the item says so — settle it once on the
   first item tackled, and the rest effectively become (mech).
 - **(mech)** — the expected output should follow mechanically from existing
-  "Decisions"; the `example/` proposal should be predictable and review is a
+  "Decisions"; the `examples/` proposal should be predictable and review is a
   sanity check. Good candidates for quick sessions. Caveat: if a (mech) item
   surfaces a surprise (YARD reports something unexpected, or no existing
   decision actually covers the rendering), treat it as (design) on the spot —
@@ -200,7 +203,7 @@ dialects, inline references, odd whitespace, very large classes that would
 trigger the deferred "escape valve" under "File granularity". Harvest
 anything the run surfaces back into this checklist as new items rather than
 fixing ad hoc. Also verify the token-economy claim directly: on the
-hand-written example, `example/doc` is ~37% *larger* than `example/lib`
+hand-written example, `examples/geometry/doc` is ~37% *larger* than `examples/geometry/lib`
 (38.9KB vs. 28.5KB — judged an artifact of toy method bodies under rich
 docstrings; see "Agent-usefulness evaluation" under "Decisions"), so
 "cheaper than reading source" needs confirming on a real gem, where
@@ -332,7 +335,7 @@ may follow; that doc tracks status across all of them.
       includes the trailing `:` in the parameter name itself, so a keyword
       default needs no `=`)
 - [x] Double-splat (`**opts`) — `Geometry::Point#translate(**deltas)`; also
-      supplied the `example/` appearance for the `Hash{}` half of
+      supplied the `examples/` appearance for the `Hash{}` half of
       "Compound-type variants beyond `Array<Point>`" below, via its
       `Hash{Symbol => Numeric}`-typed `@param`
 - [x] Block param (`&block`) captured explicitly — `Stopwatch#measure(&block)`;
@@ -557,7 +560,7 @@ may follow; that doc tracks status across all of them.
       form; confirmed by direct probe that YARD's `signature`, `parameters`,
       `docstring`, `tags`, and `line` are byte-identical to the block form
       (only `source` differs, which the template never reads), so
-      `example/doc/Geometry/Rectangle.md` needed zero changes and
+      `examples/geometry/doc/Geometry/Rectangle.md` needed zero changes and
       `toys test` passed with zero template changes. Flagged by the July
       2026 coverage review
 - [x] (mech, pre-dogfood) Explicit assignment method (`def name=(value)`) not
@@ -585,7 +588,7 @@ may follow; that doc tracks status across all of them.
       and `receiver_name` already renders the class receiver correctly for
       it. No arrow-suppression code added, matching `#[]=`'s own precedent
       (an unfixed, acknowledged gap — see "Remaining operator forms" under
-      "Decisions"): the `example/` fixture's assignment methods simply carry
+      "Decisions"): the `examples/` fixture's assignment methods simply carry
       no `@return` tag, and the existing "no tag → no arrow" behavior
       handles it for free. Exercised via `Stopwatch#tag=` (instance scope)
       and `Stopwatch.log_target=` (class scope, alongside a paired
@@ -948,8 +951,8 @@ may follow; that doc tracks status across all of them.
       overriding `add_tag` to always wrap with the Markdown delimiter,
       never the raw-HTML fallback — wired into {Markdownify#markdownify}
       in place of the stock class. Exercised by the new
-      `example/rdoc/lib/tag_conversion.rb` (`TagConversion`) fixture —
-      `example/rdoc/doc/TagConversion.md` — covering punctuated content via
+      `examples/rdoc/lib/tag_conversion.rb` (`TagConversion`) fixture —
+      `examples/rdoc/doc/TagConversion.md` — covering punctuated content via
       both shorthand and tag-form across all four styles, plus a verbatim
       example block whose literal `<code>`/`<tt>` text must (and does)
       survive untouched, since `accept_verbatim` never calls `add_tag`.
@@ -977,8 +980,8 @@ may follow; that doc tracks status across all of them.
       same-delimiter nesting (e.g. `**foo **bar** baz**`, from a bold word
       nested inside a `<b>` tag) still parses as nested `<strong>`, not a
       prematurely-closed span, so no escaping/flattening was needed.
-      Exercised by extending the `TagConversion` fixture (`example/rdoc/
-      lib/tag_conversion.rb`, `example/rdoc/doc/TagConversion.md`) with a
+      Exercised by extending the `TagConversion` fixture (`examples/rdoc/
+      lib/tag_conversion.rb`, `examples/rdoc/doc/TagConversion.md`) with a
       "Nested styled content" case covering `<b>`/`<em>`/`<s>` nesting and
       the `<tt>`/`<code>` look-alike (confirming it needed no change).
 - [x] Prose/summary containing Markdown metacharacters (backticks, `*`, `_`,
@@ -1123,7 +1126,7 @@ may follow; that doc tracks status across all of them.
       resolves without the fallback ever running, a two-hop reference
       resolves only via it, and a genuinely-unresolvable name still returns
       nil after climbing all the way to root (no false positive, no
-      infinite loop). `example/` appearance: `Geometry::Cache`'s docstring
+      infinite loop). `examples/` appearance: `Geometry::Cache`'s docstring
       — previously a plain, unlinked `` `Stopwatch#raw_elapsed_s` `` code
       span, worked around exactly because of this gap (see "Class-level
       `@private`/`@api private`" under "Decisions") — now uses a real
@@ -1136,12 +1139,12 @@ may follow; that doc tracks status across all of them.
       `test/test_cross_referencing.rb` for both the resolving
       (`Hash{Baz => Baz}`) and nothing-resolves (`Hash{Symbol => Numeric}`)
       cases, plus `Geometry::Point#translate`'s `Hash{Symbol => Numeric}`-typed
-      `@param` as the `example/` appearance.
+      `@param` as the `examples/` appearance.
 - [x] (mech) Remaining compound-type variants — parenthesized
       `Array(Float, Float)`, nested generics (e.g. `Array<Hash{Symbol =>
       Point}>`): the `(`/`)` tokens and multi-level nesting still aren't
       proven by any existing case. Unit-test coverage in
-      `test/test_cross_referencing.rb` plus at least one `example/`
+      `test/test_cross_referencing.rb` plus at least one `examples/`
       appearance. Confirmed mechanical with zero scanner changes, same
       "already-generic punctuation buffering" precedent as `Hash{K => V}`
       — three new unit tests (parenthesized-type resolving, parenthesized-
@@ -1150,7 +1153,7 @@ may follow; that doc tracks status across all of them.
       [Array(Numeric, Numeric)]`, unresolved since `Numeric` isn't a
       documented class) and `Geometry::Computations.group_by_quadrant`
       (`@return [Hash{Symbol => Array<Point>}]`, `Point` resolving and
-      linking two collection-levels deep) as the `example/` appearances
+      linking two collection-levels deep) as the `examples/` appearances
 - [x] (mech) `@see` pointing at another method in the same class —
       `Geometry::Point#[]=`'s new `@see #[] the corresponding getter`;
       confirmed mechanical with zero template changes: `self_reference?`
@@ -6788,7 +6791,8 @@ wall-clock and live `VERSION`.
 ## Implementation
 
 The `agentdocs` template is implemented and generates output *identical*
-(byte-for-byte) to `example/doc` when run against `example/lib` — verified by
+(byte-for-byte) to `examples/geometry/doc` when run against
+`examples/geometry/lib` — verified by
 `test/test_agentdocs_template.rb`, which runs `YARD::CLI::Yardoc` in-process
 and asserts equality against the fixture files directly (no fuzzy/normalized
 comparison needed; see "ERB has no trim mode" below for why that used to be
@@ -6899,10 +6903,10 @@ of page-assembly glue.
 Test each mixin with `YARD.parse_string` against a minimal stub class that
 includes just the module under test (see `test/test_cross_referencing.rb`,
 `test/test_method_signature.rb`, `test/test_attribute_info.rb`), not only
-indirectly through the full `example/lib`/`example/doc` fixture — this
+indirectly through the full `examples/geometry/lib`/`examples/geometry/doc` fixture — this
 keeps failures localized to the one helper that broke, and lets edge cases
 (e.g. compound-type cross-referencing) get direct coverage without needing
-a matching `example/lib` scenario for every branch.
+a matching `examples/geometry/lib` scenario for every branch.
 
 ### Non-obvious techniques, patterns, and quirks
 
@@ -6970,7 +6974,7 @@ A few things that weren't obvious going in, worth not re-discovering:
   does) needs `--no-yardopts`, or it silently merges in this gem's own
   `.yardopts` file list — which is how a spurious extra "YARD" top-level
   namespace first showed up in test output (from `lib/yard/agentdocs.rb`
-  getting parsed alongside the intended `example/lib` files).
+  getting parsed alongside the intended `examples/geometry/lib` files).
 - **`bundle exec yard doc -f agentdocs` alone won't find the template.**
   Bundler activates a path-based gem dependency but doesn't `require` it.
   Either pass `-e ./lib/yard-agentdocs.rb` (loads the file first, registering
@@ -7002,12 +7006,12 @@ A few things that weren't obvious going in, worth not re-discovering:
 
 `test/test_agentdocs_template.rb` runs `YARD::CLI::Yardoc.new.run(...)`
 in-process (not shelling out), from inside `Dir.chdir(project_root)` so
-recorded source paths come out relative (`example/lib/geometry.rb`, matching
+recorded source paths come out relative (`examples/geometry/lib/geometry.rb`, matching
 the fixtures) rather than absolute. Source files are discovered via
-`Dir.glob("example/lib/**/*.rb")` (sorted for free on our Ruby >= 3.4
-floor), so a new `example/lib` file needs no test-file edit to be
+`Dir.glob("examples/geometry/lib/**/*.rb")` (sorted for free on our Ruby >= 3.4
+floor), so a new `examples/geometry/lib` file needs no test-file edit to be
 picked up. It asserts each generated file is exactly
-equal to its `example/doc` counterpart — no normalization. A manual
+equal to its `examples/geometry/doc` counterpart — no normalization. A manual
 end-to-end sanity check (`yard doc -f agentdocs -e ./lib/yard-agentdocs.rb
 ...` from the command line) is worth re-running after any template change,
 since it's the only check that exercises the real CLI entry point rather than

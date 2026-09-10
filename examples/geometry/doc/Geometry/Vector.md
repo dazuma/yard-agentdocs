@@ -1,0 +1,143 @@
+---
+type: Ruby Class
+title: Geometry::Vector
+description: "An immutable 2D displacement vector."
+---
+
+# class Geometry::Vector
+
+- **Superclass:** `Data`
+- **Defined in:** `examples/geometry/lib/geometry/vector.rb`
+
+An immutable 2D displacement vector.
+
+* **Since:** 2.0.0
+* **Version:** 2.1.0
+* **Author:** Ada Lovelace, Alan Turing
+
+## Member Summary
+
+**Instance Attributes**
+
+- `#dx` (read-only) — Returns the value of attribute dx.
+- `#dy` (read-only) — Returns the value of attribute dy.
+
+**Instance Methods**
+
+- `#+@` — This vector, unchanged.
+- `#-@` — The negation of this vector: same magnitude, opposite direction.
+- `#==` — Whether this vector has the same components as another.
+- `#eql?` — Whether this vector has the same components as another.
+- `#magnitude` — Computes the magnitude (length) of the vector.
+
+## Instance Attributes
+
+### #dx
+
+- **Type:** `Object`
+- **Read-only.**
+
+Returns the value of attribute dx
+
+* **Defined in:** `examples/geometry/lib/geometry/vector.rb:12`
+
+### #dy
+
+- **Type:** `Object`
+- **Read-only.**
+
+Returns the value of attribute dy
+
+* **Defined in:** `examples/geometry/lib/geometry/vector.rb:12`
+
+## Instance Methods
+
+### #+@
+
+```ruby
++vector → Vector
+```
+
+This vector, unchanged. Included for symmetry with `#-@`; unary `+`
+is conventionally a no-op in Ruby.
+
+**Returns:**
+
+- `Vector` — this same vector
+
+* **Since:** 2.0.0
+* **Defined in:** `examples/geometry/lib/geometry/vector.rb:37`
+
+### #-@
+
+```ruby
+-vector → Vector
+```
+
+The negation of this vector: same magnitude, opposite direction.
+
+**Returns:**
+
+- `Vector` — a new vector with both components negated
+
+* **Since:** 2.0.0
+* **Defined in:** `examples/geometry/lib/geometry/vector.rb:27`
+
+### #==
+
+```ruby
+vector == other → Boolean
+```
+
+Whether this vector has the same components as another.
+
+Overrides `Data`'s own generated `==` purely to attach documentation
+to it; the comparison itself (memberwise equality) is unchanged.
+
+**Params:**
+
+- `other` (`Object`) — the value to compare to
+
+**Returns:**
+
+- `Boolean` — `true` if `other` is a `Vector` with equal `dx` and `dy`
+
+* **Since:** 2.0.0
+* **Defined in:** `examples/geometry/lib/geometry/vector.rb:50`
+
+### #eql?
+
+```ruby
+vector.eql?(other) → Boolean
+```
+
+Whether this vector has the same components as another.
+
+Overrides `Data`'s own generated `==` purely to attach documentation
+to it; the comparison itself (memberwise equality) is unchanged.
+
+**Params:**
+
+- `other` (`Object`) — the value to compare to
+
+**Returns:**
+
+- `Boolean` — `true` if `other` is a `Vector` with equal `dx` and `dy`
+
+* **Since:** 2.0.0
+* **Defined in:** `examples/geometry/lib/geometry/vector.rb:57`
+
+### #magnitude
+
+```ruby
+vector.magnitude() → Float
+```
+
+Computes the magnitude (length) of the vector.
+
+**Returns:**
+
+- `Float` — the magnitude
+
+* **Since:** 2.0.0
+* **Defined in:** `examples/geometry/lib/geometry/vector.rb:18`

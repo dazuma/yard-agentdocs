@@ -5,8 +5,8 @@ require "tmpdir"
 
 describe "agentdocs template" do
   let(:project_root) { ::File.expand_path("..", __dir__) }
-  let(:example_doc_dir) { ::File.join(project_root, "example/doc") }
-  let(:example_rdoc_doc_dir) { ::File.join(project_root, "example/rdoc/doc") }
+  let(:geometry_doc_dir) { ::File.join(project_root, "examples/geometry/doc") }
+  let(:rdoc_doc_dir) { ::File.join(project_root, "examples/rdoc/doc") }
 
   # Pinned `generated:` values for the `bundle.md` frontmatter, so the
   # byte-exact fixture comparison survives both the clock and a release bump.
@@ -26,11 +26,11 @@ describe "agentdocs template" do
   end
 
   # Runs from the project root so recorded source paths (used in "Defined in"
-  # lines) come out relative, matching the example/doc fixtures.
+  # lines) come out relative, matching the examples/geometry/doc fixtures.
   def generate(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
-      files = ::Dir.glob("example/lib/**/*.rb")
+      files = ::Dir.glob("examples/geometry/lib/**/*.rb")
       yardoc_cli.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
@@ -38,8 +38,8 @@ describe "agentdocs template" do
         "-f", "agentdocs",
         "--markup", "markdown",
         "--title", "yard-agentdocs example — API Reference",
-        "--readme", "example/README.md",
-        "--files", "example/docs/point_cloud.md",
+        "--readme", "examples/geometry/README.md",
+        "--files", "examples/geometry/docs/point_cloud.md",
         *files
       )
     end
@@ -52,7 +52,7 @@ describe "agentdocs template" do
   def generate_rdoc(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
-      files = ::Dir.glob("example/rdoc/lib/**/*.rb")
+      files = ::Dir.glob("examples/rdoc/lib/**/*.rb")
       yardoc_cli.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
@@ -60,7 +60,7 @@ describe "agentdocs template" do
         "-f", "agentdocs",
         "--markup", "rdoc",
         "--title", "yard-agentdocs rdoc-dialect fixture — API Reference",
-        "--readme", "example/rdoc/README.rdoc",
+        "--readme", "examples/rdoc/README.rdoc",
         *files
       )
     end
@@ -73,7 +73,7 @@ describe "agentdocs template" do
   end
 
   # Asserts +output_dir+ (freshly generated) and +fixture_dir+ (hand-authored
-  # under example/) contain the same files with byte-identical contents.
+  # under examples/) contain the same files with byte-identical contents.
   def assert_matches_fixture(output_dir, fixture_dir)
     actual_files = relative_files(output_dir)
     expected_files = relative_files(fixture_dir)
@@ -91,17 +91,17 @@ describe "agentdocs template" do
     end
   end
 
-  it "renders output identical to the example/doc fixture" do
+  it "renders output identical to the examples/geometry/doc fixture" do
     ::Dir.mktmpdir do |output_dir|
       generate(output_dir)
-      assert_matches_fixture(output_dir, example_doc_dir)
+      assert_matches_fixture(output_dir, geometry_doc_dir)
     end
   end
 
-  it "renders --markup rdoc output identical to the example/rdoc/doc fixture" do
+  it "renders --markup rdoc output identical to the examples/rdoc/doc fixture" do
     ::Dir.mktmpdir do |output_dir|
       generate_rdoc(output_dir)
-      assert_matches_fixture(output_dir, example_rdoc_doc_dir)
+      assert_matches_fixture(output_dir, rdoc_doc_dir)
     end
   end
 end

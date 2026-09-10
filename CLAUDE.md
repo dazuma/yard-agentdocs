@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-The `agentdocs` YARD template is implemented and generates output matching `example/doc` when run
-against `example/lib` (see `templates/default/{fulldoc,module,class}/agentdocs/`, registered via
+The `agentdocs` YARD template is implemented and generates output matching `examples/geometry/doc` when run
+against `examples/geometry/lib` (see `templates/default/{fulldoc,module,class}/agentdocs/`, registered via
 `lib/yard-agentdocs.rb`), verified by `test/test_agentdocs_template.rb`. Scope is intentionally narrow —
 see `docs/dev/DESIGN.md`'s "Example coverage checklist" for what's covered vs. still open. See "Design"
 below for the full rationale and implementation notes.
 
 Remaining checklist coverage is built test-first and human-gated, per
 `docs/dev/DESIGN.md`'s "Coverage workflow (TDD loop)": the user picks the next
-checklist item(s), Claude proposes `example/lib`/`example/doc` changes for
+checklist item(s), Claude proposes `examples/geometry/lib`/`examples/geometry/doc` changes for
 review/iteration, and only once the user explicitly approves those does
 Claude touch `test/test_agentdocs_template.rb` or the template implementation.
 Do not jump ahead to implementation on your own initiative. Unchecked
@@ -45,9 +45,9 @@ Read [`docs/dev/DESIGN.md`](docs/dev/DESIGN.md) for the current design thinking 
 questions (output format, file granularity, lookup/indexing, YARD integration mechanics, cross-referencing).
 It's a living document — keep it updated as decisions are made. `docs/dev/` is not shipped in the gem.
 
-We're designing the output format example-first: `example/lib` will hold hand-written Ruby source
-exercising the YARD features we care about, and `example/doc` will hold the hand-authored target output we
-iterate on directly, before any template/generation code exists. Once stable, that pair becomes the test
+We're designing the output format example-first: `examples/geometry/lib` will hold hand-written Ruby source
+exercising the YARD features we care about, and `examples/geometry/doc` will hold the hand-authored target
+output we iterate on directly, before any template/generation code exists. Once stable, that pair becomes the test
 fixture for the real implementation.
 
 ## Commands

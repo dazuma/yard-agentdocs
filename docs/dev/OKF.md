@@ -18,14 +18,14 @@ July 2026 writeup against v0.1.
 a gap analysis of a *nonconformant* tree: it proposed adding frontmatter,
 relocating the index preamble, and declaring `okf_version`. All three were
 adopted and implemented (see the three "OKF interop" entries under
-"Decisions" in `DESIGN.md`), so `example/doc` and `example/rdoc/doc` have
+"Decisions" in `DESIGN.md`), so `examples/geometry/doc` and `examples/rdoc/doc` have
 been conformant bundles since July. This revision therefore does the
 opposite job: it establishes that conformance *survives* the v0.2 bump, and
 asks what the new spec makes newly *available*.
 
 As before, this document is analysis and recommendation only. Nothing here
 is a decision; anything adopted goes through the normal design workflow
-(checklist item → hand-authored `example/` changes → approval →
+(checklist item → hand-authored `examples/` changes → approval →
 tests/implementation).
 
 ## What OKF is (v0.2)

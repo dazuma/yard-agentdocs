@@ -1,0 +1,121 @@
+---
+type: Ruby Module
+title: Geometry::Computations
+description: "Utility computations on `Point` values."
+---
+
+# module Geometry::Computations
+
+- **Defined in:** `examples/geometry/lib/geometry/computations.rb`
+
+Utility computations on `Point` values.
+
+## Member Summary
+
+**Class Methods**
+
+- `.centroid` — Computes the centroid (average position) of one or more points.
+- `.distance` (deprecated) — Computes the distance between two points.
+- `.each_point` — Yields each of the given points in turn.
+- `.group_by_quadrant` — Groups the given points by which quadrant of the coordinate plane they fall in, relative to the origin.
+
+## Class Methods
+
+### .centroid
+
+```ruby
+Computations.centroid(*points) → Point
+```
+
+Computes the centroid (average position) of one or more points.
+
+**Params:**
+
+- `points` (`Array<`[`Point`](Point.md)`>`) — the points to average
+
+**Returns:**
+
+- [`Point`](Point.md) — the centroid of the given points
+
+**Raises:**
+
+- `ArgumentError, NoMethodError` — if `points` is empty, or if an
+  element doesn't respond to `#x`/`#y`
+
+**See also:**
+
+- [`Point`](Point.md) — the class centroid values are returned as
+- [`Point#distance_to`](Point.md) — a related method, for measuring distance from a centroid
+- [`https://en.wikipedia.org/wiki/Centroid`](<https://en.wikipedia.org/wiki/Centroid>) — the Wikipedia definition of a centroid
+
+* **Defined in:** `examples/geometry/lib/geometry/computations.rb:32`
+
+### .distance
+
+```ruby
+Computations.distance(a, b) → Float
+```
+
+* **Deprecated.** Use [`Point#distance_to`](Point.md) instead.
+
+Computes the distance between two points.
+
+**Params:**
+
+- `a` ([`Point`](Point.md)) — the first point
+- `b` ([`Point`](Point.md)) — the second point
+
+**Returns:**
+
+- `Float` — the distance between the two points
+
+**See also:**
+
+- [`Point#distance_to`](Point.md)
+
+* **Defined in:** `examples/geometry/lib/geometry/computations.rb:17`
+
+### .each_point
+
+```ruby
+Computations.each_point(*points) { |point| ... } → Integer
+```
+
+Yields each of the given points in turn.
+
+**Params:**
+
+- `points` (`Array<`[`Point`](Point.md)`>`) — the points to iterate over
+
+**Yield Params:**
+
+- `point` ([`Point`](Point.md)) — each point, in the order given
+
+**Returns:**
+
+- `Integer` — the number of points yielded
+
+* **Defined in:** `examples/geometry/lib/geometry/computations.rb:45`
+
+### .group_by_quadrant
+
+```ruby
+Computations.group_by_quadrant(points) → Hash{Symbol => Array<Point>}
+```
+
+Groups the given points by which quadrant of the coordinate plane
+they fall in, relative to the origin. Exercises a nested compound
+type: an `Array` of `Point`, grouped into a `Hash` keyed by
+quadrant name.
+
+**Params:**
+
+- `points` (`Array<`[`Point`](Point.md)`>`) — the points to group
+
+**Returns:**
+
+- `Hash{Symbol => Array<`[`Point`](Point.md)`>}` — the points, bucketed by
+  quadrant name (`:northeast`, `:northwest`, `:southeast`,
+  `:southwest`)
+
+* **Defined in:** `examples/geometry/lib/geometry/computations.rb:61`
