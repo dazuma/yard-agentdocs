@@ -1,7 +1,7 @@
 ### <%= @constant.name %>
 
 - **Type:** <%= type_ref(constant_type(@constant)) %>
-<%- if @constant.value.include?("\n") -%>
+<%- if @constant.value&.include?("\n") -%>
 
 **Value:**
 
