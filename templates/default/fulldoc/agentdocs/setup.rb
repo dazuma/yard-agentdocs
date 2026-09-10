@@ -12,27 +12,55 @@ include ::YARD::AgentDocs::VisibilityInfo
 def init
   options.serializer.extension = "md" if options.serializer
   objects = run_verifier(options.objects).reject(&:root?).reject { |o| bare_nodoc?(o) }
-  serialize_navigating
+  serialize_bundle_info
   serialize_index(objects)
   options.files.each { |file| serialize_extra_file(file) }
   objects.each { |object| serialize(object) }
 end
 
-# Generator-owned page holding the path-derivation/member-lookup/etc.
-# reading conventions for this tree — formerly an `index.md` preamble,
-# relocated here so `index.md` itself is a conformant OKF §6 concept-listing
-# (see "Root index.md restructured for OKF conformance" under "Decisions").
-# Content is identical on every run (no per-object interpolation, and not
-# sourced from a `--files` guide), so it's a plain string, same precedent as
+# Generator-owned page carrying everything true of this bundle as a whole:
+# per-build metadata in frontmatter, and the path-derivation/member-lookup/
+# etc. reading conventions in the body. Those conventions were formerly an
+# `index.md` preamble, then a standalone `navigating.md`; merging them here
+# means one file answers both "how do I read this tree" and "is it still
+# true", and the cold agent that follows `index.md` into the reading
+# conventions gets the freshness signal at no extra read. See "Bundle-level
+# `bundle.md`: freshness plus reading conventions in one file" under
+# "Decisions".
+#
+# Split into {#bundle_frontmatter} and {#navigation_conventions} because the
+# two halves have opposite lifetimes, and `generated.at` means the file now
+# changes on every build where it never used to.
+def serialize_bundle_info
+  content = "#{bundle_frontmatter}# About this bundle\n\n#{navigation_conventions}"
+  Templates::Engine.with_serializer("bundle.md", options.serializer) { content }
+end
+
+# The per-build half of {#serialize_bundle_info}'s page: an OKF v0.2 concept
+# header, ending in the blank line that separates it from the body. Built as
+# a plain string rather than an ERB partial, same precedent as
 # {#serialize_extra_file}'s own frontmatter construction.
-def serialize_navigating
-  content = <<~MARKDOWN
+def bundle_frontmatter
+  <<~MARKDOWN
     ---
-    type: Guide
-    title: "Navigating these docs"
+    type: Bundle Info
+    title: "About this bundle"
+    generated:
+      by: #{generated_by}
+      at: #{generated_at}
     ---
 
-    # Navigating these docs
+  MARKDOWN
+end
+
+# The constant half: reading conventions for this output format, identical in
+# every bundle this generator produces (no per-object interpolation, and not
+# sourced from a `--files` guide). Kept separate from {#bundle_frontmatter}
+# because the two halves have opposite lifetimes — this text changes only
+# when the format does, while the frontmatter changes on every build.
+def navigation_conventions
+  <<~MARKDOWN
+    ## Navigating these docs
 
     - **Path derivation:** a class/module's file path mirrors its fully-qualified
       name, with `::` becoming a directory separator — e.g. `Foo::Bar` is
@@ -61,7 +89,26 @@ def serialize_navigating
       instead, and stack with no blank line between them — a deliberate marker
       change so they never render as part of the preceding content list.
   MARKDOWN
-  Templates::Engine.with_serializer("navigating.md", options.serializer) { content }
+end
+
+# The OKF v0.2 §7 actor string identifying what produced this bundle
+# (`<producer>/<version>`). The `agentdocs_generated_by` option overrides it
+# so the byte-exact fixture comparison in `test/test_agentdocs_template.rb`
+# doesn't break on every release bump.
+def generated_by
+  options[:agentdocs_generated_by] || "yard-agentdocs/#{::YARD::AgentDocs::VERSION}"
+end
+
+# Build wall-clock as an RFC 3339 UTC timestamp — deliberately *not* OKF
+# v0.2 §5.2's "content's last meaningful change", which cannot answer the
+# staleness question at all (regenerating unchanged source would leave it
+# untouched, reading as fresh). Seconds granularity is likewise deliberate:
+# the failure this signal exists to catch is source edited minutes ago,
+# which a date alone can't see. The `agentdocs_generated_at` option (a
+# +Time+) pins it for the fixture comparison.
+def generated_at
+  time = options[:agentdocs_generated_at] || ::Time.now
+  time.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 end
 
 # Renders one extra file (the README, or a `--files` guide) onto its own

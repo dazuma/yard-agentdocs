@@ -1221,11 +1221,16 @@ may follow; that doc tracks status across all of them.
       per-dependency, and where output lands — are settled by the shipped
       `agentdocs build`/`agentdocs gems` tools. Scope is also now settled
       (one lookup-scoped skill, generation subordinate; see "Agent skill
-      scope" under "Decisions"), so what remains is writing it — **blocked
-      only on the staleness item just below**, whose answer the skill has to
-      state as a rule. Two further things the skill must specify, folded in
-      here rather than tracked separately because neither needs any output
-      change — both are consumer-side procedure, which this item already
+      scope" under "Decisions"), and **the staleness block is lifted**
+      (2026-09-09): `bundle.md` carries `generated.by`/`generated.at`, so the
+      rule the skill has to state is a concrete one — compare `generated.at`
+      against the whole working tree (over-broad on purpose; it fails safe)
+      for a project-local `build` tree, and read `at` as provenance rather
+      than expiry under a `gems` path, where the documented release cannot
+      change. What remains is writing it. Two further things the skill must
+      specify, folded in here rather than tracked separately because
+      neither needs any output change — both are consumer-side procedure,
+      which this item already
       owns. *Version resolution:* a `gems` bundle's version is path-encoded
       (`<name>-<version>`), so the skill has to state a resolution order for
       deciding which version the project actually uses — `Gemfile.lock`, an
@@ -1241,66 +1246,18 @@ may follow; that doc tracks status across all of them.
       dependencies at all is tracked under "Open questions" ("Bundles for
       dependencies that aren't installed releases"). See also "Navigation
       guidance: preamble plus skill" under "Decisions"
-- [ ] (design) Staleness of a bundle built over mutable source — a
+- [x] (design) Staleness of a bundle built over mutable source — a
       project-local `agentdocs/` tree (from `agentdocs build`) is stale the
       moment its source changes, and nothing in the output lets a consumer
-      cheaply notice. This is the failure mode the format exists to prevent:
-      not a miss, which is self-announcing and recovers by rebuilding, but a
-      confidently-wrong signature. Scoped to bundles over **mutable** input
-      only — a `gems` bundle documents an installed release whose source
-      can't change, so it is never stale in this sense and needs nothing
-      here. The format question: does the bundle record something a consumer
-      can check in one read — a source fingerprint, a git SHA, a max source
-      mtime — or do we decline to solve it and have the skill state a
-      conservative rule instead (rebuild before trusting a project-local
-      tree)? Emitting the signal is tool behavior, tracked with the tools
-      rather than here; what's in scope is what the output discloses and the
-      rule the skill states when the answer is absent or stale. Raised by
-      the 2026-07-27 skill-scope discussion (see "Agent skill scope" under
-      "Decisions").
-      **Reshaped by the 2026-08-03 OKF v0.2 review**, which supplies the
-      vocabulary and removes the assumed location. *Vocabulary:*
-      `generated: { by, at }` (§5.2, `by` required within the block — an
-      actor, here `yard-agentdocs/<version>` under §7's convention),
-      `stale_after: YYYY-MM-DD` (§5.5, deliberately an absolute date so
-      staleness is a plain comparison), and `sources[].last_modified` (§5.1,
-      "when the source itself last changed", explicitly distinguished from
-      `generated.at`). *Location:* §8 permits no frontmatter in an index
-      file "with one exception: a bundle-root `index.md` MAY carry an
-      `okf_version` key", and §12 repeats that this is the only place
-      frontmatter is permitted in an `index.md` — so the exception is scoped
-      to that one key, and §11(3) makes reserved-file structure a hard
-      conformance condition. Putting a freshness signal in the root
-      `index.md` therefore trades away conformance, which is the wrong trade
-      for a project whose reason to care about OKF is interop. Three
-      candidate resolutions, and note that the constraint driving the old
-      "root `index.md` alone, or a new reserved file" wording — "Frontmatter
-      on every class/module file"'s deliberate omission of `timestamp`,
-      which would churn every file on every regen — no longer rules out the
-      per-page option by itself:
-      *(a) A bundle-level concept file* (e.g. `bundle.md`) carrying
-      `generated`, `stale_after`, `resource`, and `sources` for the tree as
-      a whole, linked from `index.md`'s `## Guides` section the way
-      `navigating.md` already is. Fully conformant — an ordinary
-      non-reserved concept, so its frontmatter is unrestricted — one extra
-      file, one extra read, zero per-page churn, and it gives the deferred
-      `resource` identity bridge somewhere to land.
-      *(b) Per-page `generated`*, worth re-examining rather than citing the
-      `timestamp` decision as settled: v0.2 defines `generated.at` as the
-      content's last **meaningful change**, not generation time, so derived
-      from source (a git commit date, a max mtime over `object.files`) it
-      would be stable across regenerations and the churn objection doesn't
-      transfer. Against it: mtime is meaningless in a fresh clone, git dates
-      need a repo and a per-object query, and "which files define this
-      class" is already a multi-file answer — real work for a signal (a)
-      delivers in one file.
-      *(c) Decline, and let the skill state the conservative rule.* Still
-      viable; v0.2 doesn't weaken it, and the asymmetry that makes it
-      defensible is unchanged — a `gems` bundle documents an immutable
-      release and is never stale, so declining only costs something for
-      `agentdocs build` trees.
-      See also the (stretch) `sources`/`resource` item under "OKF interop",
-      which is the same fields viewed as provenance rather than freshness
+      cheaply notice. Resolved by adopting the 2026-08-03 OKF v0.2 review's
+      option *(a)*, a bundle-level concept file, and merging `navigating.md`
+      into it: `bundle.md` carries `generated: { by, at }` in frontmatter
+      and the reading conventions in its body. See "Bundle-level
+      `bundle.md`: freshness and reading conventions in one file" under
+      "Decisions" — including why `generated.at` is build wall-clock rather
+      than §5.2's "last meaningful change", and why `stale_after` and
+      recorded source roots were declined. Raised by the 2026-07-27
+      skill-scope discussion, reshaped by the 2026-08-03 OKF v0.2 review
 - [x] (design) README and extra files (guides) — scoped to the README only;
       arbitrary `--files` guides remain unaddressed. See "README rendering:
       own page via `options.readme`, no heading demotion" under "Decisions".
@@ -6251,6 +6208,12 @@ is dialect-independent — only `content` runs through RDoc conversion).
 
 ### Root `index.md` restructured for OKF conformance: `navigating.md`, `okf_version`, and `* `/spaced-hyphen list rows
 
+**Partly superseded 2026-09-09:** `navigating.md` no longer exists as its
+own page — its body moved into `bundle.md`, and its `## Guides` row into a
+new leading `## Bundle info` section. Everything else here (the relocation
+out of `index.md`, `okf_version`, the `* `/spaced-hyphen row form) stands.
+See "Bundle-level `bundle.md`" below.
+
 Settles the third, last "OKF interop" checklist item. Three changes to
 `fulldoc/agentdocs/index.erb`/`setup.rb`, per `docs/dev/OKF.md`'s "Part 1"
 subsection 2:
@@ -6315,8 +6278,9 @@ rows) rather than just the main fixture.
 ### Agent skill scope (2026-07-27): one lookup-scoped skill, three owners of guidance
 
 Settles the scope half of the "Accompanying agent skill" checklist item
-(the *writing* of it is still open, and now blocked on the staleness item
-added alongside this entry). The question raised:
+(the *writing* of it is still open; it was blocked on the staleness item
+added alongside this entry, which was settled 2026-09-09 — see "Bundle-level
+`bundle.md`" below). The question raised:
 an agent can do two things with this project — **generate** a bundle for a
 gem or project, and **use** an existing bundle to answer an API question —
 so is that one skill with two steps, or two skills, or one skill plus a
@@ -6351,9 +6315,10 @@ in the agent's context*, and the two triggers are asymmetric:
 split *how* (preamble) from *when and why* (skill). Generation adds a third
 surface, so:
 
-- `navigating.md` (in-band, generator-owned) owns **format mechanics** —
+- `bundle.md` (in-band, generator-owned) owns **format mechanics** —
   path derivation, heading grammar, grep recipes, the inherited-member
-  policy.
+  policy. (Written here as `navigating.md`, which it was until 2026-09-09;
+  see "Bundle-level `bundle.md`" below.)
 - The tools' own `long_desc` owns **CLI mechanics** — the `--` separator,
   `--all` semantics, `.yardopts` handling, `--rebuild`, output locations.
 - The skill owns **routing and judgment only** — prefer these docs over
@@ -6653,6 +6618,172 @@ share a lifecycle, so the distinction rarely bites and the spec's wording
 does not belabor it. `generated`, `verified`, and `stale_after` are
 unambiguously document-level and carry no such hazard; the risk is
 specifically keys whose names read naturally as either.
+
+### Bundle-level `bundle.md` (2026-09-09): freshness and reading conventions in one file
+
+Settles the open *(design)* "Staleness of a bundle built over mutable
+source" checklist item under "Indexing & discovery", by adopting the
+2026-08-03 OKF v0.2 review's option *(a)* — a bundle-level concept file — and
+extending it: the file **subsumes `navigating.md`**, which is deleted. One
+file now answers both "how do I read this tree" and "is what it says still
+true".
+
+**What ships.** `bundle.md` at the bundle root, in every bundle:
+
+```markdown
+---
+type: Bundle Info
+title: "About this bundle"
+generated:
+  by: yard-agentdocs/0.0.0
+  at: 2026-01-01T00:00:00Z
+---
+```
+
+…followed by `# About this bundle`, then the four reading-convention
+bullets moved over from `navigating.md` verbatim, under a level-two
+"Navigating these docs" heading.
+
+`index.md` gains a leading `## Bundle info` section holding the single row
+that points at it, above `## Guides`; `navigating.md`'s former row there is
+gone. `## Guides` is now emitted only when `options.files.any?` — without
+that guard, a project with no README and no `--files` would emit a bare
+heading with nothing under it, which `navigating.md`'s hardcoded row had
+been silently preventing.
+
+**Why *(a)* over per-page `generated` *(b)* or declining *(c)*.** The
+deciding argument is read economics for the agent that has *not* installed
+the accompanying skill. An agent that knows the conventions goes straight to
+`Foo/Bar.md` and reads no meta file at all; a cold agent lands on `index.md`
+and follows the first row into the reading conventions. That second
+population is exactly the one at risk of trusting a stale bundle, and it was
+already going to read this file. A standalone `bundle.md` sitting *beside*
+`navigating.md` would have been read by nobody who wasn't told to. *(b)*
+remains real work (git dates need a repo and a per-object query; mtime is
+meaningless in a fresh clone; "which files define this class" is already a
+multi-file answer) for a signal one file delivers. *(c)* stays defensible on
+its own terms and is simply no longer necessary.
+
+**Why the merge, given the two halves have opposite lifetimes.** The
+conventions text is constant — identical in every bundle this generator ever
+produces, changing only when the output format does — while `generated.at`
+changes on every build. Mixing them means a file that used to be byte-stable
+now churns. Accepted, because the churn is one frontmatter line in a
+diff-legible place, and the alternative costs the read-path win above. The
+split is preserved *in code* rather than in the tree:
+`serialize_bundle_info` composes `bundle_frontmatter` and
+`navigation_conventions`, so the halves stay separable if the skill ever
+grows confident enough to own format mechanics out-of-band. It also
+collapses three root-level meta files (`index.md`, `navigating.md`,
+`bundle.md`) into two, with a legible division: *what's here* vs. *everything
+about this bundle, including how to read it*.
+
+**`generated.at` is build wall-clock — a deliberate deviation from §5.2.**
+The spec defines `at` as "the content's last **meaningful change**",
+explicitly not generation time (it is what replaced v0.1's `timestamp`). That
+definition cannot answer the staleness question at all: regenerate unchanged
+source and a meaningful-change date stays put, reading as fresh, which is the
+silent-wrong-answer failure this item exists to prevent. Build time makes a
+different and *stronger* claim — *this content matched source at T* — which
+is true, and is what a consumer needs to compare against. The only consumer
+it misleads is one using `at` for change detection, which sees churn where
+there was none: noise, not a wrong answer. Logged as upstream feedback in
+`docs/dev/OKF.md` Part 4, alongside the trust-tier item: a deterministic
+regenerator has no field in §5.2 for "confirmed against source at T".
+
+**Granularity and YAML shape.** RFC 3339 UTC to the second, because the
+failure being caught is source edited *minutes* ago — the same reason
+§5.1's day-granular `sources[].last_modified` was judged unable to serve
+here. Block style, not flow, so one line changes per rebuild rather than the
+whole mapping. `at` is left unquoted, so a YAML 1.1 loader types it as a
+timestamp — deliberately the opposite call from `okf_version: "0.2"`, where
+a *string* is what must survive. Verified with Psych rather than assumed:
+`generated.at` loads as `Time`, `by` as `String`, `okf_version` still
+`String`.
+
+**It ships in `gems` bundles too**, though the staleness item was scoped to
+mutable-input bundles only. A `gems` bundle documents an immutable release
+and cannot rot against its source, but it *can* be stale against the
+generator — built by a yard-agentdocs whose output grammar has since
+changed — and `generated.by` is the only thing in the tree that would ever
+let a consumer notice. Gating emission would also require the template to
+learn which tool invoked it. **Consequence for the blocked skill item:**
+its rule must read `at` as provenance under a `gems` path and as an expiry
+check only under a project-local `build` tree.
+
+**`type: Bundle Info`.** `Bundle` alone follows the subject-naming rule the
+`Ruby Class`/`Ruby Module` types use, but in OKF vocabulary "bundle" is the
+tree itself, so a concept typed `Bundle` reads as *this file is a bundle*
+rather than *this file describes one* — ambiguous exactly where it must not
+be. `Metadata`/`Bundle Metadata` are precise about the frontmatter and
+actively wrong about the body, which is instructions. `Bundle Overview` and
+`Bundle Manifest` both connote an enumeration of contents and so compete
+with `index.md`'s actual job. `Colophon` is the genuinely correct word for
+"who produced this, with what, when", and was rejected because almost nobody
+knows it.
+
+**`bundle.md` as a filename, with the collision checked rather than
+assumed.** A top-level Ruby `class Bundle` renders to `Bundle.md` at the doc
+root, which *is* `bundle.md` on a case-insensitive filesystem (macOS APFS by
+default), one silently clobbering the other. Grepped all 148 installed gems
+for a top-level `Bundle`/`Index`/`Navigating` constant: zero hits (the
+`class Index` matches are all nested under `Bundler`, rendering to
+`Bundler/Index.md`). Left unaddressed, consistent with the standing
+precedent under "Arbitrary `--files` guides" — no existing mechanism in this
+format addresses analogous collisions, and inventing one speculatively isn't
+warranted absent dogfood evidence. Separately noted and accepted: in a Ruby
+tree "bundle" is Bundler's word, so the filename alone could read as "notes
+about this project's Bundler setup"; the `title`, the `type`, and the index
+row all disambiguate on first read.
+
+**`okf_version` stays in `index.md`.** The "one-stop bundle metadata"
+framing implies moving it, and it should not move: §8/§12 specifically carve
+it out as the one key permitted in a root `index.md`, so the spec has
+designated a canonical home a v0.2 consumer will look in, and it is the key
+needed *before* anything else can be interpreted — including `bundle.md`'s
+own frontmatter. Not duplicated either; two copies to keep in sync buys
+nothing.
+
+**Test seam.** Both values are injectable as template options
+(`agentdocs_generated_by`, `agentdocs_generated_at`, the latter a `Time`),
+defaulting to the real `VERSION` and `Time.now`; `test/test_agentdocs_template.rb`
+pins them to `yard-agentdocs/0.0.0` and `2026-01-01T00:00:00Z` so the
+byte-exact fixture comparison survives both the clock and a release bump.
+YARD's `Options#method_missing` supports unregistered keys, and
+`CLI::Yardoc#run` never resets the options object it was constructed with,
+so the test sets them before `run`. The template still owns the *formatting*
+— the option is a `Time`, not a preformatted string — so a pinned fixture
+can't encode a shape the real path would never produce.
+
+**Considered and rejected:**
+
+- **`stale_after` (§5.5) in the minimal set** — declined, not deferred. Any
+  value is invented policy: for a `build` tree the truthful answer is "stale
+  the moment source changes", which as an absolute date means *today*, i.e.
+  a field that reads expired on every read and trains consumers to ignore
+  it; for a `gems` bundle it is "never", which the field cannot express.
+- **Recording the documented source roots** (derivable exactly by unioning
+  `object.files` over the registry) so a consumer knows what to stat.
+  Deferred, not rejected on principle: the conservative check needs nothing
+  recorded — compare `at` against the whole working tree — and an over-broad
+  comparison fails safe, costing one spurious rebuild, where a too-narrow one
+  costs a confidently wrong signature. The obvious first extension if
+  dogfood shows the broad check is too noisy.
+- **Normalizing the two lines in the test** instead of injecting them. It
+  would make the assertion fuzzy over exactly the part of the output that is
+  new and least proven, and would pass on a malformed timestamp.
+- **`## Start here` as the `index.md` section name.** The most useful
+  instruction to a cold agent, but it names a behavior where every other
+  section of a §8 concept listing names content. The read-first steer lives
+  in the row's description instead, which §8 gives for free.
+
+**Not covered by a fixture:** the `## Guides`-when-empty branch. Both fixture
+trees have extra files, so both still emit the section; covering the empty
+case byte-exactly would need a third fixture tree, which is out of
+proportion to a two-line guard. Verified by hand instead, on a throwaway
+one-class project with no README and no `--files`: the section is omitted
+with no stray blank line, and the unpinned defaults emit the real UTC
+wall-clock and live `VERSION`.
 
 ## Implementation
 

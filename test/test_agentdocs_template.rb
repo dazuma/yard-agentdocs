@@ -8,13 +8,30 @@ describe "agentdocs template" do
   let(:example_doc_dir) { ::File.join(project_root, "example/doc") }
   let(:example_rdoc_doc_dir) { ::File.join(project_root, "example/rdoc/doc") }
 
+  # Pinned `generated:` values for the `bundle.md` frontmatter, so the
+  # byte-exact fixture comparison survives both the clock and a release bump.
+  # The template's own defaults (`Time.now` and the real VERSION) are what
+  # ships; only these two options are overridden here.
+  let(:generated_by) { "yard-agentdocs/0.0.0" }
+  let(:generated_at) { ::Time.utc(2026, 1, 1) }
+
+  # Builds a Yardoc CLI with the pinned `generated:` options already set.
+  # They have to be assigned before #run, which never resets the options
+  # object it was given at construction.
+  def yardoc_cli
+    cli = ::YARD::CLI::Yardoc.new
+    cli.options[:agentdocs_generated_by] = generated_by
+    cli.options[:agentdocs_generated_at] = generated_at
+    cli
+  end
+
   # Runs from the project root so recorded source paths (used in "Defined in"
   # lines) come out relative, matching the example/doc fixtures.
   def generate(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
       files = ::Dir.glob("example/lib/**/*.rb")
-      ::YARD::CLI::Yardoc.new.run(
+      yardoc_cli.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
         "-t", "default",
@@ -36,7 +53,7 @@ describe "agentdocs template" do
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
       files = ::Dir.glob("example/rdoc/lib/**/*.rb")
-      ::YARD::CLI::Yardoc.new.run(
+      yardoc_cli.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
         "-t", "default",

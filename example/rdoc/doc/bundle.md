@@ -1,9 +1,14 @@
 ---
-type: Guide
-title: "Navigating these docs"
+type: Bundle Info
+title: "About this bundle"
+generated:
+  by: yard-agentdocs/0.0.0
+  at: 2026-01-01T00:00:00Z
 ---
 
-# Navigating these docs
+# About this bundle
+
+## Navigating these docs
 
 - **Path derivation:** a class/module's file path mirrors its fully-qualified
   name, with `::` becoming a directory separator — e.g. `Foo::Bar` is

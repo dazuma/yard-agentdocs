@@ -4,13 +4,18 @@ okf_version: "0.2"
 
 # <%= options.title %>
 
+## Bundle info
+
+* [`About this bundle`](bundle.md) - When this bundle was generated and by what, and how to look up Ruby classes, modules, methods, and other members in it. Read this first.
+
+<%- if options.files.any? -%>
 ## Guides
 
-* [`Navigating these docs`](navigating.md) - How to look up Ruby classes, modules, methods, and other members, and how to interpret entries in this knowledge bundle.
 <%- options.files.each do |file| -%>
 * [`<%= file.title %>`](file.<%= file.name %>.md)
 <%- end -%>
 
+<%- end -%>
 ## Classes & modules
 
 <%- @indexed_objects.each do |object| -%>

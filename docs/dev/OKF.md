@@ -97,9 +97,9 @@ verbatim v0.1 §9's:
    renumbered but unchanged).
 
 Current output satisfies all three: class/module pages carry
-`type`/`title`/`description`, extra files and `navigating.md` carry
-`type: Guide`/`title`, and the root `index.md` is a §8 concept listing in
-the spec's exact `* [Title](url) - desc` surface form with `okf_version` as
+`type`/`title`/`description`, extra files carry `type: Guide`/`title`,
+`bundle.md` carries `type: Bundle Info`/`title`/`generated`, and the root
+`index.md` is a §8 concept listing in the spec's exact `* [Title](url) - desc` surface form with `okf_version` as
 its only frontmatter.
 
 Both of v0.2's **breaking** changes (§13.1) retire v0.1 features this
@@ -189,8 +189,22 @@ Part 3 item 2, which is where this idea now lives.
 
 ### 2. Freshness vocabulary — and where it can't go
 
-This is the part that touches live work. The open `(design)` checklist item
-"Staleness of a bundle built over mutable source" asks whether a bundle
+**Resolved 2026-09-09: option *(a)*, extended.** `bundle.md` ships at the
+bundle root carrying `type: Bundle Info` and `generated: { by, at }`, and it
+also subsumes the former `navigating.md` — the reading conventions are its
+body. `generated.at` is **build wall-clock**, RFC 3339 UTC to the second,
+which is a deliberate deviation from §5.2 (see the new Part 4 note below):
+"last meaningful change" cannot answer the staleness question, because
+regenerating unchanged source leaves it untouched and so reads as fresh.
+`stale_after` was declined outright — for a mutable-input tree the truthful
+value is today, for a `gems` bundle it is never, and neither is useful. Full
+reasoning, including the type/filename choices and what a consumer compares
+`at` against, is under "Bundle-level `bundle.md`" in `DESIGN.md`. The rest
+of this section is the analysis that led there, kept for the vocabulary
+survey and the location argument.
+
+The then-open `(design)` checklist item
+"Staleness of a bundle built over mutable source" asked whether a bundle
 should record "a source fingerprint, a git SHA, a max source mtime", and
 constrains any such signal to "the root `index.md` alone, or in a new
 reserved file." v0.2 answers the *vocabulary* half and closes off the
@@ -218,7 +232,9 @@ whose whole reason to care about OKF is interop. Three ways out:
 - **(a) A bundle-level concept file** — e.g. `bundle.md`, with a `type` of
   its own, carrying `generated`, `stale_after`, `resource`, and `sources`
   for the tree as a whole, and linked from `index.md`'s existing `##
-  Guides` section the way `navigating.md` already is. Fully conformant (it
+  Guides` section the way `navigating.md` already is (in the event, it
+absorbed `navigating.md` and took a `## Bundle info` section of its own).
+Fully conformant (it
   is an ordinary non-reserved concept, so frontmatter is unrestricted), one
   extra file, one extra read, zero per-page churn — and it gives the
   deferred `resource` identity bridge somewhere to land in the same move.
@@ -364,14 +380,26 @@ items, not a roadmap.
 
 ## Part 4 — Upstream engagement
 
-Two things worth raising with the OKF authors, both cheap and both
+Three things worth raising with the OKF authors, all cheap and all
 strengthened by having a working non-data-catalog producer to point at:
 
 - **The index preamble accommodation** (v0.1 writeup's option *(c)*, still
   not taken). §8 admits only concept-listing sections, which is why our
-  navigation guidance had to move to `navigating.md`. "An index MAY open
-  with introductory prose before its sections" is a tiny, backward-compatible
-  addition.
+  navigation guidance had to move out of `index.md` (first to
+  `navigating.md`, now `bundle.md`). "An index MAY open with introductory
+  prose before its sections" is a tiny, backward-compatible addition.
+- **No field means "confirmed against source at T"** (Part 2 item 2). §5.2
+  defines `generated.at` as the content's last *meaningful change*, which
+  suits an author or an extracting agent but not a deterministic
+  regenerator: for a producer that rebuilds its whole corpus from
+  authoritative source, the useful assertion is that the content *matched
+  that source* at a given moment, and no §5 key expresses it. A
+  meaningful-change date actively misleads here — it survives a rebuild
+  unchanged, so a tree whose source has since moved on still reads as
+  current. We emit build wall-clock in `generated.at` as the closest honest
+  fit and deviate from the stated definition to do it; a sibling key, or a
+  sentence permitting generation time where the producer is deterministic,
+  would close the gap.
 - **A trust tier for deterministic derivation** (Part 2 item 4). The tier
   ladder collapses "mechanically transformed from authoritative source" into
   "unverified", alongside unreviewed LLM output. This is concrete,
@@ -389,8 +417,9 @@ inventing their own.
 The `okf_version` bump was mechanical and independent; it is **done**
 (2026-09-09). `status: deprecated`, this document's pick for the one
 substantive item that stood on its own merits, was **rejected** on
-2026-09-09 (Part 2 item 1) — which leaves nothing here ready to act on.
-Everything else is either input to the already-open staleness item (Part 2
-item 2) or gated on dogfood evidence (`sources`, `resource`, extension
-keys), exactly as it was under v0.1. Upstream engagement (Part 4) is free
-and parallel.
+2026-09-09 (Part 2 item 1). The staleness item those freshness fields fed
+is also **settled** (2026-09-09, Part 2 item 2): `bundle.md` now carries
+`generated`. That leaves nothing here ready to act on — what remains is
+gated on dogfood evidence (`sources`, `resource`, extension keys), exactly
+as it was under v0.1. Upstream engagement (Part 4) is free and parallel,
+and now has a third, concrete note to carry.

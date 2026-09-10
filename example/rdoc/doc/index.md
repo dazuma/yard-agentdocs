@@ -4,9 +4,12 @@ okf_version: "0.2"
 
 # yard-agentdocs rdoc-dialect fixture — API Reference
 
+## Bundle info
+
+* [`About this bundle`](bundle.md) - When this bundle was generated and by what, and how to look up Ruby classes, modules, methods, and other members in it. Read this first.
+
 ## Guides
 
-* [`Navigating these docs`](navigating.md) - How to look up Ruby classes, modules, methods, and other members, and how to interpret entries in this knowledge bundle.
 * [`README`](file.README.md)
 
 ## Classes & modules
