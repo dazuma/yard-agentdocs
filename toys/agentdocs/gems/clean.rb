@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+toys_version! ">= 0.23.0"
+
 desc "Remove agentdocs built for installed gems"
 
 long_desc \

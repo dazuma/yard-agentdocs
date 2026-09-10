@@ -14,8 +14,9 @@ Documentation produced by `yard-agentdocs`:
 * Conforms to the emerging [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/README.md)
   standard for knowledge bundles.
 
-Without `yard-agentdocs`, coding agents generally must either search the source
-of a Ruby library, or wade through verbose HTML-formatted documentation.
+Without `yard-agentdocs`, coding agents generally must spend tokens searching
+the source of a Ruby library or wading through verbose HTML-formatted
+documentation.
 
 ## Quick start
 
@@ -36,12 +37,12 @@ gem install yard-agentdocs
 
 Generate a documentation bundle for a Ruby code base in one of two ways:
 
- 1. **Use `--plugin agentdocs` and `--format agentdocs`**
+ 1. **Use the YARD plugin**
 
     Run `yardoc` yourself and set the format to `agentdocs`. This requires that
     `yard-agentdocs` gets loaded as a YARD plugin. You can do this by adding
-    the two flags to your `yardoc` command line or your project's `.yardopts`
-    file.
+    the two flags `--plugin agentdocs` and `--format agentdocs` to your `yardoc`
+    command line or your project's `.yardopts` file.
 
  2. **Use the provided toys tool**
 
@@ -67,10 +68,27 @@ Generate a documentation bundle for a Ruby code base in one of two ways:
     This will build agentdocs into the `agentdocs/` directory. You can output
     to a different directory by passing the `--output` flag.
 
- 3. **Generate for all installed gems**
+ 3. **Generate for installed gems**
 
-    *TODO*
- 
+    The `yard-agentdocs` gem comes with a [toys](https://dazuma.github.io/toys)
+    tool that scans your installed gems and builds agentdocs. You can build
+    docs for a specific gem like this:
+
+    ```
+    $ toys do --gem=yard-agentdocs agentdocs gems toys:0.23.0
+    ```
+
+    You can also build agentdocs for all installed gems (and versions) by
+    passing the `--all` flag:
+
+    ```
+    $ toys do --gem=yard-agentdocs agentdocs gems --all
+    ```
+
+    The documentation will end up in a standard location under your XDG data
+    home directory. On Linux or MacOS, this will be a subdirectory of
+    `~/.local/share/yard-agentdocs/gems`. On Windows, it will be elsewhere.
+
 ### Using agentdocs
 
 Great, so you have a set of agent-optimized documentation. How do you get your
@@ -83,9 +101,9 @@ the `/skills/agentdocs` directory.
 
 ## Contributing
 
-Contributions are welcome, although please [contact the maintainer](https://github.com/dazuma)
-before embarking on a major change, to make sure it's something I'm willing
-to accept.
+Contributions are welcome, although please [open an issue](https://github.com/dazuma/yard-agentdocs/issues)
+and get my agreement before embarking on a major change, anto make sure it's
+something I'm willing to accept.
 
 Report bugs and feature requests on the [GitHub issue tracker](https://github.com/dazuma/yard-agentdocs/issues).
 

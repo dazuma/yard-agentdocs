@@ -1,4 +1,6 @@
-# frozen_string_literal: true
+# frozen_string_lite
+
+toys_version! ">= 0.23.0"
 
 desc "Build agent-friendly reference documentation for installed gems"
 
@@ -11,7 +13,7 @@ long_desc \
     " name means the newest installed version; `all` in place of a version" \
     " means every installed version. For example:",
   "",
-  ["    toys agentdocs gems toys:0.22.0 toys-core:0.22.0"],
+  ["    toys agentdocs gems toys:0.23.0 toys-core:0.23.0"],
   "",
   "Alternatively, pass `--all` for every installed version of every gem, or" \
     " `--all-latest` for the newest installed version of each. Because those" \
@@ -20,16 +22,15 @@ long_desc \
   "",
   "Neither the input nor the output location can be set here. The input is" \
     " whatever is installed globally, and each gem's bundle is written to" \
-    " `<XDG data home>/yard-agentdocs/gems/<name>-<version>` — so an agent" \
+    " `<XDG data home>/yard-agentdocs/gems/<name>-<version>`, so an agent" \
     " looking for a gem's docs has one path to compute rather than a" \
     " convention to discover. Set `$XDG_DATA_HOME` to move the root; it" \
     " defaults to `~/.local/share`.",
   "",
-  "Each gem's own `.yardopts` is honored, as are any extra YARD arguments" \
-    " given here. YARD *flags* must come after a `--` separator, following" \
-    " the gem names, so this tool doesn't try to interpret them itself:",
+  "Each gem's own `.yardopts` is honored, as are any extra YARD flags given" \
+    " here. All gems to build should be listed come *before* any flags:",
   "",
-  ["    toys agentdocs gems toys:0.22.0 -- --markup markdown"],
+  ["    toys agentdocs gems toys:0.23.0 --markup markdown"],
   "",
   "Default gems — the ones shipped with Ruby itself — are left out unless" \
     " `--include-default` is given, since many of them are C-backed and" \
@@ -74,7 +75,9 @@ flag :yes, "-y", "--yes",
      desc: "Skip the confirmation prompt for `--all` and `--all-latest`"
 
 remaining_args :gem_args,
-               desc: "Gem requests, plus any YARD flags following a `--` separator"
+               desc: "Gem requests"
+
+treat_unknown_flags_as_args
 
 include :terminal
 

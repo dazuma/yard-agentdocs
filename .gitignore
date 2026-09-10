@@ -1,6 +1,7 @@
-.yardoc/
+/.yardoc/
 /.ruby-lsp/
-.claude/
+/.claude/
+/agentdocs/
 /doc/
 /pkg/
 /tmp/

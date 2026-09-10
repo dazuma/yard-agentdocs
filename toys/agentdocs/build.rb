@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
+toys_version! ">= 0.23.0"
+
 desc "Build agent-friendly reference documentation for a Ruby project"
 
 long_desc \
   "Runs YARD over a Ruby project using the `agentdocs` template, producing a" \
     " documentation bundle designed for coding agents to look up efficiently.",
   "",
-  "The project's own `.yardopts` file is honored, as are any extra YARD" \
-    " arguments given here. Source globs can be passed directly; YARD *flags*" \
-    " must come after a `--` separator so this tool doesn't try to interpret" \
-    " them itself. For example:",
+  "The project's own `.yardopts` file is honored, as are any source globs and" \
+    " extra YARD arguments given here. For example:",
   "",
-  ["    toys agentdocs build -- --markup markdown --title \"My API\" - README.md"],
+  ["    toys agentdocs build --markup markdown --title \"My API\" - README.md"],
   "",
   "Three YARD settings are always forced, and cannot be overridden from" \
     " `.yardopts` or the command line: the output format (`agentdocs`), the" \
@@ -47,7 +47,9 @@ flag :clean, "--[no-]clean",
          " can't linger in the bundle. Off by default."
 
 remaining_args :yard_args,
-               desc: "Source globs, plus any YARD flags following a `--` separator"
+               desc: "YARD source globs and flags"
+
+treat_unknown_flags_as_args
 
 # Required here rather than at the top of the file so that merely having this
 # tool on the path (via `load_gem`) doesn't pull YARD into every Toys
