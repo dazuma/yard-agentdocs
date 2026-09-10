@@ -28,67 +28,11 @@ end
 # `bundle.md`: freshness plus reading conventions in one file" under
 # "Decisions".
 #
-# Split into {#bundle_frontmatter} and {#navigation_conventions} because the
-# two halves have opposite lifetimes, and `generated.at` means the file now
-# changes on every build where it never used to.
+# The page is almost entirely constant text — only the `generated:` pair in
+# its OKF v0.2 concept header varies per build — so `bundle.erb` holds it
+# verbatim, the same way every other page in this template is authored.
 def serialize_bundle_info
-  content = "#{bundle_frontmatter}# About this bundle\n\n#{navigation_conventions}"
-  Templates::Engine.with_serializer("bundle.md", options.serializer) { content }
-end
-
-# The per-build half of {#serialize_bundle_info}'s page: an OKF v0.2 concept
-# header, ending in the blank line that separates it from the body. Built as
-# a plain string rather than an ERB partial, same precedent as
-# {#serialize_extra_file}'s own frontmatter construction.
-def bundle_frontmatter
-  <<~MARKDOWN
-    ---
-    type: Bundle Info
-    title: "About this bundle"
-    generated:
-      by: #{generated_by}
-      at: #{generated_at}
-    ---
-
-  MARKDOWN
-end
-
-# The constant half: reading conventions for this output format, identical in
-# every bundle this generator produces (no per-object interpolation, and not
-# sourced from a `--files` guide). Kept separate from {#bundle_frontmatter}
-# because the two halves have opposite lifetimes — this text changes only
-# when the format does, while the frontmatter changes on every build.
-def navigation_conventions
-  <<~MARKDOWN
-    ## Navigating these docs
-
-    - **Path derivation:** a class/module's file path mirrors its fully-qualified
-      name, with `::` becoming a directory separator — e.g. `Foo::Bar` is
-      `Foo/Bar.md`, `Foo::Bar::Baz` is `Foo/Bar/Baz.md`. If you already know the
-      FQN you're after, go straight to that path; the index is only for
-      discovering a name you don't have yet.
-    - **Member lookup:** every constant, attribute, and method is its own `### `
-      heading inside its class/module's file — `` ### NAME `` for constants,
-      `` ### #name `` for instance methods/attributes, `` ### .name `` for class
-      methods. `grep -n '^### '` in one file lists every member there with its
-      exact line number; e.g. `grep -rn '^### #each' .` finds the `#each` method
-      across the whole tree without knowing which class it belongs to.
-    - **Inherited and mixed-in members aren't duplicated in full.** A
-      class/module's file documents only members defined in its own source,
-      plus a names-only **Inherited & Mixed-in Members** list in `## Member
-      Summary` naming what its immediate superclass and directly-`include`d/
-      `extend`ed modules each contribute — one hop only, not the full ancestry
-      chain, and not anything from outside this project's own parsed source.
-      For the actual docs behind any of those names, follow the
-      `**Superclass:**`, `**Includes:**`, or `**Extends:**` link near the top
-      of the file to that type's own file.
-    - **Trailing metadata uses `*`, not `-`.** A member's own content bullets
-      (`**Params:**`, `**Returns:**`, `**Raises:**`, etc.) always use `- `.
-      Deprecation/note/abstract flags, aliasing, and trailing `**Since:**`/
-      `**Version:**`/`**Author:**`/`**Defined in:**` lines always use `* `
-      instead, and stack with no blank line between them — a deliberate marker
-      change so they never render as part of the preceding content list.
-  MARKDOWN
+  Templates::Engine.with_serializer("bundle.md", options.serializer) { erb(:bundle) }
 end
 
 # The OKF v0.2 §7 actor string identifying what produced this bundle
