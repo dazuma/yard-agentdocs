@@ -69,8 +69,10 @@ one new concept type serve that:
   tier** from `verified` alone (§5.3): absent ⇒ unverified, non-`human:`
   actors ⇒ machine-confirmed, a `human:` actor ⇒ human-reviewed.
 - **Lifecycle** — `status: draft | stable | deprecated` (§5.4, absent ⇒
-  `stable`) and `stale_after: YYYY-MM-DD` (§5.5, an absolute date so
-  staleness is a plain date comparison).
+  `stable`), tracking the lifecycle of the *concept document* rather than
+  that of whatever it describes (see Part 2 item 1), and
+  `stale_after: YYYY-MM-DD` (§5.5, an absolute date so staleness is a
+  plain date comparison).
 - **Attestation** — `type: Attested Computation` (§10) plus `runtime`,
   `parameters`, `computation`, `executor`, `attester`: a sanctioned way to
   compute a value, so a consumer can confirm the blessed computation ran
@@ -148,32 +150,42 @@ the declaration stale again until re-verified here.
 
 ## Part 2 — What v0.2 newly offers
 
-Ordered by cost/benefit for this project, best first.
+Ordered by cost/benefit for this project, best first — as assessed on
+2026-08-03. Item 1 has since been **evaluated and rejected** (2026-09-09);
+it is kept in place, rewritten, so the reasoning is not re-derived.
 
-### 1. `status: deprecated` — the clear win
+### 1. `status: deprecated` — evaluated and rejected
 
-§5.4's `status` is a three-value lifecycle field, absent ⇒ `stable`. A
-class-level YARD `@deprecated` maps onto `status: deprecated` exactly, and
-the template already has the data: `Geometry::Circle` renders a
-`**Deprecated.**` block in its body today, and it is the fixture's only
-class-level case (the four other `@deprecated` tags in `example/lib` are
-method- or overload-level, and stay in the body — frontmatter is per-concept,
-i.e. per class/module).
+§5.4's `status` is a three-value lifecycle field, absent ⇒ `stable`. This
+section previously called it "the clear win" and read a class-level YARD
+`@deprecated` as mapping onto `status: deprecated` exactly. **That mapping
+was wrong, and the item was rejected on 2026-09-09** — full reasoning in
+"`status: deprecated` rejected: OKF `status` is document lifecycle, not
+subject lifecycle" under "Decisions" in `DESIGN.md`; the essentials:
 
-The cost profile is unusually good by this project's standards: one line,
-only on the rare deprecated page, nothing added to the other ~24 files, no
-new heuristic to design, and no churn across regenerations since the value
-is derived from a source tag rather than from wall-clock time. The payoff is
-that "is this class deprecated" becomes answerable from frontmatter instead
-of body-grammar parsing — the machine-queryable-spine argument in Part 3
-below, but with a *standard* key rather than a producer extension.
+- §5.4's values only cohere as properties of the *concept document*.
+  `draft` is "not yet reviewed; possibly incomplete" — §5.2–5.3's `verified`
+  sense of reviewed, which a Ruby class cannot be — and `stable` is "ready
+  for consumption". §5's framing makes the families answer "is it still
+  current" *about the file*, and every sibling key (`sources`, `generated`,
+  `verified`, `stale_after`) is document-scoped.
+- The reference bundle confirms the operative meaning: `acme_retail`'s only
+  `status: deprecated` concept is `metrics/gross-margin-legacy.md`, a
+  retired document superseded by `metrics/gross-margin.md`, and its `log.md`
+  records the move. Meanwhile `gross-margin.md` is `status: stable` while
+  documenting a subject whose predecessor was retired.
+- Emitting it on a page like `Geometry::Circle` would therefore tell a
+  consumer the documentation it just read is superseded and a current
+  version exists elsewhere in the bundle. Both false, and the failure is
+  asymmetric — an agent hunts for a replacement page that does not exist —
+  all to put in frontmatter a fact the body already states as
+  `* **Deprecated.** …`.
 
-Sub-questions it would have to settle (which is why it is a format decision,
-not a mechanical one): whether `@deprecated` on a module behaves the same as
-on a class (it should), whether anything should map to `draft`, and whether
-`status: stable` is ever emitted explicitly or always left implicit (leave
-it implicit — absent already means `stable`, and emitting it would add a
-line to every file to say nothing).
+The key would be correct for one case this producer does not generate: a
+page kept for link stability after its class was removed from the gem.
+Subject-level deprecation, if it is ever wanted in frontmatter, belongs in
+`tags` (where the reference bundle also puts it) or an extension key — see
+Part 3 item 2, which is where this idea now lives.
 
 ### 2. Freshness vocabulary — and where it can't go
 
@@ -305,9 +317,11 @@ items, not a roadmap.
    only in body prose (`gem`, `gem_version`, `constant`, `superclass`,
    `includes`, `extends`) could be filtered on by parsing five lines of YAML.
    Discipline unchanged: every key is tokens on every read and a duplication
-   of body content. v0.2 shifts one item off this list — deprecation is now
-   a *standard* key (`status`), not an extension — which is precisely why
-   it's the one worth doing first.
+   of body content. Deprecation belongs on this list, not off it: v0.2 looked
+   like it promoted the fact to a *standard* key, but `status` turned out to
+   describe the document rather than the class (Part 2 item 1), so a
+   subject-level signal would still be `tags: [deprecated]` or a producer
+   extension, at the same evidence bar as the rest of this item.
 
 3. **`resource` as the identity bridge.** Unchanged from v0.1: a URI that
    uniquely identifies the underlying asset (rubydoc.info URL, source URL at
@@ -373,8 +387,10 @@ inventing their own.
 ## Suggested sequencing
 
 The `okf_version` bump was mechanical and independent; it is **done**
-(2026-09-09). `status: deprecated` is the one substantive item that stands
-on its own merits and does not wait for anything. Everything else is either
-input to the already-open staleness item (Part 2 item 2) or gated on dogfood
-evidence (`sources`, `resource`, extension keys), exactly as it was under
-v0.1. Upstream engagement (Part 4) is free and parallel.
+(2026-09-09). `status: deprecated`, this document's pick for the one
+substantive item that stood on its own merits, was **rejected** on
+2026-09-09 (Part 2 item 1) — which leaves nothing here ready to act on.
+Everything else is either input to the already-open staleness item (Part 2
+item 2) or gated on dogfood evidence (`sources`, `resource`, extension
+keys), exactly as it was under v0.1. Upstream engagement (Part 4) is free
+and parallel.

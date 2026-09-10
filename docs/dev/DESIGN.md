@@ -1333,6 +1333,14 @@ survives the version bump untouched — both of v0.2's breaking changes retire
 v0.1 features this project deliberately never emitted — and asked instead
 what the new spec makes newly available.
 
+One of that review's three proposals — `status: deprecated` from a
+class-level `@deprecated`, which it rated the one new field that stood on
+its own merits — was **evaluated and rejected** (2026-09-09) and is
+therefore not listed below: OKF's `status` tracks the lifecycle of the
+*concept document*, not of the subject it documents. See "`status:
+deprecated` rejected: OKF `status` is document lifecycle, not subject
+lifecycle" under "Decisions".
+
 - [x] (design) Frontmatter on every class/module file — see "Frontmatter on
       every class/module file: `type`/`title`/`description`, description
       always double-quoted" under "Decisions". `resource` remains
@@ -1349,27 +1357,6 @@ what the new spec makes newly available.
       "`okf_version` bumped to `"0.2"`: a quoted string, and a standing
       re-verification obligation" under "Decisions". Raised by the
       2026-08-03 v0.2 review
-- [ ] (design) `status: deprecated` on a class/module page whose object
-      carries a class-level `@deprecated` — v0.2 §5.4 adds
-      `status: draft | stable | deprecated` (absent ⇒ `stable`), which a
-      YARD `@deprecated` tag maps onto exactly, and the template already
-      has the data (`Geometry::Circle` renders a `**Deprecated.**` body
-      block today, the fixture's only class-level case; the other four
-      `@deprecated` tags in `example/lib` are method- or overload-level and
-      stay in the body, since frontmatter is per-concept). Unusually good
-      cost/benefit for a frontmatter addition: one line, only on the rare
-      deprecated page, nothing added to the other ~24 files, no new
-      heuristic, and no churn across regenerations since the value derives
-      from a source tag rather than wall-clock time — it makes "is this
-      class deprecated" answerable from frontmatter instead of body-grammar
-      parsing, using a *standard* key rather than a producer extension.
-      (design) rather than (mech) because it extends the recorded
-      class/module frontmatter decision with sub-questions that decision
-      didn't face: whether a module's `@deprecated` behaves identically to
-      a class's (it should), whether anything maps to `draft`, and whether
-      `status: stable` is ever emitted explicitly (it shouldn't be — absent
-      already means `stable`, so emitting it costs a line per file to say
-      nothing). Raised by the 2026-08-03 v0.2 review
 - [ ] (stretch) Provenance frontmatter: `sources`, and the `resource`
       identity URI it would carry — v0.2 §5.1 gives a standard frontmatter
       home for what every page already states as body prose
@@ -6485,7 +6472,9 @@ that partly dissolves the original objection.
 - *(design)* `status: deprecated` from a class-level `@deprecated` (§5.4).
   The one new field that stands on its own merits — a standard key for a
   fact the body already states, one line, only on deprecated pages, no
-  churn.
+  churn. **Evaluated and rejected 2026-09-09** — see
+  "`status: deprecated` rejected: OKF `status` is document lifecycle, not
+  subject lifecycle" below.
 - *(stretch)* Provenance frontmatter `sources`/`resource` (§5.1), held at
   the same evidence bar as every other extension-key idea.
 - The open *(design)* **staleness** item under "Indexing & discovery" is
@@ -6580,6 +6569,90 @@ Part 1's "The one thing that was wrong — fixed" (renamed from "…that is now
 wrong"), which also carries the re-verification note forward to whoever
 revises that document against the next spec release, and the closing
 "Suggested sequencing".
+
+### `status: deprecated` rejected: OKF `status` is document lifecycle, not subject lifecycle
+
+Reverses the *(design)* "OKF interop" checklist item opened by the
+2026-08-03 v0.2 review, and the "clear win" framing `docs/dev/OKF.md` Part 2
+gave it. The item is **removed** from the checklist rather than deferred:
+this is a decided non-change, not pending work. Nothing in `example/`
+changed — the proposed fixture edits (a `status: deprecated` line on
+`Geometry::Circle`, plus a new module-level `@deprecated` on
+`Geometry::Computations` to exercise the module half) were written,
+reviewed, and reverted within the session.
+
+**The mapping was wrong.** §5.4's three values only read consistently if the
+lifecycle being tracked is the *concept document's*, not that of the subject
+it documents:
+
+- `draft`: "not yet reviewed; possibly incomplete" — "reviewed" is §5.2–5.3's
+  `verified` trust family, and a Ruby class is neither reviewed nor
+  incomplete; only a description of one can be.
+- `stable`: "ready for consumption" — the document is what gets consumed.
+- `deprecated`: "kept for links and history; no longer current."
+
+§5's own framing settles it: these families exist to make "where did this
+come from," "how much should I trust it," and "**is it still current**"
+answerable from frontmatter. `deprecated`'s "no longer current" answers that
+third question — about the file. Every sibling key in §5 (`sources`,
+`generated`, `verified`, `stale_after`) is likewise a property of the
+document, not of what it describes.
+
+**The reference bundle confirms the operative meaning.** In the spec repo's
+`okf/bundles/acme_retail`, the only `status: deprecated` concept is
+`metrics/gross-margin-legacy.md` — "Retired gross-margin definition …
+Preserved for historical query reproducibility. Do not use for new
+analyses.", whose body opens `# Deprecated` and points at
+`metrics/gross-margin.md` as the current definition. Its `log.md` entry:
+"**Deprecated** the legacy gross-margin definition. Original file moved to
+`metrics/gross-margin-legacy.md` with `status: deprecated`. New definition
+at `metrics/gross-margin.md`." So the key means *this file has been
+superseded by another file in this bundle; read that one instead*. Note also
+that `gross-margin.md` is `status: stable` while documenting a subject whose
+predecessor was retired — the two lifecycles are tracked separately there.
+
+**Why that is disqualifying here, not merely imprecise.** Emitting it on
+`Geometry/Circle.md` would assert that the page an agent just read is not
+current and that better documentation exists elsewhere in the tree. Both are
+false: it is current, accurate documentation of a class that happens to be
+deprecated. The error is also asymmetric — an agent that believes a
+deprecated *document* goes looking for a replacement page that does not
+exist and may distrust what it already has, whereas the fact we wanted to
+publish is one grep away in the body.
+
+**What the rejection costs: that grep.** The page already states it as a
+leading annotation (`* **Deprecated.** …`, a fixed grammar), and every
+`(deprecated)`-marked row in Member Summary carries the method-level case.
+Only frontmatter-queryability is given up.
+
+**Where the key *would* legitimately apply to us**, recorded so the
+distinction survives: a page kept for link stability after its class was
+removed from the gem — genuinely "kept for links and history; no longer
+current". Regeneration writes a fresh tree and produces no such page, so
+nothing emits it today. Preserving the key's real meaning is what keeps that
+option available.
+
+**Considered and rejected: an extension key or `tags` instead.** The item's
+entire cost/benefit case was that `status` is a *standard* key rather than a
+producer extension; without that, a `deprecated: true` extension key falls
+back into the `docs/dev/OKF.md` Part 3 extension-key pile, held at
+*(stretch)* behind demonstrated consumer need that nothing has shown. The
+reference bundle does carry `deprecated` in `tags:` alongside subject-domain
+tags, so `tags` — not `status` — is where a subject-level signal would go if
+one is ever wanted; but `tags` is unemitted today (see "OKF v0.2 review"
+above), and adopting it for this alone would add a line to every page to
+make one page's body fact queryable.
+
+**The generalization worth carrying forward.** Before adopting any future
+OKF key, ask whether it describes the *document* or the *thing documented*.
+This producer is unusual among OKF producers in that the gap is wide: a Ruby
+class has its own lifecycle, versioning, and provenance, entirely
+independent of the page describing it. In the data-catalog bundles OKF was
+designed around, a table's metadata concept and the table itself largely
+share a lifecycle, so the distinction rarely bites and the spec's wording
+does not belabor it. `generated`, `verified`, and `stale_after` are
+unambiguously document-level and carry no such hazard; the risk is
+specifically keys whose names read naturally as either.
 
 ## Implementation
 
