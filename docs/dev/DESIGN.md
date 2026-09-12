@@ -1211,44 +1211,42 @@ may follow; that doc tracks status across all of them.
       ships unconditionally, and is the self-describing floor for any
       agent regardless of harness; see "Navigation guidance: preamble plus
       skill" under "Decisions"
-- [ ] (design) Accompanying agent skill for using/navigating the format —
-      an installable skill (SKILL.md) scoped to what the in-band preamble
-      structurally can't do: trigger *proactively* (steer an agent toward
-      these docs before it starts grepping gem source or an HTML yardoc
-      site), and carry workflow — how to generate docs for a dependency
-      that lacks them, where per-gem trees live, when to fall back to
-      source via the `**Defined in:**` pointers. Format mechanics stay out
-      (defer to the preamble) so the two artifacts can't drift. **The
-      dogfood gate is lifted** (2026-07-27): both integration decisions it
-      waited on — how a consuming project invokes the template
-      per-dependency, and where output lands — are settled by the shipped
-      `agentdocs build`/`agentdocs gems` tools. Scope is also now settled
+- [x] (design) Accompanying agent skill for using/navigating the format —
+      an installable skill (`skills/yard-agentdocs/SKILL.md`, shipped in the
+      gem) scoped to what the in-band preamble structurally can't do:
+      trigger *proactively* (steer an agent toward these docs before it
+      starts grepping gem source or an HTML yardoc site), and carry
+      workflow — where per-gem bundles live, how to generate one for a
+      dependency that lacks it, when to fall back to source via the
+      `**Defined in:**` pointers. Format mechanics stay out (defer to the
+      preamble) so the two artifacts can't drift. Scope settled 2026-07-27
       (one lookup-scoped skill, generation subordinate; see "Agent skill
-      scope" under "Decisions"), and **the staleness block is lifted**
-      (2026-09-09): `bundle.md` carries `generated.by`/`generated.at`, so the
-      rule the skill has to state is a concrete one — compare `generated.at`
-      against the whole working tree (over-broad on purpose; it fails safe)
-      for a project-local `build` tree, and read `at` as provenance rather
-      than expiry under a `gems` path, where the documented release cannot
-      change. What remains is writing it. Two further things the skill must
-      specify, folded in here rather than tracked separately because
-      neither needs any output change — both are consumer-side procedure,
-      which this item already
-      owns. *Version resolution:* a `gems` bundle's version is path-encoded
-      (`<name>-<version>`), so the skill has to state a resolution order for
-      deciding which version the project actually uses — `Gemfile.lock`, an
-      active Bundler context, and `gem list` routinely disagree — with a
-      wrong guess landing as a clean, self-announcing miss that recovers by
-      building.
-      *Dependencies `gems` can't see:* `GemBuilder.default_spec_dirs` globs
-      the global specifications dir plus the default-gems dir, so git- and
-      path-sourced dependencies are invisible to it and have no bundle path
-      to compute at all; the skill needs a rule for that case (build against
-      the checkout, or go to source). Only the skill's *rule* is this item's
-      business — whether the location convention should cover such
-      dependencies at all is tracked under "Open questions" ("Bundles for
-      dependencies that aren't installed releases"). See also "Navigation
-      guidance: preamble plus skill" under "Decisions"
+      scope" under "Decisions"); the dogfood gate lifted the same day and
+      the staleness block 2026-09-09; written 2026-09-12 — see "Agent skill
+      written" under "Decisions", which also records the four corrections
+      writing it forced (auto-install replacing the hard abort; a
+      dependencies-only scope that excludes `agentdocs build` trees
+      entirely, leaving the staleness rule unused by the skill; a third
+      consumer-side procedure; and a sharpened three-owner boundary on
+      bundle location). The three procedures the skill specifies, none of
+      which needed an output change: *version resolution* — a `gems`
+      bundle's version is path-encoded (`<name>-<version>`) and nothing
+      inside the tree names the gem or version, so the skill states a
+      resolution order (`Gemfile.lock`, else newest installed) and never
+      silently reads a neighbouring version, a wrong guess instead landing
+      as a clean, self-announcing miss that recovers by building;
+      *dependencies `gems` can't see* — `GemBuilder.default_spec_dirs`
+      globs the global specifications dir plus the default-gems dir, so
+      git-, path-, and vendored-source dependencies have no bundle path to
+      compute, and the skill sends the agent to the checkout's own source
+      rather than building against it (whether the location convention
+      should cover such dependencies at all remains open — see "Bundles for
+      dependencies that aren't installed releases" under "Open questions");
+      *gem-root resolution* — `**Defined in:**` is gem-root-relative and no
+      part of a bundle records that root, so the documented
+      fall-back-to-source hop is unusable without `bundle show` or
+      `Gem::Specification#gem_dir`. See also "Navigation guidance: preamble
+      plus skill" under "Decisions"
 - [x] (design) Staleness of a bundle built over mutable source — a
       project-local `agentdocs/` tree (from `agentdocs build`) is stale the
       moment its source changes, and nothing in the output lets a consumer
@@ -6787,6 +6785,173 @@ proportion to a two-line guard. Verified by hand instead, on a throwaway
 one-class project with no README and no `--files`: the section is omitted
 with no stray blank line, and the unpinned defaults emit the real UTC
 wall-clock and live `VERSION`.
+
+### Agent skill written (2026-09-12): dependencies-only lookup, auto-install, and three corrections
+
+Settles the remaining half of the "Accompanying agent skill" checklist item —
+the *writing* of it. Scope was settled 2026-07-27 (one lookup-scoped skill,
+generation subordinate) and the last block lifted 2026-09-09; this entry
+records what the file actually says, and the four places where writing it
+changed a previously logged decision. Produced by a design interview, so the
+considered-and-rejected list below is unusually load-bearing.
+
+**The artifact.** `skills/yard-agentdocs/SKILL.md`, a single harness-neutral
+file with `name` and `description` frontmatter and nothing else, ~53 non-blank
+prose lines — inside the 40–60 estimate the scope decision made. Already
+covered by the gemspec's `skills/**/*` glob. `README.md`'s "Using agentdocs"
+section already points at this path.
+
+**Scope narrowed to dependencies, excluding the consuming project itself.**
+The skill routes lookups for third-party gems only. For the project an agent
+is editing, its own source wins outright: that source is open, mutable, and
+authoritative, and a bundle built over it can only produce a *wrong* answer
+about code the agent could simply read. Consequence worth stating plainly,
+because it is counterintuitive: **the skill never consults an
+`agentdocs build` tree at all.** `build` remains a first-class tool — for
+projects that want to publish or ship a bundle — but it has no consumer in
+the lookup path.
+
+**Auto-install, reversing "the skill does not try to install anything."** The
+2026-07-27 scope decision specified a hard abort when Toys was absent. Toys
+0.24 (released since) ships `toys do --gem=`, which installs a missing gem
+itself, and `--on-missing-gem={confirm|install|error}` to control it — the
+default `confirm` would hang a non-interactive agent, so the value must be
+passed explicitly either way. Settled on `install`, on the argument that a
+skill the user chose to install is itself the statement of intent, and
+silently degrading to "read the source" withholds the thing they asked for.
+No skill-level confirmation step: the harness's own command approval is that
+confirmation, and a second prompt is friction over the same decision. Toys
+cannot install Toys, so the skill instructs `gem install toys` /
+`gem update toys` directly; `toys/agentdocs/.toys.rb` declares
+`toys_version! ">= 0.24.0"`, which makes 0.24 the floor rather than
+"Toys present". The abort's real purpose — preventing a *partially* applied
+procedure — is preserved by keeping a gate at the top that ends in "stop
+using this skill entirely" when installation fails.
+
+**The lookup procedure.** Resolve the version from `Gemfile.lock`, else the
+newest in `gem list`; compute `<XDG data home>/yard-agentdocs/gems/<name>-<version>`;
+derive the file path from the FQN and read that one file. A near miss is never
+taken silently: reading a neighbouring version that happens to be built is a
+plausible wrong answer, the same failure `stale_after` and per-page `generated`
+were declined for, so the rule is to build the resolved version, and to name
+the version actually read if a build failure forces a fallback. Builds are
+scoped to one `name:version`, never `--all`, and the skill warns that large
+gems exceed a typical command timeout — measured on a local 113-bundle tree,
+`rbs-3.10.0` took ~222s and `parser` ~68s — with the recovery being "check
+whether the tree exists now", not "retry".
+
+**`bundle.md` is consulted on failure, not recited.** The anti-drift rule
+implies deferring format mechanics to the preamble, but reading a ~2KB file on
+every lookup is a real cost in a project whose pitch is token economy. The
+skill therefore states the one mechanic the happy path needs (FQN → path) and
+sends the agent to `bundle.md` only when a lookup doesn't resolve as expected.
+The preamble stays the single authority; it is just not read aloud each time.
+
+**Discovery is a grep, never a read.** `index.md` reaches 169KB on
+`rubocop-1.90.0` (1047 files) — roughly 45K tokens for a single lookup. The
+skill states `grep -i <term> index.md`, or `grep -rn '^### #name' .` when only
+the member name is known. The recipes themselves belong to the preamble; what
+the skill owns here is the judgment that reading the index is never correct.
+
+**The give-up rule is mechanical.** Fall through to source when the FQN's file
+doesn't exist, or exists with no `### ` heading matching the member —
+explicitly *not* a rule about a bundle looking thin or low quality, which no
+two sessions would resolve the same way.
+
+**Three consumer-side procedures, not two.** The checklist item folded in two
+procedures on the grounds that neither needs an output change. A third was
+found while writing: `**Defined in:**` is gem-root-relative, and nothing in a
+`gems` bundle records the root — `index.md`'s title is the gem's yardoc title
+("Toys"), and `bundle.md`'s frontmatter carries only `generated`. So the
+documented "follow `**Defined in:**` into source" fallback was a dead end.
+Resolved skill-side (`bundle show <name>`, else
+`Gem::Specification#gem_dir`) rather than by adding a root pointer to the
+output, keeping the no-output-change property — but it held for two of three
+by luck, not by construction.
+
+**The three-owner rule was ambiguous about bundle location; sharpened.** As
+written, it assigns "output locations" to the tools' `long_desc` *and* "where
+a bundle lives" to the skill. Those are the same fact, and the skill cannot
+compute a path without restating it. Corrected boundary: `long_desc` owns
+**how the tools behave** (flags, semantics, `--rebuild`, `--all`), the skill
+owns the **read-side location contract**. The XDG path is deliberately a
+public contract — `gems.rb`'s own `long_desc` says so ("so an agent looking
+for a gem's docs has one path to compute rather than a convention to
+discover") — so it is not duplication to state it on the read side.
+
+**The staleness rule is unused by the skill.** Settling staleness (2026-09-09)
+was one of the two blocks whose lifting unblocked this item. With
+project-local trees out of scope and `gems` bundles documenting frozen
+releases, the skill's entire freshness rule is one sentence: `generated` is
+provenance, not expiry, and age is never a reason to rebuild. `bundle.md`
+remains right to carry it — an `agentdocs build` tree still needs it for a
+human or a differently-scoped consumer — but the skill was not, in the end,
+what needed it.
+
+**Explicit exclusions, each stated in the skill rather than left to be
+rediscovered as a miss.** Ruby's default gems (no bundles are built for them
+unless `--include-default`, so an agent would compute a path, miss, and then
+build — silently flipping a policy the tool deliberately set). Git-, path-,
+and vendored-source dependencies: `GemBuilder.default_spec_dirs` cannot see
+them and they have no `<name>-<version>` to compute, so the rule is
+`bundle show <name>` and read the checkout's source — deliberately *not*
+building against it, since that would either invent a location convention the
+open question "Bundles for dependencies that aren't installed releases" has
+not settled, or drop a `build` tree into someone else's checkout. Also
+excluded: `agentdocs gems clean`, which no lookup needs.
+
+**Web documentation is discouraged, not forbidden.** The give-up hop prefers
+local source, and requires a version check on anything read from the web. An
+outright ban would be a rule an agent has good reason to break — for a gem
+with genuinely absent docstrings a maintainer's guide can beat source — and a
+broken rule erodes the rest of the file.
+
+**Considered and rejected:**
+
+- **Naming the skill for the need** (`ruby-api-lookup`) rather than the
+  producer. A tool-branded name gets no free trigger match and leans entirely
+  on `description`. Rejected: the description carries nearly all the matching
+  weight regardless, and the name is already committed in `README.md` and the
+  gemspec glob.
+- **`--on-missing-gem=error`** (the 2026-07-27 position). Rejected per the
+  auto-install argument above. `confirm` was never viable: it hangs a
+  non-interactive agent.
+- **A skill-level "ask the user before installing" step.** Rejected as a
+  second prompt for a decision the harness already gates.
+- **Reading `bundle.md` on every lookup**, and **restating its mechanics in
+  the skill.** Rejected as, respectively, a per-lookup token cost and the
+  exact duplication the anti-drift rule exists to prevent; the failure-only
+  hop avoids both.
+- **A conditional "is building worth it" rule.** Rejected as unactionable —
+  it would resolve differently every session. Building is unconditional; the
+  cost amortizes over every later lookup, while "just read the source this
+  once" repeats forever.
+- **A location convention for git/path dependencies.** Rejected here as
+  preempting an open question; the skill states a fallback rule only, which is
+  all the checklist item ever owned.
+- **Claiming OKF conformance in the skill** (`OKF.md` Part 3 item 8 proposed
+  it as part of the pitch). Rejected: it is an interop argument aimed at
+  OKF-aware consumers, and the skill's reader needs routing, not a
+  conformance claim. It costs lines the length budget does not have.
+- **A CI gate on the skill** — a test that greps `SKILL.md` for `toys
+  agentdocs …` command lines and asserts each parses. Rejected: a test that
+  greps prose is a test that gets deleted, and the three-owner rule is the
+  real drift protection because it is structural.
+- **Standing up `docs/adr/`.** Two decisions here clear the usual ADR bar, but
+  this document is already the repo's decision log; a second one is a drift
+  surface, not a service — the same argument that rejected a second skill.
+- **A version constraint on `--gem=yard-agentdocs`.** Intended, but deferred:
+  `VERSION` is `0.0.0` and there is no meaningful constraint to write yet. Add
+  one at the first real release.
+
+**Also from this session, not part of the skill:** a root `CONTEXT.md`
+glossary was added (excluded from the gemspec, like `CLAUDE.md`), recording
+among other things that "bundle" is canonical in design docs and in the format
+but collides with Bundler in anything an agent reads inside a Ruby project —
+the skill says "tree" in prose and names `bundle.md` only as a filename. And
+issue #1 was filed: RBS `<!-- rdoc-file=... -->` provenance markers leak from
+`.rbs`-sourced docstrings into summaries and `description` frontmatter (seen
+in `base64-0.3.0`, 1 of 113 local bundles).
 
 ## Implementation
 

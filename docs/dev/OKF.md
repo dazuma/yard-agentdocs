@@ -378,6 +378,12 @@ items, not a roadmap.
    be told only *where* the bundle is, not *how* to traverse it. Shrinks the
    drift surface the preamble/skill division of labor manages.
 
+   **Declined 2026-09-12, when the skill was written.** OKF conformance is
+   an interop argument aimed at OKF-aware consumers; the skill's reader
+   needs routing, not a conformance claim, and the sentence costs lines the
+   harness-neutral length budget doesn't have. Revisit only if an OKF-aware
+   consumer actually shows up.
+
 ## Part 4 — Upstream engagement
 
 Three things worth raising with the OKF authors, all cheap and all

@@ -28,6 +28,13 @@ those bundles again. Each tool file holds only the Toys DSL and prompting; the b
 in `lib/yard/agentdocs/{builder,gem_builder,gem_cleaner}.rb`, so it is unit-tested and
 documented independently.
 
+The gem additionally ships an installable agent skill at `skills/yard-agentdocs/SKILL.md` (in the
+gemspec). It is scoped to *lookup routing only* — when to prefer a generated bundle over gem
+source, where a bundle lives, what to do when one is missing. Format mechanics belong to the
+generated `bundle.md`, and CLI mechanics to the Toys tools’ own `long_desc`; this three-way
+split is deliberate anti-drift, so do not move content across it. See "Agent skill written
+(2026-09-12)" under "Decisions" in `docs/dev/DESIGN.md`.
+
 ## Purpose
 
 `yard-agentdocs` will be a Ruby gem implementing a [YARD](https://yardoc.org/) plugin. It provides a YARD

@@ -78,11 +78,12 @@ Settled 2026-07-20, alongside the YARD run below. Repeat for each gem:
    agent-usefulness evaluation — what works / measurements /
    recommendations→checklist items / considered-and-rejected), plus the
    harvested checklist items themselves.
-6. Also revisit, with real evidence in hand, the two items DESIGN.md
-   already gates on this milestone: the "no custom handler classes"
-   integration principle (did stock YARD handlers drop more data than just
-   the known `prepend` case?), and the "Accompanying agent skill" checklist
-   item (now that a real per-dependency invocation has been exercised).
+6. Also revisit, with real evidence in hand, the item DESIGN.md still gates
+   on this milestone: the "no custom handler classes" integration principle
+   (did stock YARD handlers drop more data than just the known `prepend`
+   case?). The "Accompanying agent skill" item was also gated here; it came
+   off the gate 2026-07-27 and was written 2026-09-12, so it needs nothing
+   further from a dogfood run.
 
 ## Runs
 
