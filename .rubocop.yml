@@ -165,9 +165,12 @@ Metrics/PerceivedComplexity:
 
 Naming/BlockForwarding:
   Enabled: true
+# The `agentdocs install-skill` tool file is named for the tool, whose name is
+# hyphenated the way command line words are.
 Naming/FileName:
   Exclude:
     - "lib/yard-agentdocs.rb"
+    - "toys/agentdocs/install-skill.rb"
 Naming/PredicateMethod:
   Enabled: false
 

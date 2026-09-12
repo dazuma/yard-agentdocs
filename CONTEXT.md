@@ -50,7 +50,9 @@ version-locked to the tree it ships in. Owns **format mechanics** — path deriv
 heading grammar, grep recipes, the inherited-member policy.
 
 **Skill**:
-The installable, harness-neutral `SKILL.md` shipped in the gem. Out-of-band, resident
+The harness-neutral `SKILL.md` shipped in the gem, installed into a harness's own
+skills directory by `agentdocs install-skill` — the installer knows where a given
+harness keeps skills, so the skill itself never has to. Out-of-band, resident
 in an agent's context from session start. Owns **routing and judgment only** — prefer
 these docs over source, where a Gems bundle lives, what to do when one is missing, when
 to give up and read source instead.
