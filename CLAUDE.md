@@ -23,17 +23,19 @@ item gets picked.
 The gem also ships user-facing Toys tools in `toys/` (included in the gemspec, so users get
 them via `load_gem "yard-agentdocs"`): `agentdocs build` documents a project directory,
 `agentdocs gems` documents installed gems into
-`<XDG data home>/yard-agentdocs/gems/<name>-<version>`, and `agentdocs gems clean` removes
-those bundles again. Each tool file holds only the Toys DSL and prompting; the behavior lives
-in `lib/yard/agentdocs/{builder,gem_builder,gem_cleaner}.rb`, so it is unit-tested and
-documented independently.
+`<XDG data home>/yard-agentdocs/gems/<name>-<version>`, `agentdocs gems clean` removes those
+bundles again, and `agentdocs install-skill` installs the agent skill below into a harness's
+skills directory (`--claude`, or `--output DIR` for anywhere else). Each tool file holds only
+the Toys DSL and prompting; the behavior lives in
+`lib/yard/agentdocs/{builder,gem_builder,gem_cleaner,skill_installer}.rb`, so it is unit-tested
+and documented independently.
 
-The gem additionally ships an installable agent skill at `skills/yard-agentdocs/SKILL.md` (in the
-gemspec). It is scoped to *lookup routing only* — when to prefer a generated bundle over gem
-source, where a bundle lives, what to do when one is missing. Format mechanics belong to the
-generated `bundle.md`, and CLI mechanics to the Toys tools’ own `long_desc`; this three-way
-split is deliberate anti-drift, so do not move content across it. See "Agent skill written
-(2026-09-12)" under "Decisions" in `docs/dev/DESIGN.md`.
+The gem additionally ships an agent skill at `skills/yard-agentdocs/SKILL.md` (in the gemspec),
+installed by `agentdocs install-skill`. It is scoped to *lookup routing only* — when to prefer a
+generated bundle over gem source, where a bundle lives, what to do when one is missing. Format
+mechanics belong to the generated `bundle.md`, and CLI mechanics to the Toys tools’ own
+`long_desc`; this three-way split is deliberate anti-drift, so do not move content across it.
+See "Agent skill written (2026-09-12)" under "Decisions" in `docs/dev/DESIGN.md`.
 
 ## Purpose
 
@@ -51,6 +53,11 @@ exactly the reference info it needs (e.g. one method's docs) with a single, chea
 Read [`docs/dev/DESIGN.md`](docs/dev/DESIGN.md) for the current design thinking and the list of open
 questions (output format, file granularity, lookup/indexing, YARD integration mechanics, cross-referencing).
 It's a living document — keep it updated as decisions are made. `docs/dev/` is not shipped in the gem.
+
+`DESIGN.md` covers the generated format only. Decisions about the shipped Toys tools and their
+support classes go in [`docs/dev/Tooling.md`](docs/dev/Tooling.md) instead — dated section per
+decision, with the rejected alternatives named. Each tool's `long_desc` remains the authoritative
+user documentation; `Tooling.md` records only the reasoning behind it.
 
 We're designing the output format example-first: `examples/geometry/lib` will hold hand-written Ruby source
 exercising the YARD features we care about, and `examples/geometry/doc` will hold the hand-authored target
