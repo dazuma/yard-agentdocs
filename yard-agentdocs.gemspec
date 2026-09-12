@@ -24,6 +24,7 @@ require "yard/agentdocs/version"
                ::Dir.glob("toys/**/*", ::File::FNM_DOTMATCH)
                     .reject { |path| ::File.basename(path).match?(/\A\.\.?\z/) } +
                (::Dir.glob("*.md") - ["CLAUDE.md", "AGENTS.md"]) +
+               ::Dir.glob("skills/**/*") +
                [".yardopts"]
   spec.require_paths = ["lib"]
 

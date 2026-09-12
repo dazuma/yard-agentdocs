@@ -95,7 +95,7 @@ Great, so you have a set of agent-optimized documentation. How do you get your
 coding agent to use it?
 
 The easiest way is to use the provided skill. Install the skill provided in
-the `/skills/agentdocs` directory.
+the `/skills/yard-agentdocs` directory.
 
 *TODO: details*
 

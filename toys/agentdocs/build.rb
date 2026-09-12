@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-toys_version! ">= 0.23.0"
-
 desc "Build agent-friendly reference documentation for a Ruby project"
 
 long_desc \

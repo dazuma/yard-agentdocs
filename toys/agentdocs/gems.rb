@@ -1,6 +1,4 @@
-# frozen_string_lite
-
-toys_version! ">= 0.23.0"
+# frozen_string_literal: true
 
 desc "Build agent-friendly reference documentation for installed gems"
 
