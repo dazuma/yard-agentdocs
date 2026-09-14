@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "yard/agentdocs/provenance_marker"
+
 module YARD
   module AgentDocs
     ##
@@ -39,7 +41,16 @@ module YARD
     # through both {#smart_summary} and the real `Docstring#summary`,
     # asserting they agree.
     #
+    # Separately from the port: the docstring is first passed through
+    # {ProvenanceMarker#strip_provenance}, so an `.rbs`-sourced docstring's
+    # leading `rdoc-file=` marker can't become the extracted summary. That
+    # is input sanitation, not a fourth deviation from YARD's algorithm —
+    # the extraction below sees exactly the text a marker-free docstring
+    # would have given it.
+    #
     module DocstringSummary
+      include ProvenanceMarker
+
       # Abbreviations whose meaning always sets off prose that follows them
       # (an example, a restatement, a comparison target), so their period
       # should never read as a sentence's end. Deliberately excludes
@@ -84,7 +95,7 @@ module YARD
       #   if +docstring+ is blank.
       #
       def smart_summary(docstring)
-        stripped = docstring.to_s.gsub(/[\r\n](?![\r\n])/, " ").strip
+        stripped = strip_provenance(docstring).gsub(/[\r\n](?![\r\n])/, " ").strip
         summary = stripped[0..end_index(stripped)].to_s
         terminal_punctuate(summary)
       end

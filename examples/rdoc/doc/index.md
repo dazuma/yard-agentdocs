@@ -15,4 +15,5 @@ okf_version: "0.2"
 ## Classes & modules
 
 * [`Greeter`](Greeter.md) - Builds a greeting string.
+* [`Provenance`](Provenance.md) - Exercises RBS provenance-marker stripping.
 * [`TagConversion`](TagConversion.md) - Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.

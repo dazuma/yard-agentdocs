@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rdoc"
+require "yard/agentdocs/provenance_marker"
 require "yard/agentdocs/rdoc_to_markdown"
 
 module YARD
@@ -21,6 +22,8 @@ module YARD
     # `module/agentdocs/setup.rb` includes both).
     #
     module Markdownify
+      include ProvenanceMarker
+
       # An ATX heading marker (1-3 `#`s) at the very start of a line,
       # followed by a space/tab or end of line — a heading shallow enough to
       # collide with this format's own `## `/`### ` structural headings. A
@@ -48,7 +51,7 @@ module YARD
       #   and inline `{Name}` cross-references resolved
       #
       def markdownify(text, demote_headings: true)
-        text = text.to_s
+        text = strip_provenance(text)
         converted =
           case options.markup
           when :markdown

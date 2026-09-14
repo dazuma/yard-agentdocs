@@ -1082,12 +1082,16 @@ sources — appear in no example tree at all.
       target). See the `parser` entry under "Runs" in docs/dev/Dogfood.md for
       the original measurement.
 
-- [ ] **(mech)** RBS provenance markers stripped from `.rbs`-sourced
-      docstrings — see "RBS provenance markers in `.rbs`-sourced docstrings"
-      under "Decisions" for the settled design, and issue #1 for the defect
-      record. Fixture lives in `examples/rdoc` (`--markup rdoc` is the
-      realistic dialect for RBS-imported core docs); requires extending that
-      run's glob to reach `sig/`.
+- [x] RBS provenance markers stripped from `.rbs`-sourced docstrings —
+      `examples/rdoc/sig/provenance.rbs` carries both emitted forms (the
+      one-line `rdoc-file=` marker on the class, the multi-line form with
+      two call-seq lines on `#render`), with `examples/rdoc/lib/provenance.rb`
+      declaring the same class and method so the `.rbs`-wins override is
+      visible rather than assumed, and `#width` declared only in the
+      signature file. Covers all four leak surfaces: rendered body,
+      `description:` frontmatter, `index.md` entry, and `## Member Summary`
+      entry. See "RBS provenance markers in `.rbs`-sourced docstrings" under
+      "Decisions", and issue #1.
 
 ### Cross-referencing scenarios
 
@@ -7105,6 +7109,37 @@ is structurally impossible anyway, since the pattern is `\A`-anchored while the
 rexml/rdoc/rack comments all sit mid-prose. Re-run a full corpus rebuild only
 when one happens for other reasons.
 
+
+**Implementation.** `lib/yard/agentdocs/provenance_marker.rb` — `FORM_A`,
+`FORM_B`, and one public `#strip_provenance`, mixed into `Markdownify` and
+`DocstringSummary` by each of those modules rather than by their callers, so
+every template and test that already includes either gets the behavior with
+no wiring of its own. `Markdownify#markdownify` swaps its opening
+`text = text.to_s` for `text = strip_provenance(text)`;
+`DocstringSummary#smart_summary` likewise. `FORM_B` matches the block shape
+and `#strip_provenance` separately requires an `rdoc-file=` line inside it,
+since that condition isn't expressible in the alternation without
+duplicating it.
+
+**Verification.** `test/test_agentdocs_template.rb`'s `generate_rdoc` glob
+became `examples/rdoc/lib/**/*.rb` plus `examples/rdoc/sig/**/*.rbs`; with
+that in place and the fix absent, the fixture failed on exactly the four
+predicted surfaces (including the Form B indented code block), and the
+hand-authored `examples/rdoc/doc/Provenance.md` then matched byte-for-byte
+with no fixture corrections. `test/test_provenance_marker.rb` adds 12 cases
+over markers vendored verbatim from installed gems — both forms, the
+8-call-seq-line maximum from `rbs-3.10.0/core/array.rbs` — plus the
+content that must survive (`REXML::Comment`'s mid-prose `<!-- ... -->`,
+`RDoc::Markdown`'s `HtmlComment` grammar rule, a non-`rdoc-file` leading
+comment, a non-leading marker, and a `rdoc-file`-less Form B block).
+Rebuilding the `base64-0.3.0` and `prime-0.1.4` bundles and diffing against
+the previous ones showed 6 changed files, 58 removed and 30 added lines, all
+of it marker text, the call-seq lines inside markers, summary reflow after
+their removal, and the rebuild timestamp — and zero surviving `rdoc-file`
+occurrences. One shape worth noting: an entry whose docstring was *only* a
+marker (`Prime::PseudoPrimeGenerator.new`, `#size`) previously rendered a
+marker plus a stray appended `.` as its summary, and now correctly renders
+no summary at all.
 
 ## Implementation
 

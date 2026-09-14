@@ -52,7 +52,13 @@ describe "agentdocs template" do
   def generate_rdoc(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
-      files = ::Dir.glob("examples/rdoc/lib/**/*.rb")
+      # Both globs, not a bare directory argument: production lets YARD's
+      # DEFAULT_PATH_GLOB select (`Builder#run_yardoc` passes no paths at
+      # all), but a fixture run should state exactly what it parses. The
+      # `sig/**/*.rbs` half is what reaches the RBS provenance-marker
+      # coverage — see "RBS provenance markers in `.rbs`-sourced docstrings"
+      # under "Decisions" in docs/dev/DESIGN.md.
+      files = ::Dir.glob("examples/rdoc/lib/**/*.rb") + ::Dir.glob("examples/rdoc/sig/**/*.rbs")
       yardoc_cli.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,

@@ -1,0 +1,27 @@
+# <!-- rdoc-file=lib/provenance.rb -->
+# Exercises RBS provenance-marker stripping.
+#
+# The single-line Form A marker above must not reach the rendered
+# body, the +description+ frontmatter, or the +index.md+ entry.
+#
+# RBS emits a marker at the head of every doc comment it imports from
+# RDoc. See issue #1.
+class Provenance
+  # <!--
+  #   rdoc-file=lib/provenance.rb
+  #   - render(text)
+  #   - render(text, width)
+  # -->
+  # Renders +text+.
+  #
+  # The multi-line Form B marker above carries RDoc call-seq lines.
+  # Left unstripped, they render as a stray indented code block.
+  def render: (String text) -> String
+
+  # <!-- rdoc-file=lib/provenance.rb -->
+  # Declared only in the signature file.
+  #
+  # Its docstring has no Ruby-source counterpart to override, which is
+  # the shape +Prime.each+ has.
+  def width: () -> Integer
+end
