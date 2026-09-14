@@ -35,6 +35,15 @@ concept ID, and it carries YAML frontmatter with a required `type`.
 A constant, attribute, or method documented under its own `### ` heading inside the
 file for the class or module that defines it.
 
+**Summary**:
+The first sentence — or the first paragraph, when there is no sentence-ending
+period — extracted from an object's docstring. One piece of text, rendered on
+three surfaces: the `description:` frontmatter key of the object's own Concept,
+the object's entry in `index.md`, and its entry in the parent's
+`## Member Summary`. `description:` is OKF's key name, fixed by interop — it is
+not a fourth concept.
+_Avoid_: description, blurb, abstract.
+
 **Guide**:
 A non-API page in a Bundle rendered from a prose source file — a README or a `--files`
 document — listed under `## Guides` in `index.md` and named `file.<name>.md`.

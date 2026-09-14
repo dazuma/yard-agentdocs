@@ -96,30 +96,35 @@ implementation code gets touched:
 1. **Human** proposes which unchecked checklist item(s) to tackle next
    (see "Prioritization and roadmap" below for suggested ordering and for
    how much design latitude each item carries).
-2. **Claude** proposes the corresponding additions/edits to `examples/geometry/lib`
-   (Ruby source exercising the item) and `examples/geometry/doc` (the hand-authored
-   target output for it) — for any multi-line tag/docstring text, mirror the
+2. **Claude** proposes the corresponding additions/edits to the relevant
+   `examples/<tree>/lib` (source exercising the item) and `examples/<tree>/doc`
+   (the hand-authored target output for it) — `examples/geometry` for the
+   default markdown-dialect coverage, `examples/rdoc` for anything specific to
+   the `--markup rdoc` path or to a non-`.rb` input source — for any multi-line tag/docstring text, mirror the
    source comment's exact line breaks, since the template preserves raw text
    verbatim rather than rewrapping it — asking clarifying questions along the
    way where the item raises a design choice not already settled in
    "Decisions".
-3. **Human** reviews the proposed
-   `examples/geometry/lib`/`examples/geometry/doc` changes; they
+3. **Human** reviews the proposed `examples/<tree>/lib`/`examples/<tree>/doc`
+   changes; they
    iterate with Claude as needed until both are satisfied. Nothing outside
    `examples/` (templates, `test/test_agentdocs_template.rb`) is touched during
    this step.
 4. Once the human explicitly says the example changes are good, **Claude**
-   implements: confirm `toys test` fails against the new fixture (both
-   `examples/geometry/lib` source files and `examples/geometry/doc` output files are
-   discovered automatically — no list to maintain in
-   `test/test_agentdocs_template.rb`), then update the template
+   implements: confirm `toys test` fails against the new fixture (within a
+   tree, source and output files are discovered automatically — no list to
+   maintain in `test/test_agentdocs_template.rb`; note that each tree's
+   *file-selection glob* is explicit in that file, so adding an input of a new
+   extension does mean editing it), then update the template
    implementation until it passes
    byte-for-byte — no normalization/fuzzy comparison; fix the generator, don't
    loosen the
    assertion (see "ERB has no trim mode" for why this matters).
 5. Check off the completed item(s) in the checklist below, recording any new
    decision reached in step 2 under "Decisions" (or "Open questions" if still
-   unresolved).
+   unresolved). A decision settled *before* step 2 — e.g. in a design session
+   that produced the checklist item itself — is logged when it is reached, not
+   held until here; the perishable part is the set of rejected alternatives.
 6. Run `toys test` and `toys rubocop` before moving to the next item.
 
 Do not skip ahead to step 4 (implementation) without an explicit go-ahead from
@@ -218,6 +223,33 @@ whether agents actually exercise those pointers.
 measurements, and two new checklist items in "Dogfood milestone: first run"
 under "Decisions"; full working notes in `docs/dev/Dogfood.md`. Further gems
 may follow; that doc tracks status across all of them.
+
+### Input sources
+
+What gets fed to YARD in the first place, as distinct from how a parsed object
+is rendered. Nothing here is covered by either example tree today: both fixture
+runs in `test/test_agentdocs_template.rb` hand-build an explicit `.rb` file
+list, while `Builder#run_yardoc` passes no paths at all and lets YARD's
+`DEFAULT_PATH_GLOB` (`{lib,app}/**/*.{rb,rbs}`, `sig/**/*.rbs`,
+`ext/**/*.{c,cc,cxx,cpp,rb}`) select. So production's actual file-selection
+behavior has never been exercised by a fixture, and two of the three input
+kinds YARD reaches for by default — `.rbs` signature files and C extension
+sources — appear in no example tree at all.
+
+- [ ] **(design)** `.rbs` signature files as an input source, beyond the
+      provenance-marker strip tracked under "Documentation content / prose
+      patterns" below. Unscoped and unscheduled. Known sub-questions:
+      YARD's RBS method handler synthesizes `arg0` for unnamed block params,
+      so `Prime.each` renders as
+      `Prime.each(ubound, generator) { |arg0| ... } → void` while the
+      discarded Form B marker held the real names
+      (`ubound = nil, generator = EratosthenesGenerator.new, &block`) —
+      recovering call-seq from the marker to repair this was considered and
+      deliberately left out of the marker-strip fix as a separate concern;
+      `.rb`/`.rbs` merge semantics when both document the same object (in
+      `base64-0.3.0` the module docstring is attributed to both files and the
+      `.rbs` text wins, while `Base64.encode64` is `.rb`-only); and whether
+      RBS-declared types should feed `**Type:**`/`@param` rendering at all.
 
 ### Module/class structure
 
@@ -1049,6 +1081,13 @@ may follow; that doc tracks status across all of them.
       `` `:stopdoc: ...` ``, as an incidental side effect, not a deliberate
       target). See the `parser` entry under "Runs" in docs/dev/Dogfood.md for
       the original measurement.
+
+- [ ] **(mech)** RBS provenance markers stripped from `.rbs`-sourced
+      docstrings — see "RBS provenance markers in `.rbs`-sourced docstrings"
+      under "Decisions" for the settled design, and issue #1 for the defect
+      record. Fixture lives in `examples/rdoc` (`--markup rdoc` is the
+      realistic dialect for RBS-imported core docs); requires extending that
+      run's glob to reach `sig/`.
 
 ### Cross-referencing scenarios
 
@@ -6952,6 +6991,120 @@ the skill says "tree" in prose and names `bundle.md` only as a filename. And
 issue #1 was filed: RBS `<!-- rdoc-file=... -->` provenance markers leak from
 `.rbs`-sourced docstrings into summaries and `description` frontmatter (seen
 in `base64-0.3.0`, 1 of 113 local bundles).
+
+### RBS provenance markers in `.rbs`-sourced docstrings: strip an anchored, `rdoc-file=`-bearing marker; never HTML comments generally
+
+Filed as issue #1 and designed 2026-09-14, before any fixture work — logged
+here at that point rather than at the TDD loop's step 5, because the rejected
+alternatives below are the perishable part and the first of them is the fix the
+issue itself proposed.
+
+**The defect.** RBS emits an `<!-- rdoc-file=... -->` provenance marker at the
+head of each doc comment it imports from core/stdlib RDoc. YARD's
+`DEFAULT_PATH_GLOB` parses `sig/**/*.rbs`, and `Builder#run_yardoc` passes no
+paths at all, so those docstrings reach the template with the marker as their
+leading text — from where it lands in the rendered body, the `description:`
+frontmatter, the `index.md` entry, and the parent's `## Member Summary` entry.
+Two of 117 local bundles are affected: `base64-0.3.0` (cosmetic) and
+`prime-0.1.4`, where `RDoc::Markup::ToMarkdown` indents the marker's inner
+lines by four spaces and so produces a stray **indented code block** — a
+structural corruption, not just noise.
+
+**Marker grammar.** Two forms, measured across every `.rbs` file installed
+locally (467 marker-bearing files, 14,525 marker-bearing comment blocks):
+Form A is the one-line `<!-- rdoc-file=<path> -->` (4,879); Form B is a
+multi-line block carrying up to 8 RDoc call-seq lines (9,682, twice as common,
+and the form the issue originally missed). **Zero of the 14,525 appear anywhere
+but the first line of their comment block** — which is what licenses anchoring.
+Note also that the raw docstring is clean and unindented: the 4-space indent
+and the blank line before `-->` seen in `Prime.md` are artifacts of
+`RDocToMarkdown`, not of the source.
+
+**The fix.** A new `ProvenanceMarker` module exposing `strip_provenance(text)`:
+matches both forms `\A`-anchored, requires an `rdoc-file=` line (it is what
+makes the block *provenance*; a leading block of bare signature lines is
+something else, and no evidence of one exists), discards the call-seq lines
+with the rest, and consumes through `-->` and one trailing newline only —
+leaving the docstring's own blank lines intact so the existing `.strip` in
+`markdownify` and the newline collapse in `smart_summary` behave exactly as
+before. Applied unconditionally, not gated on whether the object has an `.rbs`
+among its files: the anchor already provides the safety, gating would thread an
+object through a text-level function for nothing, and it would miss a `.rb`
+file that vendored the marker.
+
+**Called from two places, not one.** `Markdownify#markdownify` and
+`DocstringSummary#smart_summary`, both at the top. `markdownify` alone is not
+enough: `module/agentdocs/setup.rb` computes `markdownify(smart_summary(...))`,
+so `smart_summary` sees the raw marker first — which is exactly how `prime`'s
+marker reaches four member-summary bullets. Stripping pre-conversion also means
+the indented code block is never created. Double application on the summary
+path is idempotent. Side effect, accepted deliberately: `markdownify` also
+handles tag text and Guide bodies, so those get the rule too — harmless, since
+the pattern never occurs there, and it settles the "do Guides get this?"
+question without a second rule.
+
+**Considered and rejected:**
+
+- **Stripping HTML comments from docstring text generally** — the issue's own
+  first candidate. Rejected on corpus evidence: `rexml-3.4.4/REXML/Comment.md`
+  documents XML comments ("text between `<!-- ... -->`", plus constants whose
+  `**Value:**` is `"<!--"`), `rdoc-8.0.0/RDoc/Markdown.md` documents the PEG
+  rule `HtmlComment = "<!--" (!"-->" .)* "-->"`, and
+  `rack-3.2.7/Rack/ShowExceptions.md` embeds `//<!--` in a JS template. A
+  general strip silently deletes real documentation from all three.
+- **Stripping only from the extracted summary**, leaving the body faithful —
+  the issue's second candidate. Rejected: it leaves `prime`'s indented code
+  block in the body, which is the worse half of the defect.
+- **Excluding RBS signature files from the glob, or preferring the `.rb`
+  docstring when both exist.** The glob in question is `sig/**/*.rbs`. Rejected as a large behavioral change to fix cosmetics:
+  RBS files carry real type information for gems whose `.rb` has none, and the
+  glob is YARD's own default, not ours.
+- **Reporting upstream to `ruby/rbs` or `lsegal/yard`.** Rejected as not worth
+  the round trip — we would carry the workaround regardless, for every already
+  published gem version frozen on disk.
+- **Recovering the Form B call-seq lines to repair parameter names.** YARD's
+  RBS method handler synthesizes `arg0` for unnamed block params, so
+  `Prime.each` renders `{ |arg0| ... }` while the marker holds
+  `ubound = nil, generator = EratosthenesGenerator.new, &block`. Genuinely
+  useful, and genuinely a different concern — signature fidelity, not leak
+  removal. Parked on the `.rbs`-as-input (design) item under "Input sources".
+- **Adding "provenance marker" to `CONTEXT.md`.** Rejected: that glossary scopes
+  itself to the generated artifact and the surfaces describing it, and this
+  names input noise that, after this fix, never appears in the artifact. The
+  right moment for input vocabulary (**Signature file**, `.rb`/`.rbs` merge
+  terms) is the (design) item, where it will actually resolve something.
+  `CONTEXT.md` did gain **Summary** out of this session — the one concept the
+  defect is entirely about, previously unnamed despite surfacing under three
+  different names.
+
+**Fixture and evidence.** Fixture in `examples/rdoc` (`--markup rdoc` being the
+realistic dialect for RBS-imported core docs), as `sig/*.rbs` declaring names
+absent from that tree's `lib/`, so nothing merges with existing fixtures; it
+covers both marker forms and an object documented in both `.rb` and `.rbs`,
+which is the real `base64`/`prime` shape. `generate_rdoc` in
+`test/test_agentdocs_template.rb` globs `examples/rdoc/lib/**/*.rb` and so
+would not see `sig/` at all — its glob gets extended to
+`examples/rdoc/{lib/**/*.rb,sig/**/*.rbs}`, explicitly rather than by passing
+the directory and letting YARD expand it, so the fixture states what it parses.
+Changing cwd to `examples/rdoc` to match `Builder` exactly was rejected: the
+harness runs from the project root specifically so recorded paths come out
+relative, and moving it would rewrite `**Defined in:**` in every existing
+`examples/rdoc/doc` fixture.
+
+Acceptance evidence is byte-for-byte fixture equality, a before/after diff of
+the `base64-0.3.0` and `prime-0.1.4` bundles, and a checked-in test running
+`ProvenanceMarker` against vendored real marker blocks (both forms, the
+8-call-seq-line maximum, the `Base64` one-liner). A full 117-bundle corpus
+rebuild was **rejected on cost**; the over-fire check it would have provided is
+instead covered by a static scan of the candidate pattern against every comment
+block in every installed gem's `lib/`, `sig/`, `core/`, and `stdlib/` — 4,863
+Form A and 9,662 Form B matched (14,525 total, exactly the marker-block count),
+and **zero** docstrings anywhere that begin with an `<!--` the pattern fails to
+match. That is a larger input set than the corpus and costs seconds; over-firing
+is structurally impossible anyway, since the pattern is `\A`-anchored while the
+rexml/rdoc/rack comments all sit mid-prose. Re-run a full corpus rebuild only
+when one happens for other reasons.
+
 
 ## Implementation
 
