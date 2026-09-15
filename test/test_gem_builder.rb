@@ -220,27 +220,73 @@ describe ::YARD::AgentDocs::GemBuilder do
       end
     end
 
-    # Some default gems (`bundler`, typically) are *also* installed as ordinary
-    # gems, and those resolve fine without the flag, so the example needs a
-    # name that is only ever a default gem.
-    def purely_default_gem_name
-      names = ::Dir.glob(::File.join(::Gem.default_specifications_dir, "*.gemspec"))
-                   .filter_map { |file| ::Gem::Specification.load(file)&.name }
-      regular = ::Dir.glob(::File.join(::Gem.dir, "specifications", "*.gemspec"))
-                     .filter_map { |file| ::Gem::Specification.load(file)&.name }
-      (names - regular).min
+    def specs_in(dir)
+      ::Dir.glob(::File.join(dir, "*.gemspec")).filter_map { |file| ::Gem::Specification.load(file) }
     end
 
-    it "refuses a request naming a default gem unless asked to include them" do
+    # Some default gems (`bundler`, typically) are *also* installed as ordinary
+    # gems, so an example of "a default gem" needs a name that is only ever
+    # one.
+    def purely_default_gem_spec
+      regular = specs_in(::File.join(::Gem.dir, "specifications")).map(&:name)
+      specs_in(::Gem.default_specifications_dir)
+        .reject { |spec| regular.include?(spec.name) }
+        .min_by(&:full_name)
+    end
+
+    # A name installed both as a default gem and as an ordinary one, whose
+    # default version is the newest of the two. Nil if this Ruby has none.
+    def default_newest_mixed_gem_name
+      by_name = (specs_in(::File.join(::Gem.dir, "specifications")) +
+                 specs_in(::Gem.default_specifications_dir)).group_by(&:name)
+      by_name.filter_map do |name, group|
+        name if group.any?(&:default_gem?) && !group.all?(&:default_gem?) &&
+                group.max_by(&:version).default_gem?
+      end.min
+    end
+
+    it "excludes a default gem from all_latest by default" do
       ::Dir.mktmpdir do |dir|
-        name = purely_default_gem_name
-        log.enter_level(::YARD::Logger::FATAL) do
-          assert_nil(::YARD::AgentDocs::GemBuilder.new(requests: [name], output_root: dir).resolve)
-        end
-        specs = ::YARD::AgentDocs::GemBuilder.new(
-          requests: [name], include_default: true, output_root: dir
-        ).resolve
+        specs = ::YARD::AgentDocs::GemBuilder.new(all_latest: true, output_root: dir).resolve
+        refute_includes(specs.map(&:name), purely_default_gem_spec.name)
+      end
+    end
+
+    it "includes a default gem in all_latest when asked" do
+      ::Dir.mktmpdir do |dir|
+        specs = ::YARD::AgentDocs::GemBuilder.new(all_latest: true, include_default: true,
+                                                  output_root: dir).resolve
+        assert_includes(specs.map(&:name), purely_default_gem_spec.name)
+      end
+    end
+
+    # Naming a gem is itself the statement of intent, so `--include-default`
+    # governs the bulk selections above and nothing else.
+    it "resolves an explicitly named default gem without the flag" do
+      ::Dir.mktmpdir do |dir|
+        name = purely_default_gem_spec.name
+        specs = ::YARD::AgentDocs::GemBuilder.new(requests: [name], output_root: dir).resolve
         assert_equal([name], specs.map(&:name))
+      end
+    end
+
+    it "resolves an explicitly requested version that is only installed as a default gem" do
+      ::Dir.mktmpdir do |dir|
+        spec = purely_default_gem_spec
+        specs = ::YARD::AgentDocs::GemBuilder.new(
+          requests: ["#{spec.name}:#{spec.version}"], output_root: dir
+        ).resolve
+        assert_equal([spec.full_name], specs.map(&:full_name))
+      end
+    end
+
+    it "counts a default version among a name:all request without the flag" do
+      name = default_newest_mixed_gem_name
+      skip("no gem is installed both as a default and as an ordinary gem") unless name
+      ::Dir.mktmpdir do |dir|
+        specs = ::YARD::AgentDocs::GemBuilder.new(requests: ["#{name}:all"],
+                                                  output_root: dir).resolve
+        refute_empty(specs.select(&:default_gem?))
       end
     end
   end

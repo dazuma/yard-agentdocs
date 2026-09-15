@@ -30,9 +30,10 @@ long_desc \
   "",
   ["    toys agentdocs gems toys:0.23.0 --markup markdown"],
   "",
-  "Default gems — the ones shipped with Ruby itself — are left out unless" \
-    " `--include-default` is given, since many of them are C-backed and" \
-    " document poorly.",
+  "Default gems — the ones shipped with Ruby itself — are left out of" \
+    " `--all` and `--all-latest` unless `--include-default` is given, since" \
+    " many of them are C-backed and document poorly. Naming one explicitly" \
+    " always builds it; the flag governs bulk selection only.",
   "",
   "To remove bundles again, see `agentdocs gems clean`."
 
@@ -53,12 +54,16 @@ flag :all_latest, "--all-latest",
 
 flag :include_default, "--[no-]include-default",
      default: false,
-     desc: "Treat default gems as installed (defaults to off)",
-     long_desc:
-       "Treat default gems — the ones shipped with Ruby itself, such as" \
-         " `json` or `logger` — as installed, both for `--all` and for gems" \
-         " named explicitly. Off by default, since many of them are C-backed" \
-         " and document poorly."
+     desc: "Sweep default gems into a bulk build (defaults to off)",
+     long_desc: [
+       "Include default gems — the ones shipped with Ruby itself, such as" \
+         " `json` or `logger` — in `--all` and `--all-latest`. Off by" \
+         " default, since many of them are C-backed and document poorly.",
+       "",
+       "This governs bulk selection only. A gem named explicitly on the" \
+         " command line is built with or without the flag, since naming it is" \
+         " the statement of intent.",
+     ]
 
 flag :rebuild, "--[no-]rebuild",
      default: true,

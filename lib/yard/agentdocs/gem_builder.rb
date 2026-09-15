@@ -83,9 +83,11 @@ module YARD
       #   version of every installed gem, in addition to any +requests+.
       #   Ignored when +all+ is also set, since +all+ subsumes it.
       # @param include_default [Boolean] whether default gems — the ones
-      #   shipped with Ruby itself — count as installed. Defaults to false:
-      #   they're excluded from +all+ and +all_latest+, and naming one in
-      #   +requests+ is an error that says to pass this instead.
+      #   shipped with Ruby itself — are swept into +all+ and +all_latest+.
+      #   Defaults to false, since many of them are C-backed and document
+      #   poorly. It governs those bulk selections alone: a gem named in
+      #   +requests+ is eligible either way, because naming it is itself the
+      #   statement of intent.
       # @param rebuild [Boolean] whether to rebuild a gem that already has a
       #   nonempty bundle. Defaults to true; when false, such a gem is left
       #   exactly as it is.
@@ -127,7 +129,7 @@ module YARD
       attr_reader :all_latest
 
       ##
-      # @return [Boolean] whether default gems count as installed
+      # @return [Boolean] whether default gems are swept into a bulk selection
       #
       attr_reader :include_default
 
@@ -228,13 +230,29 @@ module YARD
                           .filter_map { |file| ::Gem::Specification.load(file) }
       end
 
-      # The specifications this build may select from, grouped by gem name,
-      # each group sorted oldest version first.
+      # Every installed specification, grouped by gem name, each group sorted
+      # oldest version first. This is the table an explicit request selects
+      # from, so a default gem resolves whether or not +include_default+ is
+      # set: naming a gem is itself the statement of intent.
       def installed_specs
-        @installed_specs ||= begin
-          specs = include_default ? loaded_specs : loaded_specs.reject(&:default_gem?)
-          specs.group_by(&:name).transform_values { |group| group.sort_by(&:version) }
-        end
+        @installed_specs ||= group_by_name(loaded_specs)
+      end
+
+      # The subset of {#installed_specs} a bulk selection sweeps up, which is
+      # the only thing +include_default+ governs. The flag exists to keep
+      # dozens of C-backed default gems out of an +all+ run, not to veto a
+      # deliberate request.
+      def bulk_specs
+        @bulk_specs ||=
+          if include_default
+            installed_specs
+          else
+            group_by_name(loaded_specs.reject(&:default_gem?))
+          end
+      end
+
+      def group_by_name(specs)
+        specs.group_by(&:name).transform_values { |group| group.sort_by(&:version) }
       end
 
       # The specs in one name's group sharing its newest version. Normally one
@@ -266,7 +284,7 @@ module YARD
       # `--all-latest` plus one older version means exactly that.
       def select_in_bulk(selected)
         return unless all || all_latest
-        installed_specs.each_value do |group|
+        bulk_specs.each_value do |group|
           (all ? group : newest_of(group)).each { |spec| selected[spec.full_name] = spec }
         end
       end
@@ -279,7 +297,7 @@ module YARD
                     "or `name:#{ALL_VERSIONS}`"
           return
         end
-        return errors << missing_gem_message(name) if group.nil?
+        return errors << "gem `#{name}` is not installed" if group.nil?
         matches = match_versions(name, colon, version, group, errors)
         matches&.each { |spec| selected[spec.full_name] = spec }
       end
@@ -299,16 +317,6 @@ module YARD
         errors << "gem `#{name}` version #{version} is not installed; installed versions are " \
                   "#{group.map(&:version).join(', ')}"
         nil
-      end
-
-      # A default gem is invisible unless asked for, so say which of the two
-      # reasons a name didn't resolve rather than insisting it isn't there.
-      def missing_gem_message(name)
-        if !include_default && loaded_specs.any? { |spec| spec.name == name && spec.default_gem? }
-          "gem `#{name}` is a default gem; pass --include-default to build it"
-        else
-          "gem `#{name}` is not installed"
-        end
       end
 
       # Builds one gem, returning the {RESULT_LABELS} key describing what
