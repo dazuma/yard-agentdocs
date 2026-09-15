@@ -23,6 +23,13 @@ module YARD
     # {#spec_dirs} constructor arguments exist for tests and for embedders
     # driving this class directly.
     #
+    # Builds are published atomically. A gem is documented into a scratch
+    # directory under {TEMP_SUBDIR} and moved to its canonical path only once
+    # the build has finished, so a build killed partway through — an expired
+    # agent command timeout, a Ctrl-C — leaves nothing at that path for a
+    # later run to mistake for a finished bundle. Directories left behind by
+    # such a build are swept by the next one; see {STALE_TEMP_AGE}.
+    #
     # Each gem is documented by handing its installed directory to {Builder},
     # so a gem's own `.yardopts` is honored just as it would be for a project
     # checkout. One argument is inserted ahead of the caller's {#yard_args}:
@@ -44,6 +51,18 @@ module YARD
       # version of a gem rather than one.
       #
       ALL_VERSIONS = "all"
+
+      ##
+      # The subdirectory of the output root that builds in progress are
+      # written under, before being published to their canonical paths.
+      #
+      TEMP_SUBDIR = ".incomplete"
+
+      ##
+      # How long, in seconds, a directory under {TEMP_SUBDIR} must have gone
+      # untouched before a later build treats it as abandoned and removes it.
+      #
+      STALE_TEMP_AGE = 24 * 60 * 60
 
       class << self
         ##
@@ -191,10 +210,13 @@ module YARD
       ##
       # Builds a bundle for each gem covered by this build.
       #
-      # A failure is per-gem: the gem's own output directory is removed, so a
-      # later `rebuild: false` run can't mistake a half-written bundle for a
-      # finished one, and the remaining gems still build. Problems are
-      # reported through YARD's logger rather than raised, matching {Builder}.
+      # A failure is per-gem: the half-built tree is discarded, any bundle
+      # already at the gem's canonical path is left exactly as it was, and the
+      # remaining gems still build. Problems are reported through YARD's
+      # logger rather than raised, matching {Builder}.
+      #
+      # Each run first sweeps scratch directories abandoned by earlier builds
+      # that were killed outright.
       #
       # @return [Boolean] whether every gem covered by this build either built
       #   or was deliberately left alone
@@ -202,6 +224,7 @@ module YARD
       def build
         specs = resolve
         return false unless specs
+        sweep_stale_temps
         results = {built: [], skipped: [], unavailable: [], failed: []}
         specs.each_with_index do |spec, index|
           announce("yard-agentdocs: [#{index + 1}/#{specs.size}] #{spec.full_name}")
@@ -319,6 +342,60 @@ module YARD
         nil
       end
 
+      # The directory builds in progress are written under. It lives inside
+      # {#output_root} rather than in the system temporary directory because
+      # publishing a finished build is a rename, and a rename is only atomic
+      # within one filesystem.
+      def temp_root
+        @temp_root ||= ::File.join(output_root, TEMP_SUBDIR)
+      end
+
+      # The directory one gem's build is written to before it's published.
+      # The process id keeps two builders running at once out of each other's
+      # way; the gem's full name is there so that a directory left behind by
+      # a killed build says what it was.
+      def temp_dir_for(spec)
+        ::File.join(temp_root, "#{::Process.pid}-#{spec.full_name}")
+      end
+
+      # Removes directories left under {#temp_root} by builds that were
+      # killed before they could publish or clean up after themselves.
+      #
+      # Staleness is judged by modification time rather than by whether the
+      # process that created a directory is still running: a pid says nothing
+      # about a build started on another machine sharing the same data home,
+      # and pids are reused. {STALE_TEMP_AGE} is orders of magnitude longer
+      # than the slowest build anyone has measured, so a live build is never
+      # in range of it.
+      #
+      # Each candidate is claimed with a rename before it's deleted, so two
+      # builders sweeping at the same moment can't both walk the same tree:
+      # exactly one rename succeeds, and the loser gets `ENOENT` and moves
+      # on. A rename leaves the directory's own mtime alone, so a claim that
+      # is itself interrupted stays just as eligible for the next sweep.
+      def sweep_stale_temps
+        return unless ::File.directory?(temp_root)
+        cutoff = ::Time.now - STALE_TEMP_AGE
+        ::Dir.children(temp_root).each do |entry|
+          path = ::File.join(temp_root, entry)
+          next unless stale?(path, cutoff)
+          claim = "#{path}.sweep-#{::Process.pid}"
+          begin
+            ::File.rename(path, claim)
+          rescue ::SystemCallError
+            next
+          end
+          log.debug("yard-agentdocs: removing abandoned build directory `#{path}`")
+          ::FileUtils.rm_rf(claim)
+        end
+      end
+
+      def stale?(path, cutoff)
+        ::File.mtime(path) < cutoff
+      rescue ::SystemCallError
+        false
+      end
+
       # Builds one gem, returning the {RESULT_LABELS} key describing what
       # happened to it.
       def build_one(spec)
@@ -329,9 +406,70 @@ module YARD
                    "`#{spec.full_gem_path}`; skipping"
           return :unavailable
         end
-        return :built if build_with_builder(spec, output)
-        ::FileUtils.rm_rf(output)
-        :failed
+        build_and_publish(spec, output)
+      end
+
+      # Builds a gem into a temporary directory and moves it to its canonical
+      # path only once the build has finished. Nothing partial is ever
+      # visible there: a build that fails, raises, or is interrupted leaves
+      # that path holding whatever it held before, which is either a complete
+      # bundle or nothing at all.
+      def build_and_publish(spec, output)
+        temp = temp_dir_for(spec)
+        return :failed unless build_with_builder(spec, temp)
+        publish(temp, output) ? :built : :failed
+      ensure
+        ::FileUtils.rm_rf(temp)
+      end
+
+      # Moves a finished build to its canonical path, replacing any bundle
+      # already there.
+      #
+      # The old bundle is renamed aside rather than deleted in place, so the
+      # canonical path is missing for one syscall rather than for however
+      # long it takes to delete a tree of several thousand files — and so a
+      # publish that fails partway can put the old bundle back.
+      def publish(temp, output)
+        trash = "#{temp}.old"
+        2.times do
+          stash(output, trash)
+          begin
+            ::File.rename(temp, output)
+          rescue ::Errno::ENOTEMPTY, ::Errno::EEXIST
+            # Another builder published this same gem in the moment between
+            # the two renames. Its bundle is as complete as ours, so take the
+            # path back from it rather than failing.
+            next
+          rescue ::SystemCallError => e
+            unstash(trash, output)
+            log.error("yard-agentdocs: could not publish `#{output}`: #{e.message}")
+            return false
+          end
+          ::FileUtils.rm_rf(trash)
+          return true
+        end
+        unstash(trash, output)
+        log.error("yard-agentdocs: could not publish `#{output}`; it kept being replaced")
+        false
+      end
+
+      # Renames an existing bundle out of the way. A failure here is left for
+      # the rename that follows to report.
+      def stash(output, trash)
+        ::FileUtils.rm_rf(trash)
+        ::File.rename(output, trash) if ::File.exist?(output)
+      rescue ::SystemCallError
+        nil
+      end
+
+      # Undoes a {#stash}: puts the old bundle back if the canonical path is
+      # still empty, and drops it if something else has taken the path.
+      def unstash(trash, output)
+        ::File.rename(trash, output) if ::File.directory?(trash) && !::File.exist?(output)
+      rescue ::SystemCallError
+        nil
+      ensure
+        ::FileUtils.rm_rf(trash)
       end
 
       def build_with_builder(spec, output)

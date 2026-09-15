@@ -140,3 +140,65 @@ the tool file, as `confirm_scope` does in `gems/clean.rb`.
   rather than as the containing skills directory. Rejected: it would make the
   two destination flags mean different kinds of path, which is the sort of
   asymmetry that only ever gets found by installing a skill somewhere inert.
+
+## Atomic bundle publication (2026-09-15)
+
+`agentdocs gems` documents each gem into a scratch directory under
+`<output root>/.incomplete` and renames it to its canonical path only once
+the build has finished. Before this, `GemBuilder#build_one` wrote straight
+into the canonical path and removed it only when a build *returned* failure,
+so a run killed partway — an agent's command timeout, a Ctrl-C, a SIGTERM —
+left a partial tree that the next `--no-rebuild` run counted as finished, and
+every later reader got silently incomplete documentation with nothing to tell
+it apart from a complete bundle. The published contract is now that every
+observable state of a canonical path is a complete bundle or nothing at all.
+The same path carries `--rebuild`, so a failed rebuild no longer destroys the
+bundle it was replacing. (Issue #3.)
+
+**Rejected: cleaning up from a signal handler.** It answers Ctrl-C and
+SIGTERM and nothing else — not SIGKILL, not a lost terminal, not the harness
+reaping a process group — and a handler that deletes a partial tree can
+itself be killed halfway through, which is the same bug one level down.
+
+**Rejected: staging in the system temporary directory.** Publishing is a
+rename, and a rename is only atomic within one filesystem; across one it
+fails with `EXDEV` and forces a copy, which reintroduces exactly the
+partially-visible state being designed out. The scratch directory has to live
+inside the output root.
+
+**Rejected: flat scratch names in the output root**, such as
+`.tmp-rbs-3.10.0-4321`. `GemCleaner.parse_bundle_name` reads that as gem
+`.tmp-rbs-3.10.0` at version `4321`, so scratch directories would surface as
+bundles in `agentdocs gems clean` and skew its `--all-outdated` grouping. A
+hidden container directory parses as no bundle at all, which is what keeps
+the two tools from disagreeing about what is on disk; a unit test in
+`test_gem_cleaner.rb` pins that.
+
+**Rejected: delete-then-rename on a rebuild.** Deleting the old bundle first
+leaves the canonical path missing for however long it takes to remove a tree
+of several thousand files. Renaming it aside first shrinks that window to one
+syscall, and leaves the old bundle intact to be restored if the publish then
+fails.
+
+**Rejected: pid liveness for the sweep.** Abandoned scratch directories are
+swept by age (`STALE_TEMP_AGE`, 24 hours), not by asking whether the process
+that created one is still running. A pid says nothing about a build started
+on another machine sharing the same data home, and pids are reused; an age
+threshold three orders of magnitude longer than the slowest build measured
+needs neither assumption. The cost is that a killed build's scratch tree
+occupies disk for up to a day, which is bounded and invisible.
+
+**Rejected: lock files**, for mutual exclusion between builders or for sweep
+liveness. Issue #3 scoped concurrency out and this keeps it out: two builders
+racing one gem each publish a complete bundle and the last writer wins, so
+the only cost is duplicated work, while a lock adds a stale-lock failure mode
+that buys nothing else. Two mechanisms preserve that property rather than
+relying on it being rare — a publish that loses the race retries once instead
+of failing, and a sweep claims each candidate with a rename before deleting
+it, so exactly one sweeper walks a given tree and a live build's scratch
+directory is never taken out from under it.
+
+**Not extended to `Builder`.** `agentdocs build` writes to a path the user
+named, which may be on another filesystem and which the user may be watching;
+the bug is about the canonical gems root, where the path is computed rather
+than chosen and a reader has no way to judge what it finds.

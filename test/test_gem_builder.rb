@@ -71,6 +71,23 @@ describe ::YARD::AgentDocs::GemBuilder do
     gem_builder(home, output_root, **).resolve&.map(&:full_name)
   end
 
+  # The directory the builder stages a build in before publishing it.
+  def temp_root(output_root)
+    ::File.join(output_root, ::YARD::AgentDocs::GemBuilder::TEMP_SUBDIR)
+  end
+
+  # Stands in for a build killed partway through: the builder writes part of
+  # a tree into the directory it was handed, then dies without unwinding.
+  def interrupt_during_build(builder)
+    builder.define_singleton_method(:build_with_builder) do |_spec, output|
+      ::FileUtils.mkdir_p(::File.join(output, "Widget"))
+      ::File.write(::File.join(output, "index.md"), "# partial\n")
+      ::File.write(::File.join(output, "Widget", "spin.md"), "# spin\n")
+      raise ::Interrupt
+    end
+    builder
+  end
+
   describe "resolution" do
     it "resolves an exact name:version request" do
       with_gem_home do |home, output_root|
@@ -439,7 +456,7 @@ describe ::YARD::AgentDocs::GemBuilder do
       install_gem(home, name, version, yardopts: "--markup #{markup}\n")
     end
 
-    it "fails and removes the output directory when a gem's build fails" do
+    it "leaves no bundle at the canonical path when a gem's build fails" do
       with_gem_home do |home, output_root|
         install_failing_gem(home, "widget", "1.0.0")
         refute(gem_builder(home, output_root, requests: ["widget"]).build)
@@ -466,11 +483,115 @@ describe ::YARD::AgentDocs::GemBuilder do
       end
     end
 
+    # Building in place meant a failed rebuild took the previous bundle with
+    # it: the output directory was cleaned before YARD ran, and removed again
+    # when the run came back false.
+    it "leaves the existing bundle in place when a rebuild fails" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        assert(gem_builder(home, output_root, requests: ["widget"]).build)
+        install_failing_gem(home, "widget", "1.0.0")
+        refute(gem_builder(home, output_root, requests: ["widget"]).build)
+        assert_path_exists(::File.join(output_root, "widget-1.0.0", "Widget.md"))
+      end
+    end
+
     it "fails without building anything when resolution fails" do
       with_gem_home do |home, output_root|
         install_gem(home, "widget", "1.0.0")
         refute(gem_builder(home, output_root, requests: ["widget", "gadget"]).build)
         refute(::File.exist?(output_root))
+      end
+    end
+  end
+
+  describe "atomicity" do
+    # A build staged in place would leave these files at the canonical path,
+    # where the next `rebuild: false` run counts any nonempty directory as a
+    # finished bundle. That is the whole of the bug this covers.
+    it "leaves nothing at the canonical path when a build is interrupted" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        builder = interrupt_during_build(gem_builder(home, output_root, requests: ["widget"]))
+        assert_raises(::Interrupt) { builder.build }
+        refute(::File.exist?(::File.join(output_root, "widget-1.0.0")))
+      end
+    end
+
+    it "discards the staged tree of an interrupted build" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        builder = interrupt_during_build(gem_builder(home, output_root, requests: ["widget"]))
+        assert_raises(::Interrupt) { builder.build }
+        assert_empty(::Dir.children(temp_root(output_root)))
+      end
+    end
+
+    it "does not let an interrupted build satisfy a later no-rebuild run" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        builder = interrupt_during_build(gem_builder(home, output_root, requests: ["widget"]))
+        assert_raises(::Interrupt) { builder.build }
+        assert(gem_builder(home, output_root, requests: ["widget"], rebuild: false).build)
+        assert_path_exists(::File.join(output_root, "widget-1.0.0", "Widget.md"))
+      end
+    end
+
+    it "keeps the existing bundle whole while a rebuild runs" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        assert(gem_builder(home, output_root, requests: ["widget"]).build)
+        builder = interrupt_during_build(gem_builder(home, output_root, requests: ["widget"]))
+        assert_raises(::Interrupt) { builder.build }
+        assert_path_exists(::File.join(output_root, "widget-1.0.0", "Widget.md"))
+        refute(::File.exist?(::File.join(output_root, "widget-1.0.0", "Widget", "spin.md")))
+      end
+    end
+  end
+
+  describe "abandoned staging directories" do
+    # Stands in for what a killed build leaves behind: a partial tree under
+    # the staging directory, aged past the sweep threshold or not.
+    def stage_dir(output_root, name, age: nil)
+      dir = ::File.join(temp_root(output_root), name)
+      ::FileUtils.mkdir_p(dir)
+      ::File.write(::File.join(dir, "index.md"), "# partial\n")
+      ::File.utime(::Time.now - age, ::Time.now - age, dir) if age
+      dir
+    end
+
+    def stale_age
+      ::YARD::AgentDocs::GemBuilder::STALE_TEMP_AGE + 60
+    end
+
+    it "removes one left by a build killed long enough ago" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        stale = stage_dir(output_root, "999999-widget-1.0.0", age: stale_age)
+        assert(gem_builder(home, output_root, requests: ["widget"]).build)
+        refute(::File.exist?(stale))
+      end
+    end
+
+    # A build running right now in another process has a staging directory of
+    # its own. Sweeping that would kill a live build rather than tidy up
+    # after a dead one, so age is the only thing that makes one eligible.
+    it "leaves a recent one alone" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        fresh = stage_dir(output_root, "999998-gadget-2.0.0")
+        assert(gem_builder(home, output_root, requests: ["widget"]).build)
+        assert_path_exists(fresh)
+      end
+    end
+
+    it "sweeps before building rather than after" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        builder = interrupt_during_build(gem_builder(home, output_root, requests: ["widget"]))
+        stale = stage_dir(output_root, "999999-widget-1.0.0", age: stale_age)
+        assert_raises(::Interrupt) { builder.build }
+        refute(::File.exist?(stale))
       end
     end
   end

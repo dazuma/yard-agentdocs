@@ -272,6 +272,20 @@ describe ::YARD::AgentDocs::GemCleaner do
       end
     end
 
+    # The builder stages every build in this directory, so it shows up in the
+    # output root whenever a build was killed before it could clean up after
+    # itself. Its name is deliberately one `parse_bundle_name` reads as no
+    # bundle at all.
+    it "ignores the builder's staging directory" do
+      with_output_root do |root|
+        make_bundle(root, "widget-1.0.0")
+        make_bundle(root, ::YARD::AgentDocs::GemBuilder::TEMP_SUBDIR)
+        assert_equal(["widget-1.0.0"], resolved_names(root, all: true))
+        assert(cleaner(root, all: true).clean)
+        assert_equal([::YARD::AgentDocs::GemBuilder::TEMP_SUBDIR], present_names(root))
+      end
+    end
+
     it "refuses a request naming an entry that is not a bundle" do
       with_output_root do |root|
         make_bundle(root, "scratch")
