@@ -93,6 +93,89 @@ describe ::YARD::AgentDocs::Markdownify do
       RUBY
       assert_equal("See [`Other#m`](Other.md) for details.", holder.markdownify("See {Other#m} for details."))
     end
+
+    # The block constructs `::RDoc::Markup` gives no meaning to, which it
+    # therefore joins into one paragraph — see "Block constructs RDoc
+    # doesn't parse: segment out and pass through" under "Decisions" in
+    # docs/dev/DESIGN.md, and issue #8.
+    describe "a block construct RDoc's own markup doesn't parse" do
+      it "passes a fenced code block through verbatim, still converting the prose around it" do
+        assert_equal(
+          "Prose.\n\n```ruby\nx = 1\ny = 2\n```\n\nAfter `code`.",
+          holder.markdownify("Prose.\n\n```ruby\nx = 1\ny = 2\n```\n\nAfter +code+.")
+        )
+      end
+
+      it "passes a tilde-delimited fence through as well" do
+        assert_equal("~~~\nx = 1\n~~~", holder.markdownify("~~~\nx = 1\n~~~"))
+      end
+
+      it "runs an unclosed fence to the end of the text rather than closing it" do
+        assert_equal("Prose.\n\n```ruby\nx = 1", holder.markdownify("Prose.\n\n```ruby\nx = 1"))
+      end
+
+      it "leaves a heading-shaped line inside a fence undemoted" do
+        source = "```ruby\n## a Ruby comment, not a heading\n```"
+        assert_equal(source, holder.markdownify(source))
+      end
+
+      it "leaves an inline cross-reference inside a fence unresolved" do
+        holder = holder_with_object(:rdoc, <<~RUBY, "Widget")
+          class Widget; end
+
+          class Other
+            def m; end
+          end
+        RUBY
+        source = "```ruby\n{Other#m}\n```"
+        assert_equal(source, holder.markdownify(source))
+      end
+
+      it "passes a GFM table through verbatim" do
+        assert_equal(
+          "| a | b |\n|---|---|\n| 1 | 2 |\n\nAfter.",
+          holder.markdownify("| a | b |\n|---|---|\n| 1 | 2 |\n\nAfter.")
+        )
+      end
+
+      it "leaves pipe-bearing lines with no delimiter row under them to RDoc" do
+        assert_equal("| a | b | | 1 | 2 |", holder.markdownify("| a | b |\n| 1 | 2 |"))
+      end
+
+      it "passes a Markdown blockquote through verbatim" do
+        assert_equal("> one\n> two", holder.markdownify("> one\n> two"))
+      end
+
+      it "still converts RDoc's own `>>>` blockquote, which is not Markdown's marker" do
+        assert_equal("> RDoc quotes this.", holder.markdownify(">>>\n  RDoc quotes this."))
+      end
+
+      it "leaves a prose line opening with an operator alone" do
+        assert_equal(">= 0 : when the index is known", holder.markdownify(">= 0 : when the index is known"))
+      end
+
+      it "treats a line opening with an inline code span as prose, not as a fence" do
+        assert_equal("```x``` is inline.", holder.markdownify("```x``` is inline."))
+      end
+
+      # Column 0, not CommonMark's three-space tolerance: an indented
+      # line opens an RDoc verbatim block, which already survives
+      # conversion (re-indented to four columns), so there is nothing to
+      # rescue and a real block to avoid tearing apart.
+      it "recognizes a block only at column 0, leaving an indented fence to RDoc's verbatim handling" do
+        assert_equal(
+          "Example:\n\n    ```ruby\n    x = 1\n    ```",
+          holder.markdownify("Example:\n\n  ```ruby\n  x = 1\n  ```")
+        )
+      end
+
+      # The cost of verbatim passthrough: a protected block's content is
+      # never RDoc, even when the docstring around it is.
+      it "does not convert RDoc inline markup inside a protected block" do
+        source = "| a | b |\n|---|---|\n| +raw+ | *raw* |"
+        assert_equal(source, holder.markdownify(source))
+      end
+    end
   end
 
   describe "an unsupported markup type" do

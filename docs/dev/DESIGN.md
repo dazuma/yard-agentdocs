@@ -1316,7 +1316,18 @@ sources — appear in no example tree at all.
       per file, mirroring `markup_for_file`" under "Decisions" for the
       corpus measurements and for why a per-gem dialect heuristic was
       rejected. The `:rdoc` converter's own flattening of fenced blocks,
-      tables, and blockquotes is separate and still open — #8.
+      tables, and blockquotes was separate — #8, below.
+- [x] (mech) The `:rdoc` converter flattened a fenced code block, a GFM
+      table, or a Markdown blockquote written in an RDoc-dialect
+      *docstring*, because `RDoc::Markup` joins consecutive unindented
+      lines into one paragraph and none of the three is RDoc syntax. A
+      collapsed fence also left an unbalanced delimiter, so every
+      `## `/`### ` heading below it read as being inside an open code
+      block. Reported as #8; see "Block constructs RDoc doesn't parse:
+      segment out and pass through" under "Decisions" for the corpus
+      measurements, for why blocks are recognized at column 0 rather than
+      at CommonMark's three-space indent, and for why RDoc's own `>>>`
+      blockquote marker is deliberately excluded
 - [x] (mech→design, pre-dogfood) `index.md`'s per-entry summary doesn't go
       through `markdownify` or inline-reference resolution —
       `Geometry::ThreeD::Point`'s summary now reads "...analogous to
@@ -2565,6 +2576,13 @@ conversion, on the converted text — it's dialect-independent.
   (braces *not* followed by `[url]`, so not RDoc link syntax) passes
   through `ToMarkdown` unmangled — the inline-references checklist item
   resolves those *after* conversion, same as YARD's `resolve_links`.
+
+**Superseded in part.** The claim above that a strict `RDoc::Markup`
+reparse is what mirroring YARD means for `:rdoc` no longer holds at the
+block level: as of yard 0.9.45 `HybridMarkdown` is the first provider for
+*both* dialects and preserves fences, tables, and blockquotes. See "Block
+constructs RDoc doesn't parse: segment out and pass through" below. The
+inline half of this decision, and the dispatch shape, stand unchanged.
 
 **Rejected: a hybrid accept-both parser.** As of 0.9.44, YARD's default
 provider for *both* `:rdoc` and `:markdown` is its built-in
@@ -7258,6 +7276,134 @@ under "Docstring markup dialect" that a strict `RDoc::Markup` reparse is
 what mirroring YARD means for `:rdoc` is now stale; that decision's
 "Rejected: a hybrid accept-both parser" note still stands on its own terms,
 since `HybridMarkdown` targets HTML and isn't reusable here.
+
+
+### Block constructs RDoc doesn't parse: segment out and pass through (2026-09-15)
+
+Fixes #8, the docstring half of the flattening #7 fixed for extra files.
+`RDoc::Markup` joins consecutive unindented lines into one paragraph, and
+a fenced code block, a GFM table, and a Markdown blockquote are none of
+them RDoc syntax, so each collapsed onto one line:
+
+    ```ruby
+    gem "abbrev"
+    ```
+
+    ```ruby gem "abbrev" ```
+
+The fence is the structural one — the stray backticks leave a code block
+that never closes, so every `## `/`### ` heading below it reads as being
+inside it — but the table loses its tabular shape entirely, and the
+blockquote loses its line breaks.
+
+**The decision: segment, then convert only the prose.**
+`RDocToMarkdown#convert` splits its input into protected-block runs and
+prose runs, hands each prose run to the upstream converter, emits each
+protected run byte-identical to its source, and joins the results with one
+blank line. This is #8's direction 1 at the scope of all three block
+types.
+
+**Protected blocks are recognized only at column 0.** This is the one
+place the implementation departs from #8's write-up, which proposed
+CommonMark's `\s{0,3}` opening indent. Indentation is meaningful to RDoc:
+an indented line opens a verbatim block, so a fence delimiter or a `>`
+inside one is that block's content. YARD's own `HybridMarkdown` effectively agrees —
+`parse_blocks` tests `indented_code_block_start?` (two columns or more)
+before `fenced_code_start?`. Nothing is lost by the stricter rule: an
+indented fence is RDoc verbatim and already survives conversion,
+re-indented to four columns. A fence's *closer* still tolerates three
+columns, as CommonMark and `HybridMarkdown#fence_closer?` both do — an
+indented closer can't be confused with the start of a verbatim block.
+
+**RDoc's own `>>>` blockquote marker is excluded**, by requiring a space
+(or end of line) after the `>`. That same requirement keeps a prose line
+opening with an operator — `>= 0 : when the index is known`, from
+`rubocop-ast` — out of the blockquote path.
+
+**Measured** by converting every contiguous comment block in the locally
+installed gem set (57,358 blocks across 5,432 files) both ways:
+
+| | blocks changed |
+|---|---|
+| Containing a fence | 163 |
+| Containing a table | 1 |
+| Containing a blockquote | 6 |
+| Containing none of the three | 0 |
+
+Every one of the 170 was read or sampled; all are improvements. The
+zero on the last row is the load-bearing number: prose that is genuinely
+RDoc converts exactly as it did before. Raw occurrence counts in the same
+corpus: 472 column-0 fence lines, 0 at one to three columns, 9 at four or
+more (correctly left to RDoc); 19 `>`-plus-space lines against 52 `>>>`
+lines; 1 table.
+
+The two rejected rule variants were measured the same way: allowing one
+to three columns of indent for `>` regresses 4 blocks, tearing a `>` line
+out of a verbatim code sample in `bundler`, `nokogiri`, and
+`syntax_suggest`; treating `>>>` as a blockquote regresses 47, the whole
+of `net-imap`'s config documentation.
+
+**A second fix falls out of the first.** `transform_outside_code_spans`
+skips backtick runs, so with fences intact again it skips their interiors:
+`{...}` cross-references and `#`-heading demotion stop reaching into code.
+That is what had rewritten the `[foo](T)` inside `rbs`'s fenced `type`
+example.
+
+**Rejected: porting `HybridMarkdown`'s block grammar** to a
+Markdown-emitting formatter (#8's direction 2). Highest fidelity and the
+truest "mirror YARD", but it is a ~1000-line hand-written parser inside
+yard's tree, and we would be maintaining a fork of it across yard
+releases. Segmenting borrows its regexes and its precedence without
+owning its grammar.
+
+**Rejected: protecting only fences** (#8's direction 3), on the grounds
+that only the fence corrupts structure. The segmenting machinery and its
+guardrails are shared, so the other two cost a few lines each; and a
+flattened table is not merely cosmetic, it stops being a table.
+
+**Rejected: closing an unclosed fence.** An unclosed column-0 fence runs
+to the end of the docstring, as CommonMark closes one at the end of its
+container. Auto-closing would be the template inventing content to cover
+for a docstring that is already malformed; the corpus has no unbalanced
+fence sources at all (all 48 unbalanced files came from the collapse
+itself, which is what this fixes).
+
+**Rejected: converting inline markup inside a protected block.** A
+protected block is passed through byte-for-byte, so RDoc inline markup in
+a table cell or a quoted line — `+foo+`, `<tt>foo</tt>` — stays literal.
+Converting it would need an inline-only conversion path and a
+re-assembling formatter for each block type, which is most of direction 2
+again. The cost is bounded and visible: `nokogiri`'s entity table keeps
+literal `<tt>` in its cells, where before it emitted an equally-raw
+`<code>`. Someone writing a GFM table in a docstring is writing Markdown
+in it, not RDoc.
+
+**Known gap: lazy continuation.** A non-`>` line directly under a quoted
+line ends the blockquote run and converts as prose, which costs it the
+blank line the source didn't have. `HybridMarkdown` folds such a line
+into the quote. Not worth the state it would take to track; no corpus hits.
+
+**Verification.** `examples/rdoc/lib/block_markup.rb` carries all three
+constructs in one class docstring, plus a fence in a method docstring,
+plus two negative guards that would fail loudly if the recognition rules
+were looser: a four-column RDoc verbatim block whose content opens with a
+fence, and an RDoc `>>>` blockquote. The fence holds a `## ` line and a
+`{Greeter#greet}` reference, both of which have to come out untouched,
+against a resolving `{Greeter}` in the prose beside it. With the fixtures
+in place and the fix absent, the run reproduced all three collapses
+exactly. `test/test_markdownify.rb` adds thirteen cases, including the
+column-0 rule, the `>>>` and `>= 0` exclusions, the unclosed fence, a
+line opening with an inline code span (not a fence, per CommonMark's rule
+against a backtick in a backtick fence's info string), and the
+inline-markup-inside-a-block cost above.
+
+**Not addressed:** `RDoc::Markup` also reads Markdown's `*ital*` as
+`**bold**`, where `HybridMarkdown` reads it as emphasis. That is an
+inline-level dialect ambiguity rather than block flattening, and #8 left
+it out of scope deliberately. A fence inside *tag* text (a `@param`
+description, say) is protected the same way, but its interaction with
+this format's list-item-continuation indentation isn't exercised by a
+fixture.
 
 
 ## Implementation
