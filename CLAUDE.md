@@ -24,18 +24,28 @@ The gem also ships user-facing Toys tools in `toys/` (included in the gemspec, s
 them via `load_gem "yard-agentdocs"`): `agentdocs build` documents a project directory,
 `agentdocs gems` documents installed gems into
 `<XDG data home>/yard-agentdocs/gems/<name>-<version>`, `agentdocs gems clean` removes those
-bundles again, and `agentdocs install-skill` installs the agent skill below into a harness's
-skills directory (`--claude`, or `--output DIR` for anywhere else). Each tool file holds only
-the Toys DSL and prompting; the behavior lives in
-`lib/yard/agentdocs/{builder,gem_builder,gem_cleaner,skill_installer}.rb`, so it is unit-tested
-and documented independently.
+bundles again, `agentdocs lookup` answers one API lookup against a gems bundle, and
+`agentdocs install-skill` installs the agent skill below into a harness's skills directory
+(`--claude`, or `--output DIR` for anywhere else). Each tool file holds only the Toys DSL and
+prompting; the behavior lives in
+`lib/yard/agentdocs/{builder,gem_builder,gem_cleaner,lookup,bundle_reader,dependency_resolver,skill_installer}.rb`,
+so it is unit-tested and documented independently. Decisions about the tools go in
+`docs/dev/Tooling.md`, never `DESIGN.md`.
+
+`agentdocs lookup` is the **Reader** in `CONTEXT.md`'s sense: it *implements* `bundle.md`'s
+mechanics rather than restating them. It is an accelerator, never a gateway — grepping a bundle
+directly stays first-class, and the format, not the Reader, is the contract. So do not move
+format mechanics into it as behavior the format itself no longer describes.
 
 The gem additionally ships an agent skill at `skills/yard-agentdocs/SKILL.md` (in the gemspec),
-installed by `agentdocs install-skill`. It is scoped to *lookup routing only* — when to prefer a
-generated bundle over gem source, where a bundle lives, what to do when one is missing. Format
-mechanics belong to the generated `bundle.md`, and CLI mechanics to the Toys tools’ own
-`long_desc`; this three-way split is deliberate anti-drift, so do not move content across it.
-See "Agent skill written (2026-09-12)" under "Decisions" in `docs/dev/DESIGN.md`.
+installed by `agentdocs install-skill`. It is scoped to *routing and judgment only* — when to
+prefer a generated bundle over gem source or the web, which lookups are in scope, when to give
+up. Format mechanics belong to the generated `bundle.md`, CLI mechanics to the Toys tools’ own
+`long_desc`, and anything the skill could only restate rather than enforce — deriving a bundle's
+path, resolving a version, obtaining a missing bundle — belongs to the Reader. This split is
+deliberate anti-drift, so do not move content across it. See "Agent skill written (2026-09-12)"
+under "Decisions" in `docs/dev/DESIGN.md`, and "The `agentdocs lookup` Reader (2026-09-15)" in
+`docs/dev/Tooling.md`.
 
 ## Purpose
 

@@ -202,3 +202,162 @@ directory is never taken out from under it.
 named, which may be on another filesystem and which the user may be watching;
 the bug is about the canonical gems root, where the path is computed rather
 than chosen and a reader has no way to judge what it finds.
+
+## The `agentdocs lookup` Reader (2026-09-15)
+
+Adds `agentdocs lookup <gem> <entity>`, which answers one API lookup against a
+gems bundle and writes the single member or concept asked for to standard
+output. It is the **Reader** `CONTEXT.md` already defined, and its behavior
+lives in three classes — `Lookup` (orchestration, provenance, exit codes),
+`BundleReader` (the format mechanics), and `DependencyResolver` (which version,
+installed where) — with `toys/agentdocs/lookup.rb` holding only the Toys DSL
+and the prompt, as with the four tools that preceded it. (Issue #4.)
+
+**Why a Reader at all: correctness, not token economy.** Before this, roughly
+70% of `SKILL.md` was `bundle.md`'s mechanics restated as prose — path
+derivation, the heading grammar, the XDG path, version resolution from
+`Gemfile.lock` — which is exactly the duplication the three-surface division of
+labor exists to prevent. The problem isn't the length. It's that the skill's
+highest-stakes lines ("never read a different version's tree", "never `--all`",
+"never read `index.md`") are unenforceable in prose and are invariants in code.
+A prose file cannot *execute* the preamble's mechanics, only paraphrase them.
+Collapsing a three-or-four-turn lookup into one is the secondary benefit.
+
+**Three classes, not one.** They have different owners and different failure
+domains: format mechanics belong with the format, project dependency resolution
+belongs with Bundler's conventions, and the shape of an answer belongs with the
+caller. The `agentdocs search` follow-up (issue #5) reuses the first two
+unchanged. `Lookup#run` returns a `Result` value object rather than the boolean
+`GemBuilder#build` returns, because here the body *is* the product.
+
+**Accelerator, never gateway.** The Reader implements the preamble rather than
+restating it, so the two cannot disagree; reading a bundle with `grep` stays a
+first-class path; and a Reader bug degrades to "grep still works." The body is
+reproduced verbatim — in particular `**Defined in:**` paths are *not* rewritten
+to absolute ones, which would make this a transformer and leave `bundle.md`
+describing something other than what the agent sees. The gem root is printed in
+the header instead, which is free (the spec is already resolved) and removes the
+`bundle show` hop the old skill documented.
+
+**No fence tracking; the heading grammar does the work instead.** Section
+boundaries are found by line prefix. Measured across the 7,472 class/module
+files in a 117-bundle local corpus, no `## ` or `### ` line inside a closed
+fence was ever anything but the document's own structure — zero real cases to
+defend against — while 57 files *would* be misread by a fence tracker: 47 carry
+generated markdown whose stray backticks open a fence that swallows the rest of
+the document (all of `erb-6.0.7/ERB.md`'s structure, for one), and 10 `rbs`
+files have genuinely unbalanced fences. What a fence tracker would have caught
+is caught more cheaply by holding `### ` lines to the grammar itself: a member
+name never contains a space, across all 16,971 distinct headings in the corpus,
+so a prose heading inside an `@example` block is rejected without the failure
+mode. `# ` is never a boundary — `# good` / `# bad` comments inside rubocop's
+examples match it thousands of times.
+
+**A member is presented with its type's flags, not just its ancestry.** The
+head reproduced above a `### ` section runs from the `# class Foo::Bar` heading
+through the `- ` context bullets (superclass, mixins, source file) *and* the
+`* ` flags below them — `Deprecated.`, `Private API.`, `Abstract.`, `Note:`,
+`Since:`, on 329 of the corpus's 7,472 concepts. Stopping at the context
+bullets, as this first did, would present a method of a deprecated or private
+class as though it were ordinary API, which is a wrong answer rather than a
+short one. The boundary is the class docstring, and the marker is what tells
+the two apart: no concept in the corpus opens its docstring with a bullet. The
+head is *sliced* out of the file rather than reassembled from the lines that
+matched, so the blank line separating the `- ` block from the `* ` block — the
+thing that keeps them rendering as two lists rather than one, per `bundle.md`'s
+own note on the marker change — survives verbatim. Items carry their indented
+continuation lines, which a long `**Includes:**` list or a multi-line
+`**Deprecated.**` note needs.
+
+**A concept is read to the end of `## Member Summary`, delimited by the first
+`## ` that *follows* it.** Not the first `## ` in the file: 6 corpus files write
+their own `## ` headings in a class docstring, which land above Member Summary
+and would cut those concepts off before they said anything. 679 files have
+Member Summary as the last heading and 556 have no heading at all; both read
+whole. There is no byte threshold and no truncation marker — the shape of the
+output is a property of the request, not of the file's size.
+
+**Version resolution is the point.** It is the most mechanical and most
+error-prone step of a lookup, and leaving it to the caller would have preserved
+the exact failure this tool removes. `$BUNDLE_GEMFILE` first, else the nearest
+lockfile walking up from the current directory, else the newest installed
+version, and `--version` over all of it. Walking up matches Bundler, so the tool
+agrees with `bundle exec` run from the same place; resolving only against the
+current directory would silently fall back to "newest installed" whenever an
+agent had moved into `lib/`. A vendored bundle path (`bundle config path
+vendor/bundle`) is searched ahead of the global gem directory — the gem *is*
+installed there, just not where `GemBuilder.default_spec_dirs` looks, and this
+is the real gap that "auto-install" was reaching for.
+
+**`--version` settles even a git or path dependency**, bypassing the lockfile
+entirely. Naming a version is itself the statement that a released version is
+wanted, the same way naming a gem is the statement of intent in `GemBuilder`.
+
+**The body is primary; exit codes are secondary.** An LLM caller reads standard
+output and mostly ignores `$?`, so every failure's body carries the next move —
+which file to read instead, which command to run, where the gem's own source is.
+`0` success, `1` not found, `2` usage (Toys' own convention), `3` no released
+version to document, `4` build failed. A missing bundle under `--no-build` is
+`1`, with the build command spelled out: the entity was not found, and there is
+no fifth case to invent for it.
+
+**An exact lookup never falls back to a fuzzy one.** A guess that reads as an
+answer is the failure this tool exists to eliminate. A miss lists candidates,
+labelled as candidates, and says so in as many words.
+
+**`Foo::Bar::BAZ` is retried as a constant, and the file always wins.** A
+constant is written exactly like a nested class, so a name with no member and no
+file of its own is looked for as a constant of its own namespace; `Foo/Bar/Baz.md`
+existing settles it as the nested class. The constant's heading is confirmed
+*before* the retry is accepted rather than left to the section extraction, because
+`--full` prints a whole file without extracting anything, and answering a missing
+constant with its namespace's entire file is precisely the plausible-wrong-answer
+shape. When neither reading resolves, both are reported, with both candidate sets.
+
+**Build progress goes to standard error.** `YARD::Logger.instance` writes to
+standard output by default (`yard/logging.rb`), so `log.io` is swapped for the
+duration of a build and restored afterwards. Otherwise parse progress and
+per-gem announcements would land in the middle of what an agent is about to read
+as documentation.
+
+**Considered and rejected:**
+
+- **Installing the subject gem** when it isn't installed. Permanently installing
+  arbitrary third-party code on an agent's behalf, to answer a documentation
+  question, is out of proportion — and the motivating case mostly isn't real,
+  since a gem in `Gemfile.lock` is nearly always already installed. Installing
+  `yard-agentdocs` and `toys` themselves is already handled by
+  `toys do --gem=… --on-missing-gem=install` and `gem install toys`.
+- **Embedding the lookup as a script inside `SKILL.md`.** `install-skill` copies
+  the directory and freezes it, so a stale copy would go on misreading newer
+  bundles with nothing to say it had drifted. The tool ships with the gem that
+  generates the format.
+- **Byte-threshold truncation** of a large concept, with a marker. Rejected: the
+  shape of the output would then depend on the file rather than on the request,
+  and an agent could not tell a complete answer from a clipped one without
+  checking for the marker. `--full` is the explicit escape.
+- **Fuzzy fallback on an exact miss** — nearest-name matching, case folding,
+  sigil-insensitive matching. Rejected per the invariant above.
+- **Rewriting the `Defined in:` lines to absolute paths.** Rejected per the
+  verbatim rule above.
+- **Bundle-wide candidate headings on a member miss** — grepping every concept
+  for `### <member>`. Rejected as too wide for what a miss is for: the
+  inherited-and-mixed-in pointer is exact and one hop, the concept's own member
+  list is local, and `bundle.md`'s own `grep -rn '^### #name' .` recipe covers
+  the rest without this tool guessing at scope. Discovery is issue #5's job.
+- **Fence-aware section extraction.** Rejected on the 7,472-file measurement
+  above: strictly worse than line-prefix matching on real bundles.
+- **`Bundler::LockfileParser`** instead of a sectional text parse. Rejected: the
+  tool is documented to run *outside* `bundle exec` precisely because the gems it
+  can document are the ones on the machine rather than the ones one bundle
+  activated, and loading Bundler to answer a question about the bundle it is not
+  in is how that distinction gets lost. What is needed is a few dozen lines, and
+  `GemBuilder` already globs specifications rather than reading
+  `Gem::Specification.stubs` for the same reason.
+- **Build locking** between concurrent lookups. Out of scope per issue #3, which
+  established that two builders racing one gem each publish a complete bundle and
+  the last writer wins; a lock adds a stale-lock failure mode and buys nothing.
+- **A `docs/adr/` entry** for any of this. Rejected on the same grounds
+  `DESIGN.md` rejected it on 2026-09-12: this repository already has a decision
+  log, and a second one is a drift surface. This section plus the tool's
+  `long_desc` are the record.
