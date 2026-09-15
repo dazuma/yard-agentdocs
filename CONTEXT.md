@@ -62,11 +62,22 @@ heading grammar, grep recipes, the inherited-member policy.
 The harness-neutral `SKILL.md` shipped in the gem, installed into a harness's own
 skills directory by `agentdocs install-skill` — the installer knows where a given
 harness keeps skills, so the skill itself never has to. Out-of-band, resident
-in an agent's context from session start. Owns **routing and judgment only** — prefer
-these docs over source, where a Gems bundle lives, what to do when one is missing, when
-to give up and read source instead.
+in an agent's context from session start. Owns **routing and judgment only** — when to
+prefer these docs over source or the web, which lookups are in scope at all, and when to
+abandon a lookup. Mechanics it can only restate, never enforce — deriving a Gems
+bundle's path, obtaining one that is missing — belong to a Reader instead.
 
 **Tool `long_desc`**:
 The Toys tools' own help text. Owns **CLI mechanics** — flags, argument separators,
 output locations, `--rebuild` and `--all` semantics. Cannot drift from the tools,
 because it is the tools.
+
+## Surfaces that consume the format
+
+**Reader**:
+An executable that answers an agent's lookup against a Bundle, returning the one
+Member or Concept asked for. A Reader *implements* the Preamble's mechanics rather
+than restating them, so the Preamble stays authoritative and the two cannot disagree.
+It is an accelerator, never a gateway: reading a Bundle directly remains a
+first-class path, and the format — not the Reader — is the contract.
+_Avoid_: server, resolver, API.
