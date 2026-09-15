@@ -67,6 +67,8 @@ describe "agentdocs template" do
         "--markup", "rdoc",
         "--title", "yard-agentdocs rdoc-dialect fixture — API Reference",
         "--readme", "examples/rdoc/README.rdoc",
+        "--files", "examples/rdoc/docs/markdown_guide.md",
+        "--files", "examples/rdoc/docs/shebang_guide.rdoc",
         *files
       )
     end

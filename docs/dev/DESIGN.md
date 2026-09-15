@@ -1308,6 +1308,15 @@ sources — appear in no example tree at all.
 - [x] (mech) Arbitrary `--files` guides (beyond the README) — see "Arbitrary
       `--files` guides: generalize the README path, `options.files`
       ordering" under "Decisions".
+- [x] (mech) An extra file's markup dialect came from the run-wide
+      `--markup` flag rather than from the file itself, so a gem's Markdown
+      README documented under YARD's `rdoc` default was reparsed as RDoc
+      and its fenced code blocks collapsed onto one line. Reported as #7;
+      see "Extra files carry their own markup dialect (2026-09-15): resolve
+      per file, mirroring `markup_for_file`" under "Decisions" for the
+      corpus measurements and for why a per-gem dialect heuristic was
+      rejected. The `:rdoc` converter's own flattening of fenced blocks,
+      tables, and blockquotes is separate and still open — #8.
 - [x] (mech→design, pre-dogfood) `index.md`'s per-entry summary doesn't go
       through `markdownify` or inline-reference resolution —
       `Geometry::ThreeD::Point`'s summary now reads "...analogous to
@@ -7140,6 +7149,116 @@ occurrences. One shape worth noting: an entry whose docstring was *only* a
 marker (`Prime::PseudoPrimeGenerator.new`, `#size`) previously rendered a
 marker plus a stray appended `.` as its summary, and now correctly renders
 no summary at all.
+
+### Extra files carry their own markup dialect (2026-09-15): resolve per file, mirroring `markup_for_file`
+
+Fixes the Guides half of #7: a gem's Markdown README, documented under
+YARD's `rdoc` default, was being reparsed as RDoc. RDoc joins consecutive
+non-indented lines into one paragraph, and a fenced code block is not RDoc
+syntax, so its three lines are prose and get joined. From `abbrev`'s README,
+before and after:
+
+    ```ruby
+    gem 'abbrev'
+    ```
+
+    ```ruby gem 'abbrev' ```
+
+The stray backticks then open fences
+that never close, so every `## `/`### ` heading after the first collapse
+sits inside an apparently-open code block, breaking the greppable structure
+"Output format" depends on.
+
+**The mechanism was already there and we weren't using it.**
+`MarkupHelper#markup_for_file` resolves an extra file's dialect from a
+`#!markdown` shebang (which `ExtraFileObject#parse_contents` has already
+recorded in `attributes[:markup]`), then the file extension via
+`MARKUP_EXTENSIONS`, then `options.markup` as fallback. YARD's own template
+calls it — `templates/default/layout/html/setup.rb#diskfile` — as does
+`CLI::Yardoc#verify_markup_options`. Our `serialize_extra_file` read the
+run-wide `options.markup` instead, so this was a straight departure from
+the "mirror YARD's shape" principle "Docstring markup dialect" was built
+on, not a deliberate narrowing. It affects `agentdocs build` too: any
+project with a `.md` README and RDoc docstrings hits it.
+
+**Measured** over the local 116-bundle corpus (7,853 `.md` files), counting
+collapsed-fence lines and files ending on an unbalanced fence:
+
+| | collapsed lines | files | gems | unbalanced files |
+|---|---|---|---|---|
+| Guides (`file.*.md`) | 482 | 78 | 78 | 38 |
+| Concepts (class/module) | 208 | 69 | 9 | 48 |
+
+Zero of either in the 12 gems that declare `--markup markdown`; all of it
+under YARD's rdoc default. Guides are 70% of the collapses and 78 of the 79
+affected gems.
+
+**Rejected: inferring a dialect per gem** (from the README's extension,
+`spec.metadata`, `.rdoc_options`, or a heuristic over the docstrings
+themselves), #7's first listed direction. Once extra files resolve their own
+dialect, what remains for an inference to fix is 9 gems — really three,
+since `rbs` (4.2.0 and 3.10.0) and `erb-6.0.7` account for 201 of the 208
+concept-page lines. A README-extension heuristic would flip all 104
+rdoc-default gems to Markdown to rescue three, which is exactly the "a wrong
+guess flips the damage onto RDoc-authored gems" risk #7 flagged. The
+remaining three are #8's territory, and #8 fixes them without guessing.
+
+**Rejected: accepting it as garbage-in** (#7's fourth direction), on the
+grounds that the gems mis-declare their markup. They don't: YARD knows a
+`.md` file is Markdown, and we were discarding that.
+
+**An unsupported resolved dialect logs and passes through**, unchanged from
+"Docstring markup dialect"'s rule. A `.txt` extra file now resolves to
+`:text`, which has no Markdown conversion here, so it takes the `log.error`
+branch rather than being RDoc-reparsed. Deliberate: passthrough of text that
+declares itself markup-free beats reparsing it in a dialect it isn't, and
+the logged error keeps the gap visible. No gem in the corpus hits it.
+
+**Implementation.** `Markdownify#markdownify` gains a `markup:` keyword
+defaulting to `options.markup`, and dispatches on `markup.to_sym` — the
+`to_sym` matters, because `ExtraFileObject` records a shebang as the String
+`"markdown"`, which the previous bare `when :markdown` would have missed,
+silently falling through to the unsupported-dialect branch. Every
+docstring/tag-text call site is untouched: a docstring has no per-file
+dialect of its own. `fulldoc/agentdocs/setup.rb#serialize_extra_file` gains
+the two lines `diskfile` uses, in the same order —
+`file.attributes[:markup] ||= markup_for_file("", file.filename)`, then the
+converted call — and the template `include`s `MarkupHelper`, the same way
+YARD's templates reach it through `HtmlHelper`.
+
+**Verification.** `examples/rdoc` gains two guides, both Markdown inside the
+`--markup rdoc` tree, so they can only render correctly if the dialect is
+resolved per file: `docs/markdown_guide.md` (`.md` extension) carries a
+fenced block, a table, a `*single-asterisk*` span that an RDoc reparse
+rewrites to bold, and an inline `{Greeter#greet}` proving reference
+resolution still runs on the passthrough path; `docs/shebang_guide.rdoc`
+carries a `#!markdown` shebang that has to beat its own extension.
+`README.rdoc` is deliberately untouched and byte-identical — `.rdoc`
+resolves to `:rdoc` either way — as the guard against having simply
+switched everything to Markdown. With the fixtures in place and the fix
+absent, the run reproduced all four predicted corruptions exactly (fence
+collapse, table flattening, emphasis rewrite, paragraph reflow).
+`test/test_markdownify.rb` adds four cases for the `markup:` keyword: it
+wins over `options.markup`, it converts when it names the same dialect, it
+accepts the String shebang form, and `:text` logs and passes through.
+
+**Not covered by a fixture: the `options.markup` fallback** for an
+extension YARD doesn't recognize (yard's own `LICENSE`/`LEGAL` are real
+extension-less extra files). In a tree whose `options.markup` is already
+`:rdoc`, that branch is byte-identical to a `.rdoc` file, so a fixture
+can't distinguish it.
+
+**Out of scope, tracked as #8:** the `:rdoc` converter still flattens
+fenced blocks, tables, and blockquotes in prose that genuinely is RDoc —
+which, after this change, means docstrings. Worth recording for whoever
+picks that up: as of yard 0.9.45 `HybridMarkdown` is the first provider for
+*both* `:markdown` and `:rdoc` (`markup_helper.rb:26,43`), handling all
+three constructs plus RDoc's own forms in one tolerant parser. So the claim
+under "Docstring markup dialect" that a strict `RDoc::Markup` reparse is
+what mirroring YARD means for `:rdoc` is now stale; that decision's
+"Rejected: a hybrid accept-both parser" note still stands on its own terms,
+since `HybridMarkdown` targets HTML and isn't reusable here.
+
 
 ## Implementation
 

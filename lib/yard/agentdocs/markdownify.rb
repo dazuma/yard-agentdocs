@@ -36,7 +36,14 @@ module YARD
 
       ##
       # @param text [String, ::YARD::Docstring, nil] prose in the dialect
-      #   declared by `options.markup`
+      #   named by +markup+
+      # @param markup [Symbol, String] the dialect +text+ is written in.
+      #   Defaults to `options.markup` (the run-wide `--markup` flag),
+      #   correct for every docstring/tag-text call site, since a docstring
+      #   has no per-file dialect of its own. An extra file does — see
+      #   `fulldoc/agentdocs/setup.rb`, which resolves one per file and
+      #   passes it here. Accepts a String as well as a Symbol, since YARD
+      #   records a `#!markdown` shebang as the former.
       # @param demote_headings [Boolean] whether a colliding `#`/`##`/`###`
       #   heading gets demoted (see {#demote_headings}). Defaults to `true`,
       #   correct for every docstring/tag-text call site, where the
@@ -50,16 +57,16 @@ module YARD
       #   whitespace, with any colliding heading demoted (unless disabled)
       #   and inline `{Name}` cross-references resolved
       #
-      def markdownify(text, demote_headings: true)
+      def markdownify(text, markup: options.markup, demote_headings: true)
         text = strip_provenance(text)
         converted =
-          case options.markup
+          case markup.to_sym
           when :markdown
             text
           when :rdoc
             RDocToMarkdown.new.convert(text)
           else
-            log.error "yard-agentdocs: unsupported markup type `#{options.markup.inspect}` " \
+            log.error "yard-agentdocs: unsupported markup type `#{markup.to_sym.inspect}` " \
                        "(only :markdown and :rdoc are supported) — passing prose through unconverted"
             text
           end

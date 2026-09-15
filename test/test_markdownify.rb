@@ -113,4 +113,41 @@ describe ::YARD::AgentDocs::Markdownify do
       assert_match(/unsupported markup type `:textile`/, captured.string)
     end
   end
+
+  # The per-file dialect an extra file carries — see `serialize_extra_file`
+  # in `fulldoc/agentdocs/setup.rb`, the only caller that passes `markup:`.
+  describe "an explicit markup: override" do
+    # A fenced block is the sharpest probe: under `:rdoc` its three lines
+    # are ordinary prose, so RDoc joins them into one.
+    let(:fenced) { "Prose.\n\n```ruby\nx = 1\n```" }
+
+    it "wins over options.markup" do
+      assert_equal(fenced, holder_for(:rdoc).markdownify(fenced, markup: :markdown))
+    end
+
+    it "still converts when the override names the dialect options.markup already names" do
+      assert_equal("This has `code` in it.", holder_for(:markdown).markdownify("This has +code+ in it.", markup: :rdoc))
+    end
+
+    it "accepts a String, the form YARD records a #!markdown shebang as" do
+      assert_equal(fenced, holder_for(:rdoc).markdownify(fenced, markup: "markdown"))
+    end
+
+    it "logs an error and passes through for a dialect this template doesn't support" do
+      # What a `.txt` extra file resolves to: YARD maps the extension to
+      # `:text`, which has no Markdown conversion here.
+      logger = ::YARD::Logger.instance
+      original_io = logger.io
+      captured = ::StringIO.new
+      logger.io = captured
+      begin
+        result = holder_for(:rdoc).markdownify("Plain +text+, unconverted.", markup: :text)
+      ensure
+        logger.io = original_io
+      end
+
+      assert_equal("Plain +text+, unconverted.", result)
+      assert_match(/unsupported markup type `:text`/, captured.string)
+    end
+  end
 end

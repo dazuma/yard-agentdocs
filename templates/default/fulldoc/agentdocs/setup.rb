@@ -9,6 +9,11 @@ include ::YARD::AgentDocs::NodocFilter
 include ::YARD::AgentDocs::TextLayout
 include ::YARD::AgentDocs::VisibilityInfo
 
+# For `markup_for_file`, which resolves one extra file's markup dialect —
+# see {#serialize_extra_file}. YARD's own templates reach it the same way,
+# via `HtmlHelper`, which includes this module.
+include ::YARD::Templates::Helpers::MarkupHelper
+
 def init
   options.serializer.extension = "md" if options.serializer
   objects = run_verifier(options.objects).reject(&:root?).reject { |o| bare_nodoc?(o) }
@@ -58,10 +63,10 @@ end
 # Renders one extra file (the README, or a `--files` guide) onto its own
 # page, named after YARD's own `file.<name>.html` convention for extra
 # files — `<name>` is the file's own basename, minus extension, so a
-# guide's directory plays no part in its output path. Dialect conversion
-# and inline `{Name}` reference resolution reuse the same `markdownify`
-# pipeline docstrings go through, but with heading demotion disabled —
-# see `Markdownify#markdownify`'s `demote_headings` param. Resolution
+# guide's directory plays no part in its output path. Inline `{Name}`
+# reference resolution reuses the same `markdownify` pipeline docstrings
+# go through, but with heading demotion disabled — see
+# `Markdownify#markdownify`'s `demote_headings` param. Resolution
 # context is pinned at the root namespace (an extra file isn't "about"
 # any one class/module); {#current_dir} is already pinned at the doc root
 # unconditionally for this whole template (see below), so no further
@@ -77,10 +82,21 @@ end
 # prose with its own real heading structure, and OKF only requires
 # `type` — see "Frontmatter on README/`--files` guide pages" under
 # "Decisions".
+#
+# The dialect, unlike a docstring's, is resolved *per file* rather than
+# from the run-wide `--markup` flag, exactly as YARD's own template does
+# it (`templates/default/layout/html/setup.rb#diskfile`): a `#!markdown`
+# shebang, which `ExtraFileObject` has already recorded in
+# `attributes[:markup]`, wins; failing that `markup_for_file` maps the
+# file's extension through `MarkupHelper::MARKUP_EXTENSIONS`; failing
+# that it falls back to `options.markup`. A gem documenting a Markdown
+# README under YARD's `rdoc` default is the common case this exists for —
+# see "Extra files carry their own markup dialect" under "Decisions".
 def serialize_extra_file(file)
   self.object = ::YARD::Registry.root
   frontmatter = "---\ntype: Guide\ntitle: #{yaml_quote(file.title)}\n---\n\n"
-  content = markdownify(file.contents, demote_headings: false)
+  file.attributes[:markup] ||= markup_for_file("", file.filename)
+  content = markdownify(file.contents, markup: file.attributes[:markup], demote_headings: false)
   Templates::Engine.with_serializer("file.#{file.name}.md", options.serializer) { "#{frontmatter}#{content}" }
 end
 
