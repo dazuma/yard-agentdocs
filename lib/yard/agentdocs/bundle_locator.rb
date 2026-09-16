@@ -21,6 +21,11 @@ module YARD
     # independent transcriptions of an anti-drift invariant is the worst
     # possible place for a copy.
     #
+    # Confirming the directory is there is the whole of the check, with no
+    # validation of what is inside it, because a canonical bundle path only
+    # ever holds a complete bundle or nothing — see
+    # `docs/adr/0002-atomic-bundle-publication.md`.
+    #
     # ### It reports, it does not explain
     #
     # A {Location} carries a status, a directory, and the resolution — and no

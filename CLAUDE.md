@@ -11,7 +11,9 @@ see `docs/dev/DESIGN.md`'s "Example coverage checklist" for what's covered vs. s
 below for the full rationale and implementation notes.
 
 Remaining checklist coverage is built test-first and human-gated, per
-`docs/dev/DESIGN.md`'s "Coverage workflow (TDD loop)": the user picks the next
+`docs/dev/DESIGN.md`'s "Coverage workflow (TDD loop)" — except for its step 5, which is
+superseded by "Recording decisions" below: the fixture is the record, and nothing is
+logged to `DESIGN.md`. The user picks the next
 checklist item(s), Claude proposes `examples/geometry/lib`/`examples/geometry/doc` changes for
 review/iteration, and only once the user explicitly approves those does
 Claude touch `test/test_agentdocs_template.rb` or the template implementation.
@@ -30,8 +32,8 @@ bundles again, `agentdocs lookup` answers one API lookup against a gems bundle,
 (`--claude`, or `--output DIR` for anywhere else). Each tool file holds only the Toys DSL and
 prompting; the behavior lives in
 `lib/yard/agentdocs/{builder,gem_builder,gem_cleaner,lookup,bundle_path,bundle_locator,bundle_reader,dependency_resolver,skill_installer}.rb`,
-so it is unit-tested and documented independently. Decisions about the tools go in
-`docs/dev/Tooling.md`, never `DESIGN.md`.
+so it is unit-tested and documented independently. A decision about a tool is recorded in the
+class that implements it, as ordinary YARD documentation — see "Recording decisions" below.
 
 `agentdocs lookup` is the **Reader** in `CONTEXT.md`'s sense: it *implements* `bundle.md`'s
 mechanics rather than restating them. It is an accelerator, never a gateway — grepping a bundle
@@ -45,8 +47,8 @@ rule, deliberately: one line of prose on standard output and `$( )` yields a pat
 a path. A line there means a bundle is at that location and means nothing else, so never print
 a gem root or a checkout path on it. Both tools locate their bundle through `BundleLocator`,
 which owns version resolution and exists so the invariant has one implementation rather than
-one per tool. See "The `agentdocs path` subtool (2026-09-15)" in `docs/dev/Tooling.md`, which
-also records why every recipe the gem publishes gates its grep on `&&`.
+one per tool. `BundlePath`'s own documentation records why, and why every recipe the gem
+publishes gates its grep on `&&`.
 
 The gem additionally ships an agent skill at `skills/yard-agentdocs/SKILL.md` (in the gemspec),
 installed by `agentdocs install-skill`. It is scoped to *routing and judgment only* — when to
@@ -55,8 +57,7 @@ up. Format mechanics belong to the generated `bundle.md`, CLI mechanics to the T
 `long_desc`, and anything the skill could only restate rather than enforce — deriving a bundle's
 path, resolving a version, obtaining a missing bundle — belongs to the Reader. This split is
 deliberate anti-drift, so do not move content across it. See "Agent skill written (2026-09-12)"
-under "Decisions" in `docs/dev/DESIGN.md`, and "The `agentdocs lookup` Reader (2026-09-15)" in
-`docs/dev/Tooling.md`.
+under "Decisions" in `docs/dev/DESIGN.md`, and the `Lookup` class's own documentation.
 
 ## Purpose
 
@@ -71,19 +72,40 @@ exactly the reference info it needs (e.g. one method's docs) with a single, chea
 
 ## Design
 
-Read [`docs/dev/DESIGN.md`](docs/dev/DESIGN.md) for the current design thinking and the list of open
-questions (output format, file granularity, lookup/indexing, YARD integration mechanics, cross-referencing).
-It's a living document — keep it updated as decisions are made. `docs/dev/` is not shipped in the gem.
+[`docs/dev/DESIGN.md`](docs/dev/DESIGN.md) holds the accumulated design thinking and the list of
+open questions (output format, file granularity, lookup/indexing, YARD integration mechanics,
+cross-referencing). It is historical: do not add to it. `docs/dev/` is not shipped in the gem.
 
-`DESIGN.md` covers the generated format only. Decisions about the shipped Toys tools and their
-support classes go in [`docs/dev/Tooling.md`](docs/dev/Tooling.md) instead — dated section per
-decision, with the rejected alternatives named. Each tool's `long_desc` remains the authoritative
-user documentation; `Tooling.md` records only the reasoning behind it.
+`DESIGN.md` covers the generated format only, and is being dissolved — see "Recording
+decisions" below for where its content is going. Each tool's `long_desc` remains the
+authoritative user documentation for that tool.
 
 We're designing the output format example-first: `examples/geometry/lib` will hold hand-written Ruby source
 exercising the YARD features we care about, and `examples/geometry/doc` will hold the hand-authored target
 output we iterate on directly, before any template/generation code exists. Once stable, that pair becomes the test
 fixture for the real implementation.
+
+### Recording decisions
+
+Architecture decision records live in [`docs/adr/`](docs/adr/), numbered sequentially.
+The bar is deliberately high, and all three of these must hold: the decision is hard to
+reverse, it is surprising without context, and it was a real trade-off with genuine
+alternatives. Most decisions in this repository do not clear it, which is intended.
+
+Everything else is recorded where the code it governs is:
+
+- **A decision local to one class** belongs in that class's own YARD documentation, where
+  anyone modifying the code will encounter it. Only an invariant spanning several classes,
+  with no single home, is a candidate for an ADR.
+- **A rendering decision** is recorded by the `examples/*/doc` fixture, which the test suite
+  asserts byte for byte. Do not also restate it in prose. What a fixture cannot record — a
+  rejected alternative someone would otherwise re-propose, a trap the tests do not catch —
+  goes in a comment at the code that would break.
+- **CLI mechanics** belong in the tool's `long_desc`, which cannot drift from the tool.
+- **YARD's own quirks** are not decisions at all and are not ADR material.
+
+Do not write a decision log. A second one alongside `docs/adr/` is a drift surface, which is
+the reason `docs/dev/Tooling.md` was removed and `DESIGN.md` is being dissolved.
 
 ## Commands
 

@@ -51,6 +51,14 @@ module YARD
     # a real directory on disk for it, and printing it would be the single
     # most tempting way to make `"$(…)"/index.md` a lie.
     #
+    # The same rule is why this tool does not also answer "where is this gem
+    # installed". A `--gem-root` flag would be nearly free, since the spec is
+    # already resolved, and there is a real workflow behind it, because "read
+    # the gem's own source instead" is how every {Lookup} failure ends. But
+    # then the same line on standard output would sometimes mean a bundle and
+    # sometimes a source tree. `bundle show` and `gem which` already answer
+    # that question; nothing but this answers this one.
+    #
     class BundlePath
       include ExitCodes
 

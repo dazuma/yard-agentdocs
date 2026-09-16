@@ -29,6 +29,8 @@ module YARD
     # agent command timeout, a Ctrl-C — leaves nothing at that path for a
     # later run to mistake for a finished bundle. Directories left behind by
     # such a build are swept by the next one; see {STALE_TEMP_AGE}.
+    # Readers depend on that, so the contract and its other participants are
+    # recorded in `docs/adr/0002-atomic-bundle-publication.md`.
     #
     # Each gem is documented by handing its installed directory to {Builder},
     # so a gem's own `.yardopts` is honored just as it would be for a project

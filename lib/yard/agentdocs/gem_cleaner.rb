@@ -42,6 +42,13 @@ module YARD
       # platform never starts with a digit. The unit tests check the rule
       # against every gem installed on the machine running them.
       #
+      # A name that does not parse is invisible to this class, and one name in
+      # particular relies on that: {GemBuilder::TEMP_SUBDIR}, the directory
+      # builds in progress are written under. Its leading dot keeps it from
+      # parsing as `<name>-<version>`, which is what stops a build in progress
+      # from being counted as a bundle here or skewing `--all-outdated`. See
+      # `docs/adr/0002-atomic-bundle-publication.md`.
+      #
       # @param basename [String] a bundle directory name
       # @return [Array(String, Gem::Version, String), nil] the gem name,
       #   version, and platform (nil if the gem is platform-independent), or
