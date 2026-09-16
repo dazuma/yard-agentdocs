@@ -36,17 +36,34 @@ which version it read, where the gem's own source is, and what to do next. Do wh
 says rather than picking from the candidate names it lists — those are candidates, not an
 answer.
 
-## When you don't have a name yet
+## When you don't have an exact name
 
-The tool answers exact lookups only. With a fragment rather than a name, look up a
-namespace you *do* know (`agentdocs lookup toys Toys`) and take the bundle directory from
-the header it prints, then:
+The lookup tool answers exact lookups only. If you need to search for a term or a name
+fragment, resolve the gem's docs directory and grep within it in one command.
 
-- `grep -i <term> <bundle>/index.md` — a class or module name you can't quite recall.
-- `grep -rn '^### #method_name' <bundle>` — a member whose class you don't know.
+For example, to find a class or module name given a name fragment or a term in its
+description summary, use:
 
-Then look up the full name you found. Don't read `index.md` whole; on a large gem it is
-very long.
+```
+docs_dir=$(toys do --gem=yard-agentdocs --on-missing-gem=error agentdocs path <gem>) &&
+  grep -i <term> "$docs_dir"/index.md
+```
+
+If you have a method name but not the class, replace the grep in the second line with
+`grep -rn '^### #method_name' "$docs_dir"`. Once you have a full name, look it up — that
+is the command that cuts out the one section you want and says which version it read.
+
+Do not modify the first line that resolves `$docs_dir`. `--on-missing-gem=error` is what
+keeps an install prompt out of `$docs_dir`, and the `&&` is what stops a failed
+resolution leaving `grep` to read `/index.md` at the root of the filesystem.
+
+You can replace the second line to grep for a variety of different things. If you need
+more information about the format of the documentation to determine how to grep, read
+`"$docs_dir"/bundle.md`.
+
+The directory resolution will yield a nonzero exit code and print a message to stderr on
+failure. If it errors because `yard-agentdocs` isn't installed, you can recover by running
+`gem install yard-agentdocs` to install it.
 
 ## When to read source instead
 

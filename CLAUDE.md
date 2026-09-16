@@ -24,11 +24,12 @@ The gem also ships user-facing Toys tools in `toys/` (included in the gemspec, s
 them via `load_gem "yard-agentdocs"`): `agentdocs build` documents a project directory,
 `agentdocs gems` documents installed gems into
 `<XDG data home>/yard-agentdocs/gems/<name>-<version>`, `agentdocs gems clean` removes those
-bundles again, `agentdocs lookup` answers one API lookup against a gems bundle, and
+bundles again, `agentdocs lookup` answers one API lookup against a gems bundle,
+`agentdocs path` prints a gems bundle's directory as one bare line for shell composition, and
 `agentdocs install-skill` installs the agent skill below into a harness's skills directory
 (`--claude`, or `--output DIR` for anywhere else). Each tool file holds only the Toys DSL and
 prompting; the behavior lives in
-`lib/yard/agentdocs/{builder,gem_builder,gem_cleaner,lookup,bundle_reader,dependency_resolver,skill_installer}.rb`,
+`lib/yard/agentdocs/{builder,gem_builder,gem_cleaner,lookup,bundle_path,bundle_locator,bundle_reader,dependency_resolver,skill_installer}.rb`,
 so it is unit-tested and documented independently. Decisions about the tools go in
 `docs/dev/Tooling.md`, never `DESIGN.md`.
 
@@ -36,6 +37,16 @@ so it is unit-tested and documented independently. Decisions about the tools go 
 mechanics rather than restating them. It is an accelerator, never a gateway — grepping a bundle
 directly stays first-class, and the format, not the Reader, is the contract. So do not move
 format mechanics into it as behavior the format itself no longer describes.
+
+`agentdocs path` is what makes that first-class grep cheap to enter, by printing a bundle's
+directory as one bare line and keeping everything else — build progress, every failure — on
+standard error. That inverts `lookup`'s "the body is primary, on standard output"
+rule, deliberately: one line of prose on standard output and `$( )` yields a path that is not
+a path. A line there means a bundle is at that location and means nothing else, so never print
+a gem root or a checkout path on it. Both tools locate their bundle through `BundleLocator`,
+which owns version resolution and exists so the invariant has one implementation rather than
+one per tool. See "The `agentdocs path` subtool (2026-09-15)" in `docs/dev/Tooling.md`, which
+also records why every recipe the gem publishes gates its grep on `&&`.
 
 The gem additionally ships an agent skill at `skills/yard-agentdocs/SKILL.md` (in the gemspec),
 installed by `agentdocs install-skill`. It is scoped to *routing and judgment only* — when to

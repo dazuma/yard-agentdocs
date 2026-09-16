@@ -2,10 +2,16 @@
 
 require "yard"
 
+# Out of alphabetical order: the classes that mix it in resolve the constant
+# when their class bodies are evaluated, not when they run.
+require "yard/agentdocs/exit_codes"
+
 require "yard/agentdocs/attribute"
 require "yard/agentdocs/attribute_info"
 require "yard/agentdocs/auxiliary_tags"
 require "yard/agentdocs/builder"
+require "yard/agentdocs/bundle_locator"
+require "yard/agentdocs/bundle_path"
 require "yard/agentdocs/bundle_reader"
 require "yard/agentdocs/cross_referencing"
 require "yard/agentdocs/dependency_resolver"

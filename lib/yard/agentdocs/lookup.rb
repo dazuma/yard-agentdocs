@@ -10,9 +10,9 @@ module YARD
     # so the behavior is testable and documented independently of the Toys
     # DSL layer.
     #
-    # It composes {DependencyResolver} (which version, installed where),
-    # {GemBuilder} (build the bundle if it isn't there yet), and
-    # {BundleReader} (find the one file, cut out the one section).
+    # It composes {BundleLocator} (which version, installed where, and the
+    # bundle built if it isn't there yet) with {BundleReader} (find the one
+    # file, cut out the one section).
     #
     # ### What this is for
     #
@@ -47,33 +47,7 @@ module YARD
     # precisely the failure this class exists to remove.
     #
     class Lookup
-      ##
-      # Exit code: the lookup was answered.
-      #
-      EXIT_SUCCESS = 0
-
-      ##
-      # Exit code: no answer — the entity has no matching heading, the name
-      # has no file, or there is no bundle and none was built.
-      #
-      EXIT_NOT_FOUND = 1
-
-      ##
-      # Exit code: the request itself was malformed. Matches Toys' own
-      # convention for a usage error.
-      #
-      EXIT_USAGE = 2
-
-      ##
-      # Exit code: this dependency has no released version to document — it
-      # comes from git or a path — so no bundle is possible for it.
-      #
-      EXIT_NO_RELEASE = 3
-
-      ##
-      # Exit code: a bundle was missing and the build of it failed.
-      #
-      EXIT_BUILD_FAILED = 4
+      include ExitCodes
 
       ##
       # How many candidate member names a miss lists before eliding the rest.
@@ -108,11 +82,6 @@ module YARD
         /\A(#{FQN_SEGMENT_PATTERN}(?:::#{FQN_SEGMENT_PATTERN})*)(?:([#.])(#{MEMBER_PATTERN}))?\z/
 
       ##
-      # The command that builds a bundle, as an agent would type it.
-      #
-      BUILD_COMMAND = "toys do --gem=yard-agentdocs --on-missing-gem=install agentdocs gems"
-
-      ##
       # A lookup's answer: what to print, and what to exit with.
       #
       class Result
@@ -140,7 +109,7 @@ module YARD
         # @return [Boolean] whether the lookup was answered
         #
         def success?
-          exit_code == EXIT_SUCCESS
+          exit_code == ExitCodes::EXIT_SUCCESS
         end
       end
 
@@ -170,9 +139,8 @@ module YARD
         @version = version&.to_s
         @full = full ? true : false
         @build = build ? true : false
-        @project_dir = project_dir
-        @spec_dirs = spec_dirs
-        @output_root = output_root
+        @locator = BundleLocator.new(@gem_name, version: @version, project_dir: project_dir,
+                                                spec_dirs: spec_dirs, output_root: output_root)
       end
 
       ##
@@ -212,35 +180,29 @@ module YARD
       def run
         concept_fqn, member = parse_entity
         return entity_usage_error if concept_fqn.nil?
-        return gem_name_usage_error unless resolver.valid_name?
-        resolution = resolver.resolve
-        return non_release(resolution) unless resolution.release?
-        reader = BundleReader.new(bundle_dir(resolution))
-        obtained = obtain_bundle(reader, resolution)
-        return obtained if obtained
-        answer(reader, resolution, concept_fqn, member)
+        location = locator.locate(build: build)
+        return unavailable(location) unless location.ready?
+        answer(BundleReader.new(location.bundle_dir), location.resolution, concept_fqn, member)
       end
 
       private
 
-      attr_reader :project_dir, :output_root
+      attr_reader :locator
 
-      def resolver
-        @resolver ||= DependencyResolver.new(gem_name, version: version,
-                                             project_dir: project_dir, spec_dirs: @spec_dirs)
-      end
-
-      # The builder is constructed with the real request rather than only for
-      # its path arithmetic, so the same object answers "where would this
-      # bundle be" and "build it" and the two cannot drift apart.
-      def builder(resolution)
-        @builder ||= GemBuilder.new(requests: ["#{gem_name}:#{resolution.version}"],
-                                    rebuild: false, spec_dirs: resolver.spec_dirs,
-                                    output_root: output_root)
-      end
-
-      def bundle_dir(resolution)
-        builder(resolution).output_dir_for(resolution.spec)
+      # Every reason there is no bundle to read, each rendered as the prose
+      # this tool speaks. The statuses themselves carry no words: {Lookup}
+      # explains itself on standard output, where an agent reads, and
+      # {BundlePath} explains itself on standard error, where nothing can get
+      # into a command substitution.
+      def unavailable(location)
+        resolution = location.resolution
+        case location.status
+        when :invalid_name then gem_name_usage_error
+        when :no_release then no_release_body(resolution)
+        when :not_installed then not_installed_body(resolution)
+        when :missing then no_bundle_body(location.bundle_dir, resolution)
+        else build_failed_body(location.bundle_dir, resolution)
+        end
       end
 
       # Splits the entity argument into a concept name and, if one was given,
@@ -278,17 +240,6 @@ module YARD
         TEXT
       end
 
-      # A dependency with no released version to document, or one that isn't
-      # installed. Neither builds, and neither invents a location: where a
-      # git checkout lives is Bundler's business, and the location convention
-      # for non-release sources is still an open design question.
-      def non_release(resolution)
-        case resolution.kind
-        when :git, :path then no_release_body(resolution)
-        else not_installed_body(resolution)
-        end
-      end
-
       def no_release_body(resolution)
         locked_in = ::File.basename(resolution.lockfile.to_s)
         next_step =
@@ -317,46 +268,22 @@ module YARD
         result(EXIT_NOT_FOUND, lines.join("\n"))
       end
 
-      # Ensures the bundle exists, building it if that is allowed. Returns a
-      # {Result} when the lookup cannot go on, and nil when it can.
-      def obtain_bundle(reader, resolution)
-        return nil if reader.exist?
-        return no_bundle_body(reader, resolution) unless build
-        return build_failed_body(reader, resolution) unless run_build(resolution)
-        return build_failed_body(reader, resolution) unless reader.exist?
-        nil
-      end
-
-      # Runs the build with YARD's logger pointed at standard error for its
-      # duration. The logger writes to standard output by default, which
-      # would mix parse progress and per-gem announcements into the body an
-      # agent is about to read as documentation.
-      def run_build(resolution)
-        previous = log.io
-        log.io = $stderr
-        begin
-          builder(resolution).build
-        ensure
-          log.io = previous
-        end
-      end
-
-      def no_bundle_body(reader, resolution)
+      def no_bundle_body(bundle_dir, resolution)
         result(EXIT_NOT_FOUND, <<~TEXT)
           No agentdocs bundle for #{gem_name} #{resolution.version}.
-            expected at: #{reader.bundle_dir}
+            expected at: #{bundle_dir}
             gem root:    #{resolution.spec.full_gem_path}
 
           --no-build was given, so nothing was built. To build it:
-            #{BUILD_COMMAND} #{gem_name}:#{resolution.version}
+            #{BundleLocator::BUILD_COMMAND} #{gem_name}:#{resolution.version}
         TEXT
       end
 
-      def build_failed_body(reader, resolution)
+      def build_failed_body(bundle_dir, resolution)
         result(EXIT_BUILD_FAILED, <<~TEXT)
           Failed to build the agentdocs bundle for #{gem_name} #{resolution.version}; see
           the messages on standard error above.
-            expected at: #{reader.bundle_dir}
+            expected at: #{bundle_dir}
             gem root:    #{resolution.spec.full_gem_path}
 
           Read the gem's own source at that gem root instead.

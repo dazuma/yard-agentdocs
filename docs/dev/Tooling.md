@@ -361,3 +361,193 @@ as documentation.
   `DESIGN.md` rejected it on 2026-09-12: this repository already has a decision
   log, and a second one is a drift surface. This section plus the tool's
   `long_desc` are the record.
+
+## The `agentdocs path` subtool (2026-09-15)
+
+Adds `agentdocs path <gem>`, which writes the directory of a gem's gems bundle
+to standard output as a single bare line and nothing else. (Issue #10, split
+out of the design discussion on #5 as separable from `search` and not blocked
+on any of its open questions.)
+
+**Why a subtool exists for one line of output.** `CLAUDE.md` holds that `lookup`
+is an accelerator and never a gateway: grepping a bundle directly stays
+first-class, and the format, not the Reader, is the contract. But there was no
+cheap way to *enter* that first-class path. A bundle lives at `<XDG data
+home>/yard-agentdocs/gems/<name>-<version>`, and an agent cannot derive it — it
+does not know which version the project resolves, and should not be
+reimplementing XDG resolution. So every direct grep began by spending a whole
+`lookup` on a namespace the agent already knew, purely to read the bundle
+directory out of the `Bundle:` header and discard the rest: 3.1 KB for
+yard-0.9.45, 7.3 KB for rubocop-1.90.0, 26 KB for prism-1.9.0.
+
+**The property bought is composability, not tokens.** Being precise, because the
+first draft of this argument overstated it: a path-only command does not remove
+a tool call, it replaces a fat one with a thin one, and that saving is real but
+modest. What a bare line buys that a prose header cannot is that it can sit
+inside `$( )` — one Bash invocation doing resolution and grep together, where
+reading a header necessarily costs two round trips because the agent must read
+it with its own eyes before it can issue the grep. The token saving falls out as
+a side effect. The stronger justification is the principle: first-class direct
+grep had no cheap entry point, which was a gap in a property the project had
+already committed to.
+
+**A subtool, not a `--path-only` flag on `lookup`.** `lookup` takes `ENTITY` as a
+`required_arg` and a path query has no entity; a flag would make a required
+argument meaningless and force a hand-rolled conditional in `run` where Toys
+expresses the split declaratively. `lookup`'s contract is untouched.
+
+**Standard output is inverted relative to `lookup`, deliberately.** `Lookup`'s
+rule is that the body is primary and every explanation — including every
+failure — goes to standard output, because an LLM caller reads stdout and
+ignores `$?`. `BundlePath` cannot do that: one stray line of prose and `$( )`
+yields a path that is not a path. So standard output carries the directory and a
+newline or it carries nothing at all, every diagnostic goes to standard error
+(where an agent still sees it, since harnesses present both streams), and the
+exit code carries the outcome.
+
+**A successful run says nothing at all beyond the path.** An earlier draft also
+reported the resolved version and its origin (`yard 0.9.45 (from Gemfile.lock)`)
+on standard error, reasoning that "never read a different version's tree" is the
+invariant this family exists to enforce and that the path names the version but
+not where it came from. Rejected as noise: it printed on every single run, in a
+tool whose whole purpose is to be composed with a command whose output is what
+the caller actually came for. `lookup` still states its provenance, because
+there the body *is* the product and the header sits above it; here the product
+is one path, and the directory ends in the resolved version already.
+
+A **path dependency** is the case that makes the rule worth stating rather than
+assuming. There *is* a real directory on disk for it, and printing that would be
+the single most tempting way to make `"$docs_dir"/index.md` name something that is not
+a bundle. A line on standard output means a bundle is at that location and means
+nothing else.
+
+**Missing bundles are built, exactly as `lookup` builds them.** The alternative —
+report but never build — was considered and rejected: it makes the composed form
+fail precisely in the cold-start case, which is the round trip that costs most,
+and two sibling subtools with opposite defaults for the same situation is a
+drift surface the skill would then have to explain. The objection that building
+is surprising inside `$( )` is answered by the stream split: build progress
+already goes to standard error, so a build there is slow, not wrong. `--no-build`
+keeps standard output empty and reports the build command on standard error.
+
+**Every published recipe gates the grep on the exit status.** Not
+`grep -i flag "$(agentdocs path toys)"/index.md` but:
+
+```
+docs_dir=$(toys do --gem=yard-agentdocs --on-missing-gem=error agentdocs path toys) &&
+  grep -i flag "$docs_dir"/index.md
+```
+
+A command substitution that fails prints nothing, so the ungated form goes on to
+search `/index.md` at the root of the filesystem. Verified against the real tool:
+
+```
+$ sh -c 'grep -ic tag "$(toys agentdocs path nonesuch-gem)"/index.md'
+gem `nonesuch-gem` is not installed, so there is no bundle for it.
+grep: /index.md: No such file or directory
+$ sh -c 'docs_dir=$(toys agentdocs path nonesuch-gem) && grep -ic tag "$docs_dir"/index.md'
+gem `nonesuch-gem` is not installed, so there is no bundle for it.
+```
+
+Today that failure is merely noisy, because nothing is at `/index.md`. The `&&`
+is what makes the failure path *unreachable* rather than loud, and it costs one
+shell operator. `test/test_bundle_path.rb` drives the class through a real shell
+to pin it.
+
+**Both parts of that first line are documented with their consequences, not as
+bare prohibitions.** "Do not modify the first line" does not survive contact with
+a reason to modify it, and the agent will have one: when resolution fails the
+error is `Could not find 'yard-agentdocs' … among 164 total gem(s)`, and the
+skill itself demonstrates `--on-missing-gem=install` three sections above.
+Switching `error` to `install` is the obvious, helpful-looking repair and it
+reintroduces exactly what the flag prevents. Likewise "`$docs_dir` will be empty"
+reads as *harmless*, where "`grep` will read `/index.md` at the root of the
+filesystem" does not. Each rule names what it prevents.
+
+**`--on-missing-gem=error` is required inside a command substitution**, and this
+is a sharper hazard than it looks. `toys do --gem=` activates the gem before the
+tool runs, and the activation path is
+`Toys::Utils::Exec.new.exec(["gem", "install", …])` (toys-core
+`lib/toys/utils/gems.rb`), whose foreground default is `:inherit` on both
+streams — so `gem install`'s "Successfully installed…" chatter lands on the
+parent's standard output, inside `$( )`. Worse, the *default* policy is
+`:confirm`, and `Toys::Utils::Terminal#confirm` writes its prompt to the
+**output** stream and, at EOF on standard input, takes the default and answers
+yes (`#ask` returns `default.to_s` on an empty read). Probed directly:
+
+```
+$ ruby -e 't.confirm("Gem needed: ... Install? ", default: true)' </dev/null
+STDOUT: [Gem needed: "yard-agentdocs". Install? (Y/n) ]
+STDERR: [confirm returned: true]
+```
+
+So in a non-interactive agent shell the default does not merely prompt: it
+pollutes `$( )` with the prompt text, silently installs, and adds the install
+chatter. `SKILL.md`'s main `lookup` command keeps `--on-missing-gem=install`,
+since it is not inside a substitution and is the intended bootstrap; a composed
+recipe that errors for want of the gem is recovered with a plain
+`gem install yard-agentdocs`, parallel to the `gem install toys` the skill
+already prescribes.
+
+**The skill's recipe points at `bundle.md`, which is the real reason this
+section of it got shorter rather than longer.** An agent that needs to grep for
+something the two recipes don't cover is told to read `"$docs_dir"/bundle.md` —
+the Preamble, the surface `CONTEXT.md` puts in charge of format mechanics. So
+`path` turns out to be an entry point to the Preamble and not merely to
+`index.md`, and the skill can answer an open-ended format question by delegating
+instead of accreting a third and fourth grep recipe, which is the drift pressure
+this section has always been under. It is cheap advice: `bundle.md` is exactly
+1,991 bytes in all 114 current bundles in the local corpus, identical in each
+(the only two without it are stale `toys-0.22.0` trees built before it existed),
+so "read it whole" costs a fixed ~2 KB. The recipe also ends by sending the
+agent back to `lookup` with the name it found — the section teaches discovery,
+and `lookup` is still the thing that cuts out one section and states its
+version.
+
+**`BundleLocator`, extracted rather than duplicated.** `Lookup#run`'s first half —
+validate the name, resolve the version, derive the directory from the resolved
+spec, confirm it is there, build it if allowed — is the entire mechanism
+enforcing "never read a different version's tree." Two callers would have made
+duplication defensible; the third settles it, since `search` (#5) needs the
+identical sequence and three independent transcriptions of an anti-drift
+invariant is the worst possible place for a copy. The seam is thin: `#locate`
+returns a `Location` carrying a status, a directory, and the resolution, and
+**no message text at all**, because the callers differ precisely in how they
+speak. Nothing in it reads a bundle, which is what lets `BundlePath` depend on it
+without depending on the format at all. `test/test_lookup.rb` was not touched,
+and passing unchanged is the refactor's proof.
+
+**`ExitCodes` is a mixin, and nested `Result` classes must qualify it.** The five
+codes moved off `Lookup` into a module both classes include, so there is one
+definition of a taxonomy two tools share. Scoped access (`Lookup::EXIT_SUCCESS`)
+still resolves, because that form searches ancestors — but the *lexical* lookup
+inside the nested `Result` does not search the enclosing class's ancestors, so
+`Result#success?` names `ExitCodes::EXIT_SUCCESS` explicitly. `Lookup`'s own test
+suite caught this, which is the second argument for having left it untouched.
+
+**Considered and rejected:**
+
+- **Printing the path without checking the bundle is there** — pure arithmetic,
+  no filesystem access. Rejected: a path to a directory that does not exist is
+  the plausible-wrong-answer shape this project rejects everywhere else, and it
+  makes the composed grep fail for a reason the caller cannot diagnose from the
+  output.
+- **A way to get the gem's own source root** — `path --gem-root`, or an
+  `agentdocs gem-root` subtool. Nearly free, since the spec is already resolved,
+  and there is a real workflow behind it, because "read the gem's own source
+  instead" is how every `lookup` failure ends. Rejected anyway: it is a different
+  question ("where is this gem installed") that existing tools already answer
+  (`bundle show`, `gem which`), whereas nothing but this can answer "where is
+  this gem's bundle" — and folding both into one subtool would break the
+  invariant above, since the same line on standard output would sometimes mean a
+  bundle and sometimes a source tree. Recorded because it will look like an
+  obvious win to whoever picks up #5.
+- **Naming it `bundle`, `bundle-dir`, or `where`.** `CONTEXT.md` reserves bare
+  "bundle" against Bundler collision in agent-facing prose, and `path` is the
+  shortest thing that reads correctly at the call site, which is the whole point.
+- **Teaching the skill nothing and leaving the old two-step recipe.** Rejected:
+  the recipe existed *because* this command did not, and replacing it removes a
+  mechanic from the skill rather than adding one, which is the direction
+  `CONTEXT.md`'s division of labor pushes.
+- **A `docs/adr/` entry.** Same grounds as every section above it: this file is
+  the decision log, and a second one is a drift surface.
