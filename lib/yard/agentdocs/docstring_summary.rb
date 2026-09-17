@@ -13,24 +13,20 @@ module YARD
     #    (`"e.g."`, `"i.e."`, `"cf."`, `"vs."`, `"a.k.a."`, `"viz."`) are
     #    never treated as ending a sentence, so `"...enum-like field, e.g.
     #    \`val1\`, \`val2\`."` no longer truncates to a dangling `"...e.g."`
-    #    — see "Docstring#summary's abbreviation-blind truncation" under
-    #    "Decisions" in docs/dev/DESIGN.md for the full rationale, including
-    #    why `"etc."`/`"et al."` are deliberately *not* on the list.
+    #    — see {SKIP_ABBREVIATIONS}, including why `"etc."`/`"et al."` are
+    #    deliberately *not* on the list.
     # 2. A leading sentence of {LOW_INFORMATION_WORD_LIMIT} words or fewer
     #    (e.g. `"Optional."`, `"Output only."`) is merged with the sentence
     #    that follows it, provided one exists in the same paragraph —
     #    unlike case 1, the leading sentence here is a real, correctly
-    #    parsed sentence, just not an informative one on its own. See
-    #    "Docstring#summary extracting a real, complete, but
-    #    zero-information first sentence" under "Decisions" in
-    #    docs/dev/DESIGN.md. Only one merge ever happens, even if the
-    #    resulting second sentence is itself short.
+    #    parsed sentence, just not an informative one on its own. Only one
+    #    merge ever happens, even if the resulting second sentence is
+    #    itself short.
     # 3. The extracted text's own terminal punctuation is no longer always a
     #    blind appended `"."` — see {#terminal_punctuate}. A trailing `:` (an
     #    intro clause cut off right before a list) gets `" ..."` instead,
     #    reading as "there's more, elided" rather than a dangling
-    #    colon-period. See "Docstring#summary/smart_summary blindly appends
-    #    a trailing period" under "Decisions" in docs/dev/DESIGN.md.
+    #    colon-period.
     #
     # Every other behavior — paragraph breaks, paren/bracket-nesting
     # (tracked as one combined depth, not real matching, the same
@@ -55,8 +51,7 @@ module YARD
       # (an example, a restatement, a comparison target), so their period
       # should never read as a sentence's end. Deliberately excludes
       # `"etc."`/`"et al."`, which can legitimately close a sentence on
-      # their own — see "Docstring#summary's abbreviation-blind truncation"
-      # under "Decisions" in docs/dev/DESIGN.md.
+      # their own.
       SKIP_ABBREVIATIONS = ["e.g.", "i.e.", "cf.", "vs.", "a.k.a.", "viz."].freeze
       private_constant :SKIP_ABBREVIATIONS
 
@@ -111,9 +106,8 @@ module YARD
       # delimiter (an inline-code backtick, `*emphasis*`) rather than the
       # underlying prose's own last letter, still gets the unconditional
       # `"."` exactly as before; only a literal trailing colon is
-      # measured evidence of this bug (see "Docstring#summary/smart_summary
-      # blindly appends a trailing period" under "Decisions" in
-      # docs/dev/DESIGN.md) — not a reason to second-guess every other
+      # measured evidence of this bug — not a reason to second-guess every
+      # other
       # non-alphanumeric ending. `{include:...}` is left alone either way,
       # since it isn't real sentence text at all.
       def terminal_punctuate(summary)

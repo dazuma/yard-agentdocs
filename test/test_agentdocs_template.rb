@@ -27,10 +27,19 @@ describe "agentdocs template" do
 
   # Runs from the project root so recorded source paths (used in "Defined in"
   # lines) come out relative, matching the examples/geometry/doc fixtures.
+  #
+  # In-process rather than shelling out, and asserted byte for byte with no
+  # normalization. A manual `yard doc -f agentdocs -e ./lib/yard-agentdocs.rb`
+  # run is still worth doing after a template change: it is the only check
+  # that exercises the real CLI entry point rather than `Yardoc#run` directly.
   def generate(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
       files = ::Dir.glob("examples/geometry/lib/**/*.rb")
+      # `--no-yardopts` is load-bearing, not tidiness: driven
+      # programmatically, `YARD::CLI::Yardoc` otherwise auto-loads this
+      # project's own `.yardopts` from the working directory and merges in
+      # its file list, parsing `lib/` alongside the intended fixture source.
       yardoc_cli.run(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
@@ -46,9 +55,9 @@ describe "agentdocs template" do
   end
 
   # A small, separate fixture run with `--markup rdoc`, covering the
-  # `:rdoc`-dialect path end to end (see "Docstring markup dialect" in
-  # docs/dev/DESIGN.md) without coupling the main markdown-dialect fixture
-  # set above to the installed rdoc gem's exact conversion output.
+  # `:rdoc`-dialect path end to end without coupling the main
+  # markdown-dialect fixture set above to the installed rdoc gem's exact
+  # conversion output.
   def generate_rdoc(output_dir)
     ::YARD::Registry.clear
     ::Dir.chdir(project_root) do
@@ -56,8 +65,7 @@ describe "agentdocs template" do
       # DEFAULT_PATH_GLOB select (`Builder#run_yardoc` passes no paths at
       # all), but a fixture run should state exactly what it parses. The
       # `sig/**/*.rbs` half is what reaches the RBS provenance-marker
-      # coverage — see "RBS provenance markers in `.rbs`-sourced docstrings"
-      # under "Decisions" in docs/dev/DESIGN.md.
+      # coverage.
       files = ::Dir.glob("examples/rdoc/lib/**/*.rb") + ::Dir.glob("examples/rdoc/sig/**/*.rbs")
       yardoc_cli.run(
         "--no-yardopts", "--no-save", "--no-stats",

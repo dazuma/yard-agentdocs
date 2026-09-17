@@ -80,12 +80,11 @@ module YARD
       # {#type_ref} for every type a tag declares, comma-joined — the
       # repeated `tag.types && tag.types.join(", ")` dig, in one place. Same
       # "a same-tag union and multiple tags of the same kind are both just
-      # 'more than one type token'" policy the "Multiple return types"
-      # decision in docs/dev/DESIGN.md settled for Returns/Yield Returns/the
-      # signature arrow, extended here to every remaining bullet-list site
-      # that funnels through this helper (`@param`, `@option`, `@yieldparam`,
-      # `@raise`) — see "Union types on the remaining first-type-only tag
-      # sites" under "Decisions". Despite the name, kept as-is rather than
+      # 'more than one type token'" policy already settled for Returns/Yield
+      # Returns/the signature arrow, extended here to every remaining
+      # bullet-list site that funnels through this helper (`@param`,
+      # `@option`, `@yieldparam`, `@raise`). Despite the name, kept as-is
+      # rather than
       # renamed: it's still "the tag's type(s), rendered," and every call
       # site already reads naturally with it.
       #
@@ -146,11 +145,9 @@ module YARD
       # reference (`BaseHelper#linkify`'s `include:file:` form). Checked
       # ahead of {FILE_REFERENCE_PREFIX} in {#render_reference} (a name
       # starting with this also starts with `"include:"`) and dispatches to
-      # the very same {#render_file_reference} — see "`{file:...}` guide
-      # references" under "Decisions" in `docs/dev/DESIGN.md` for why
-      # `{include:...}`/`{render:...}` collapse to plain links here rather
-      # than the content-embedding/whole-page duplication real YARD does
-      # for them.
+      # the very same {#render_file_reference}: `{include:...}`/`{render:...}`
+      # collapse to plain links here rather than the content-embedding/
+      # whole-page duplication real YARD does for them.
       #
       INCLUDE_FILE_REFERENCE_PREFIX = "include:file:"
 
@@ -175,8 +172,7 @@ module YARD
       # `BaseHelper#linkify`'s own dispatch exactly (`name` contains this
       # anywhere). Unlike every other {REFERENCE} form, there's no lookup
       # involved: the URL text itself *is* the target, so a match here
-      # always "resolves." See "`{url}`/`{mailto:...}` references" under
-      # "Decisions" in `docs/dev/DESIGN.md`.
+      # always "resolves."
       #
       URL_REFERENCE_PATTERN = %r{://}
 
@@ -192,8 +188,7 @@ module YARD
       # syntax within prose. Must run on already-dialect-converted text —
       # {Markdownify#markdownify} calls this as its final step, so template
       # code never needs to call it directly — mirroring how YARD's own
-      # `resolve_links` runs on already-`htmlify`'d output (see "Docstring
-      # markup dialect" under "Decisions" in `docs/dev/DESIGN.md`).
+      # `resolve_links` runs on already-`htmlify`'d output.
       #
       # A reference inside a backtick code span (of any length, so this
       # also covers a fenced ` ``` ` block) is left completely alone, since
@@ -232,9 +227,8 @@ module YARD
       # Works around a real YARD limitation: `RegistryResolver#lookup_by_path`
       # caps *lexical* (non-inheritance) method lookups at exactly one
       # namespace hop from wherever resolution started, silently discarding
-      # an otherwise-valid match found further up (see "Lexical
-      # cross-reference resolution cap" under "Decisions" in
-      # `docs/dev/DESIGN.md`). A plain single `Registry.resolve(object, ...)`
+      # an otherwise-valid match found further up. A plain single
+      # `Registry.resolve(object, ...)`
       # call inherits that cap relative to +object+'s own position. Retrying
       # with a *different* starting namespace doesn't lift the cap directly
       # (this deliberately never reaches into `RegistryResolver`'s private
@@ -243,13 +237,17 @@ module YARD
       # own start, so a retry from close enough to the real target always
       # lands within the one-hop allowance on its own. Verified against
       # YARD's own source to recover every real case the plain single call
-      # misses, with no false positives — see "Lexical cross-reference
-      # resolution cap" under "Decisions".
+      # misses, with no false positives.
       #
       # @param name [String]
       # @return [::YARD::CodeObjects::Base, nil]
       #
       def resolve_name(name)
+        # `true, false` is inheritance search on, proxy fallback off: the
+        # call returns a real `CodeObject` or `nil`, which is exactly the
+        # "is this documented, and therefore worth linking" question. With
+        # proxy fallback on it would answer with a `Proxy` for any name at
+        # all, and every backticked type would become a broken link.
         resolved = ::YARD::Registry.resolve(object, name, true, false)
         return resolved if resolved
         namespace = object&.namespace
@@ -269,9 +267,7 @@ module YARD
       # same object there. `fulldoc/agentdocs`'s index page overrides this:
       # it lists many different objects' summaries on one page fixed at the
       # doc root, so the resolution context (still each row's own object,
-      # via {#object}) and the path base (always the root) diverge — see
-      # "index.md's per-entry summary" under "Decisions" in
-      # `docs/dev/DESIGN.md`.
+      # via {#object}) and the path base (always the root) diverge.
       #
       # @return [::Pathname]
       #
@@ -358,8 +354,7 @@ module YARD
       # unlabeled {REFERENCE} form uses) or the label as plain prose when
       # given. The destination is always wrapped in angle brackets
       # (`(<url>)`, not `(url)`) — verified against several real Markdown
-      # parsers (see "`{url}`/`{mailto:...}` references" under "Decisions"
-      # in `docs/dev/DESIGN.md`) to keep an unescaped `(`/`)` pair in the URL
+      # parsers — to keep an unescaped `(`/`)` pair in the URL
       # itself (e.g. a Wikipedia disambiguation link) from corrupting the
       # surrounding `[...](...)` link syntax.
       def render_url_reference(url, label)
@@ -375,8 +370,7 @@ module YARD
       # what doesn't resolve" policy {#render_reference} already applies to
       # an unresolved `{Name}`, and a deliberate departure from real YARD's
       # `file:` link, which resolves any path on disk whether or not a page
-      # for it actually exists (see "`{file:...}` guide references" under
-      # "Decisions" in docs/dev/DESIGN.md).
+      # for it actually exists.
       def render_file_reference(path, label, original)
         file = options.files.find { |candidate| candidate.filename == path }
         return original if file.nil?

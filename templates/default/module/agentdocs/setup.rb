@@ -1,5 +1,36 @@
 # frozen_string_literal: true
 
+# The shared rendering logic — member gathering, signature building,
+# cross-reference resolution, per-entry rendering — used directly for
+# modules and `include`d wholesale by `class/agentdocs`, mirroring
+# upstream's own `class/setup.rb` doing `include T('default/module')`.
+#
+# Two conventions govern this directory and `lib/yard/agentdocs/`. Both are
+# preferences for new code, and the existing code follows them.
+#
+# **Document structure and control flow belong in the `.erb` file.** Which
+# sections exist, in what order, looped over which members, should be
+# visible in the template as ordinary `<%- if -%>`/`<%- each -%>`, so the
+# `.erb` reads as a skeleton of the output. A Ruby method here that
+# pre-builds and joins strings hides exactly that shape. This is viable
+# because {YARD::AgentDocs::ErbWithTrimMode} turns trim mode on — without
+# it, a conditional or loop leaks its surrounding blank lines into the
+# output, which is what once forced the string-assembly approach. What
+# stays Ruby: single-value formatting helpers with no multi-line structure
+# to leak whitespace from (`type_ref`, `signature_text`, the various
+# `*_summary_line`s), read as one-line `<%= %>` calls from the loops above.
+#
+# **A helper graduates to a `lib/yard/agentdocs/` mixin** once it is both
+# generic enough that another template module could want it and nontrivial
+# enough to deserve isolated unit tests — branching logic, parsing, regexes,
+# anything bug-prone. `include` it here rather than leaving it a bare
+# top-level method. Test it against a stub class that includes just that
+# module (see `test/test_cross_referencing.rb`), so a failure names the one
+# helper that broke instead of surfacing as a fixture mismatch. The mixins
+# live under `lib/` rather than in a `setup.rb` because `fulldoc` and
+# `module` are separate template modules and neither inherits the other's
+# methods.
+
 include ::YARD::AgentDocs::AttributeInfo
 include ::YARD::AgentDocs::AuxiliaryTags
 include ::YARD::AgentDocs::CrossReferencing
@@ -23,8 +54,7 @@ def page
   erb(:page)
 end
 
-# @group Frontmatter (OKF conformance — see "OKF interop" under "Example
-# coverage checklist" in docs/dev/DESIGN.md)
+# @group Frontmatter (OKF conformance — see docs/dev/OKF.md)
 
 def frontmatter_type
   "Ruby #{object.type == :class ? 'Class' : 'Module'}"

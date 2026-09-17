@@ -12,11 +12,9 @@ description: "Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug."
 Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.
 
 A character outside plain word characters or whitespace, inside any styled
-delimiter, converts to literal HTML instead of the equivalent Markdown span —
-see "RDoc::Markup::ToMarkdown raw-HTML leaks" under "Decisions" in
-docs/dev/DESIGN.md. Covers the plain shorthand (`word`, `word`, **word**,
-*word*) and the HTML-ish tag form (<tt>, <code>, <b>, <i>, <em>, <s>, <del>)
-alike.
+delimiter, converts to literal HTML instead of the equivalent Markdown span.
+Covers the plain shorthand (`word`, `word`, **word**, *word*) and the HTML-ish
+tag form (<tt>, <code>, <b>, <i>, <em>, <s>, <del>) alike.
 
 Punctuated shorthand: `valid?`, `save!`, `name=`, `Foo::Bar`, `x[0]`,
 **bold?**, *em!*.
@@ -58,7 +56,7 @@ Sets the receiver's `name=`.
 
 - `value` (`String`) — the new name
 
-* **Defined in:** `examples/rdoc/lib/tag_conversion.rb:55`
+* **Defined in:** `examples/rdoc/lib/tag_conversion.rb:54`
 
 ### #save!
 
@@ -72,7 +70,7 @@ tagconversion.save!() → void
 
 - `void`
 
-* **Defined in:** `examples/rdoc/lib/tag_conversion.rb:47`
+* **Defined in:** `examples/rdoc/lib/tag_conversion.rb:46`
 
 ### #valid?
 
@@ -86,4 +84,4 @@ Returns whether the receiver is `valid?`.
 
 - `Boolean` — whether valid
 
-* **Defined in:** `examples/rdoc/lib/tag_conversion.rb:38`
+* **Defined in:** `examples/rdoc/lib/tag_conversion.rb:37`

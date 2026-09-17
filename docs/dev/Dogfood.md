@@ -1,5 +1,11 @@
 # Dogfood testing
 
+> **`DESIGN.md` is gone.** Every reference to it below is historical. That document
+> was dissolved: its rendering decisions are recorded by the `examples/*/doc`
+> fixtures, its cross-class invariants by `docs/adr/`, its YARD quirks by
+> `docs/dev/YARD-notes.md`, and everything else by the code it governs. This file
+> has not been revised to match; it is kept as-is pending its own pass.
+
 Working document for the dogfood milestone described in DESIGN.md's
 "Prioritization and roadmap" (search "Dogfood milestone"): running the
 `agentdocs` template against real, mid-size gems and diff-reading the

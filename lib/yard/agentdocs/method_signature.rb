@@ -156,7 +156,7 @@ module YARD
       # Reordering is needed because a resolved `(see ...)` reference tag
       # always sorts after a method's own tags of the same name
       # (`Docstring#tags` appends resolved reference tags to the end before
-      # its stable sort — see "Reference tags" in docs/dev/DESIGN.md), so a
+      # its stable sort), so a
       # method mixing an own `@param` with a referenced one would otherwise
       # list its `**Params:**` bullets out of signature order.
       #
@@ -166,8 +166,7 @@ module YARD
       # parameter, this format is meant to be a trustworthy call surface for
       # an agent working from a single doc read rather than the source —
       # rendering a tag for a parameter that doesn't exist risks an agent
-      # passing an argument that doesn't exist. See "`@param` naming a
-      # nonexistent parameter" under "Decisions" in docs/dev/DESIGN.md.
+      # passing an argument that doesn't exist.
       #
       # @param meth [::YARD::CodeObjects::MethodObject]
       # @param param_tags [Array<::YARD::Tags::Tag>]
@@ -212,9 +211,8 @@ module YARD
       #   {#member_heading} has no `MethodObject` to work with — this falls
       #   back to +meth+'s own scope for the `.`/`#` sigil instead (aliasing
       #   is always same-scope, per {#alias_original}'s own lookup). Since
-      #   the alias target is never linked either way (see "Aliased method:
-      #   minimal pointer entry" under "Decisions" in docs/dev/DESIGN.md),
-      #   this fallback renders identically to the resolved case — the fix
+      #   the alias target is never linked either way, this fallback
+      #   renders identically to the resolved case — the fix
       #   is only about not crashing, not about a different display.
       #
       def alias_original_heading(meth)
@@ -496,14 +494,11 @@ module YARD
       #   declares its own `@return`, that instead of +meth+'s real one (see
       #   {#signature_text}); when given but it declares no `@return` of its
       #   own, falls back to +meth+'s real one — a shared method-level
-      #   `@return` common to every overload (see "A 2+-`@overload` method's
-      #   own top-level `@return`" under "Decisions" in docs/dev/DESIGN.md)
+      #   `@return` common to every overload
       # @return [String, nil] every type the relevant `@return` tag declares,
       #   comma-joined — same "union in one tag" policy {#signature_return_type}
-      #   already applies to +meth+'s own tags (see "Multiple return types"
-      #   under "Decisions" in docs/dev/DESIGN.md), extended here to the
-      #   `overload` branch (see "Union types on the remaining
-      #   first-type-only tag sites" under "Decisions")
+      #   already applies to +meth+'s own tags, extended here to the
+      #   `overload` branch
       #
       def signature_return_type_for(meth, overload)
         return overload.tag(:return).types&.join(", ") if overload&.tag(:return)

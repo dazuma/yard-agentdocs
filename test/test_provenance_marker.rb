@@ -7,10 +7,10 @@ describe ::YARD::AgentDocs::ProvenanceMarker do
 
   # Every marker below is vendored verbatim from a real `.rbs` file
   # installed locally, not invented for the test — the point is to assert
-  # against the shapes RBS actually emits. See "RBS provenance markers in
-  # `.rbs`-sourced docstrings" under "Decisions" in docs/dev/DESIGN.md for
-  # the survey these were drawn from (467 marker-bearing files, 14,525
-  # marker-bearing comment blocks, two forms, none ever non-leading).
+  # against the shapes RBS actually emits. They were drawn from a survey
+  # of the locally installed `.rbs` corpus: 467 marker-bearing files,
+  # 14,525 marker-bearing comment blocks, two forms, none ever
+  # non-leading.
   describe "real markers from installed gems" do
     it "strips the one-line Form A marker (base64-0.3.0/sig/base64.rbs)" do
       docstring = "<!-- rdoc-file=lib/base64.rb -->\nModule Base64 provides methods for:"

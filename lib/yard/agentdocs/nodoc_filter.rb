@@ -16,9 +16,7 @@ module YARD
     # ({VisibilityInfo}), which flag a method as shown-but-not-stable, this
     # is a stronger signal, so it's handled the same way as Ruby-scope
     # `private`/`protected` — omitted entirely — rather than shown-and-
-    # flagged. See "A docstring whose entire (stripped) content is a bare
-    # RDoc `:nodoc:` ... directive token" under "Decisions" in
-    # docs/dev/DESIGN.md.
+    # flagged.
     #
     # Deliberately narrower than RDoc's full directive set: `:stopdoc:`/
     # `:startdoc:`'s real meaning is a block-scoping toggle across otherwise

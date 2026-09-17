@@ -87,8 +87,7 @@ class Stopwatch
     # side by side during a deprecation window, the way many gems handled
     # the Ruby 2.7/3.0 keyword-argument separation. No real-world precedent
     # for any of these nested inside a specific `@overload` was found in the
-    # gems reviewed so far; included anyway by explicit human decision (see
-    # DESIGN.md's per-overload checklist item).
+    # gems reviewed so far; included anyway by explicit human decision.
     #
     # @overload configure(opts = {})
     #   The original, hash-based calling form, kept for backward

@@ -18,6 +18,9 @@ require "yard/agentdocs/version"
   spec.license = "MIT"
   spec.homepage = "https://github.com/dazuma/yard-agentdocs"
 
+  # `templates/**/*` has to be listed explicitly — it is not swept in by the
+  # `lib/**/*.rb` glob, and a built gem otherwise ships with no templates at
+  # all, silently. The same applies to any other non-`lib/` directory.
   spec.files = ::Dir.glob("lib/**/*.rb") +
                ::Dir.glob("templates/**/*") +
                # FNM_DOTMATCH so the tools' `.toys.rb` files are included.

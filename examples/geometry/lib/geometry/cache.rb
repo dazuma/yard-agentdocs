@@ -38,8 +38,7 @@ module Geometry
     # `Function::Callable#set_global`, which has this exact "value form" /
     # "block form" shape and declares `@yieldreturn` only on the block
     # form; `@raise`/`@see` have no such real-world precedent yet but are
-    # included on the same footing by deliberate choice (see DESIGN.md's
-    # per-overload checklist item).
+    # included on the same footing by deliberate choice.
     #
     # @overload set(key, value)
     #   Sets `key` directly to `value`.

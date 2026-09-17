@@ -1,5 +1,14 @@
 # frozen_string_literal: true
 
+# The driver. Walks the object list YARD hands it, writes `index.md` and
+# `bundle.md`, renders each `--files`/`--readme` guide, and serializes one
+# file per class/module by calling `T(object.type)` directly.
+#
+# There is deliberately no `root/agentdocs` or `layout/agentdocs`. YARD's
+# generic layout/multi-format dispatch exists to share one template across
+# html/text/dot; this plugin only ever targets one format, so going through
+# it would buy nothing and hide the page structure.
+
 include ::YARD::AgentDocs::CrossReferencing
 include ::YARD::AgentDocs::DocstringSummary
 include ::YARD::AgentDocs::ErbWithTrimMode
@@ -15,6 +24,10 @@ include ::YARD::AgentDocs::VisibilityInfo
 include ::YARD::Templates::Helpers::MarkupHelper
 
 def init
+  # The serializer's extension defaults to `html`, so it has to be set
+  # explicitly for a custom format. Everything else about path building
+  # (namespace-mirrored directories) `FileSystemSerializer` already does
+  # correctly on its own.
   options.serializer.extension = "md" if options.serializer
   objects = run_verifier(options.objects).reject(&:root?).reject { |o| bare_nodoc?(o) }
   serialize_bundle_info
@@ -90,8 +103,7 @@ end
 # `attributes[:markup]`, wins; failing that `markup_for_file` maps the
 # file's extension through `MarkupHelper::MARKUP_EXTENSIONS`; failing
 # that it falls back to `options.markup`. A gem documenting a Markdown
-# README under YARD's `rdoc` default is the common case this exists for —
-# see "Extra files carry their own markup dialect" under "Decisions".
+# README under YARD's `rdoc` default is the common case this exists for.
 def serialize_extra_file(file)
   self.object = ::YARD::Registry.root
   frontmatter = "---\ntype: Guide\ntitle: #{yaml_quote(file.title)}\n---\n\n"
@@ -123,8 +135,7 @@ end
 # (used everywhere else in the tree — Member Summary bullets, Params,
 # etc.): those stay `" — "` (em dash), unaffected. Only `index.md`'s own
 # `* [Title](url) - description` rows use OKF's `" - "` (spaced hyphen)
-# surface form, per §6 — see "Root index.md restructured for OKF
-# conformance" under "Decisions".
+# surface form, per §6 — see docs/dev/OKF.md.
 def index_summary_suffix(object)
   self.object = object
   markdown = markdownify(smart_summary(object.docstring))

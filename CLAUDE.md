@@ -6,21 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The `agentdocs` YARD template is implemented and generates output matching `examples/geometry/doc` when run
 against `examples/geometry/lib` (see `templates/default/{fulldoc,module,class}/agentdocs/`, registered via
-`lib/yard-agentdocs.rb`), verified by `test/test_agentdocs_template.rb`. Scope is intentionally narrow —
-see `docs/dev/DESIGN.md`'s "Example coverage checklist" for what's covered vs. still open. See "Design"
-below for the full rationale and implementation notes.
-
-Remaining checklist coverage is built test-first and human-gated, per
-`docs/dev/DESIGN.md`'s "Coverage workflow (TDD loop)" — except for its step 5, which is
-superseded by "Recording decisions" below: the fixture is the record, and nothing is
-logged to `DESIGN.md`. The user picks the next
-checklist item(s), Claude proposes `examples/geometry/lib`/`examples/geometry/doc` changes for
-review/iteration, and only once the user explicitly approves those does
-Claude touch `test/test_agentdocs_template.rb` or the template implementation.
-Do not jump ahead to implementation on your own initiative. Unchecked
-checklist items carry (design)/(mech)/(stretch) priority markers — see
-DESIGN.md's "Prioritization and roadmap" for what they mean and how the next
-item gets picked.
+`lib/yard-agentdocs.rb`), verified by `test/test_agentdocs_template.rb`. Scope is
+intentionally narrow: the fixture is the record of what is covered, and open gaps are
+tracked as GitHub issues.
 
 The gem also ships user-facing Toys tools in `toys/` (included in the gemspec, so users get
 them via `load_gem "yard-agentdocs"`): `agentdocs build` documents a project directory,
@@ -56,8 +44,17 @@ prefer a generated bundle over gem source or the web, which lookups are in scope
 up. Format mechanics belong to the generated `bundle.md`, CLI mechanics to the Toys tools’ own
 `long_desc`, and anything the skill could only restate rather than enforce — deriving a bundle's
 path, resolving a version, obtaining a missing bundle — belongs to the Reader. This split is
-deliberate anti-drift, so do not move content across it. See "Agent skill written (2026-09-12)"
-under "Decisions" in `docs/dev/DESIGN.md`, and the `Lookup` class's own documentation.
+deliberate anti-drift, so do not move content across it. See the `Lookup` class's own
+documentation.
+
+Two properties of that skill look like violations of the split and are not. It routes
+lookups for **dependencies only**, never consulting an `agentdocs build` tree: for the
+project an agent is editing, that source is open, mutable, and authoritative, so a bundle
+over it can only produce a wrong answer about code the agent could simply read. And it
+states the one mechanic its happy path needs — deriving a path from an FQN — rather than
+sending the agent to `bundle.md` every time, because reading a ~2KB preamble per lookup is
+a real cost in a project whose pitch is token economy. The preamble stays the single
+authority; it is consulted when a lookup does not resolve, not recited up front.
 
 ## Purpose
 
@@ -72,18 +69,37 @@ exactly the reference info it needs (e.g. one method's docs) with a single, chea
 
 ## Design
 
-[`docs/dev/DESIGN.md`](docs/dev/DESIGN.md) holds the accumulated design thinking and the list of
-open questions (output format, file granularity, lookup/indexing, YARD integration mechanics,
-cross-referencing). It is historical: do not add to it. `docs/dev/` is not shipped in the gem.
+The output format is designed example-first. `examples/geometry/lib` holds hand-written
+Ruby source exercising the YARD features the format cares about, and
+`examples/geometry/doc` the hand-authored target output; `examples/rdoc` is the same
+pair for the `--markup rdoc` path and for non-`.rb` input. Each pair is both the design
+medium and the test fixture, asserted byte for byte.
 
-`DESIGN.md` covers the generated format only, and is being dissolved — see "Recording
-decisions" below for where its content is going. Each tool's `long_desc` remains the
-authoritative user documentation for that tool.
+`docs/dev/` is not shipped in the gem. Each tool's `long_desc` is the authoritative user
+documentation for that tool.
 
-We're designing the output format example-first: `examples/geometry/lib` will hold hand-written Ruby source
-exercising the YARD features we care about, and `examples/geometry/doc` will hold the hand-authored target
-output we iterate on directly, before any template/generation code exists. Once stable, that pair becomes the test
-fixture for the real implementation.
+### Coverage workflow
+
+New format coverage is built test-first, and the loop is collaborative and human-gated —
+the example files encode real design decisions, so they get reviewed before any
+implementation code is touched.
+
+1. The user picks what to tackle next.
+2. Claude proposes the `examples/<tree>/lib` source exercising it and the
+   `examples/<tree>/doc` output it should produce, asking about any design choice not
+   already settled. For multi-line tag or docstring text, mirror the source comment's
+   exact line breaks — the template preserves raw text verbatim rather than rewrapping.
+3. The user reviews and iterates on those `examples/` changes. Nothing outside
+   `examples/` is touched yet.
+4. Once the user explicitly approves, Claude implements: confirm `toys test` fails
+   against the new fixture, then change the template until it passes byte for byte. Fix
+   the generator; never loosen the assertion.
+5. Run `toys test` and `toys rubocop`.
+
+Wait for the step-3 approval before implementing, even when the example changes look
+finished — the review is the point of working test-first. Within a tree, source and
+output files are discovered automatically; only a new file *extension* needs the glob in
+`test/test_agentdocs_template.rb` edited.
 
 ### Recording decisions
 
@@ -102,10 +118,33 @@ Everything else is recorded where the code it governs is:
   rejected alternative someone would otherwise re-propose, a trap the tests do not catch —
   goes in a comment at the code that would break.
 - **CLI mechanics** belong in the tool's `long_desc`, which cannot drift from the tool.
-- **YARD's own quirks** are not decisions at all and are not ADR material.
+- **YARD's own quirks** are not decisions at all and are not ADR material. Ones with no
+  code home go in [`docs/dev/YARD-notes.md`](docs/dev/YARD-notes.md).
 
 Do not write a decision log. A second one alongside `docs/adr/` is a drift surface, which is
-the reason `docs/dev/Tooling.md` was removed and `DESIGN.md` is being dissolved.
+the reason `docs/dev/Tooling.md` and `docs/dev/DESIGN.md` were both removed.
+
+## Architecture
+
+A YARD plugin, with the layout that implies. `lib/yard-agentdocs.rb` calling
+`Templates::Engine.register_template_path` is the entire integration point — no custom
+output format, no handler classes ([ADR-0003](docs/adr/0003-no-custom-handler-classes.md)).
+
+Generation entrypoints, worth reading in this order — each `setup.rb` starts with a
+comment explaining what that directory is responsible for:
+
+- `templates/default/fulldoc/agentdocs/setup.rb` — the driver.
+- `templates/default/module/agentdocs/setup.rb` — the shared rendering logic. Its header
+  also holds the two conventions governing template and mixin code; read it before
+  editing any `.erb`.
+- `templates/default/class/agentdocs/setup.rb` — what only classes have.
+
+`lib/yard/agentdocs/` holds two unrelated things: mixins `include`d by those `setup.rb`
+files, and the implementation classes behind the `toys/` tools.
+
+- [`docs/dev/YARD-notes.md`](docs/dev/YARD-notes.md) — traps in YARD itself. Read before
+  debugging surprising template behavior; each one costs a session to rediscover.
+- [`docs/adr/`](docs/adr/) — invariants spanning several classes.
 
 ## Commands
 
@@ -123,7 +162,7 @@ wired into each tool, so none of these need `bundle exec`.
 
 Run `toys test` and `toys rubocop` before committing.
 
-## Architecture & conventions
+## Conventions
 
 - **Namespacing:** the gem is `yard-agentdocs`; code lives under `YARD::AgentDocs` (require path
   `yard/agentdocs`), reopening the `YARD` module from the `yard` gem since this is a plugin for it. The

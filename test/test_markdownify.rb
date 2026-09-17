@@ -95,9 +95,7 @@ describe ::YARD::AgentDocs::Markdownify do
     end
 
     # The block constructs `::RDoc::Markup` gives no meaning to, which it
-    # therefore joins into one paragraph — see "Block constructs RDoc
-    # doesn't parse: segment out and pass through" under "Decisions" in
-    # docs/dev/DESIGN.md, and issue #8.
+    # therefore joins into one paragraph. See issue #8.
     describe "a block construct RDoc's own markup doesn't parse" do
       it "passes a fenced code block through verbatim, still converting the prose around it" do
         assert_equal(

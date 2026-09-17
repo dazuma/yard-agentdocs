@@ -70,8 +70,7 @@ precedent for `@yieldreturn` from `functions_framework`'s
 `Function::Callable#set_global`, which has this exact "value form" /
 "block form" shape and declares `@yieldreturn` only on the block
 form; `@raise`/`@see` have no such real-world precedent yet but are
-included on the same footing by deliberate choice (see DESIGN.md's
-per-overload checklist item).
+included on the same footing by deliberate choice.
 
 **`cache.set(key, value) → self`**
 
@@ -112,4 +111,4 @@ reads.
 
 - `#fetch` — the method that triggers the block
 
-* **Defined in:** `examples/geometry/lib/geometry/cache.rb:62`
+* **Defined in:** `examples/geometry/lib/geometry/cache.rb:61`

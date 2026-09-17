@@ -17,8 +17,7 @@ module YARD
     # outside plain word characters/whitespace — routine in Ruby prose
     # (`+valid?+`, `+save!+`, `+Foo::Bar+`) — leaking literal
     # `<code>...</code>`/`<strong>...</strong>` etc. into what's supposed
-    # to be pure Markdown. See "`RDoc::Markup::ToMarkdown` raw-HTML leaks"
-    # under "Decisions" in docs/dev/DESIGN.md for the full survey.
+    # to be pure Markdown.
     #
     # Overrides {#add_tag} (the single choke point `handle_BOLD`/
     # `handle_EM`/`handle_STRIKE`/`handle_TT` funnel single-string content
@@ -44,14 +43,30 @@ module YARD
     # `## `/`### ` heading below reads as being inside it, breaking the
     # greppable structure this format depends on. {#convert} segments
     # those blocks out and converts only the prose runs around them. See
-    # "Block constructs RDoc doesn't parse: segment out and pass through"
-    # under "Decisions" in docs/dev/DESIGN.md, and issue #8.
+    # issue #8.
     #
     # Deliberately does not touch `accept_verbatim`: a verbatim/code-example
     # block's content is copied straight through by the upstream class
     # without ever calling {#add_tag}/{#handle_tag}, so literal `<code>`/
     # `<tt>` text a docstring author wrote on purpose (e.g. inside an
     # indented code sample) is unaffected by this override.
+    #
+    # Fixing the leak in the converter rather than in its output is what
+    # buys that. Sweeping a regex over the rendered string — the obvious
+    # cheaper fix, alongside {Markdownify}'s existing `demote_headings`
+    # pass — cannot work, and not merely in theory: at the string level a
+    # real leak and an author's deliberate literal `<code>` inside a
+    # verbatim block are byte-identical, and `transform_outside_code_spans`
+    # doesn't rescue it either, since `ToMarkdown` indents verbatim blocks
+    # by four spaces rather than fencing them, leaving no marker to skip.
+    # RDoc's visitor design already separates verbatim content from
+    # inline-formatted prose, so intervening here excludes that
+    # false-positive class by construction.
+    #
+    # `::RDoc::Markup::Raw` nodes need no handling and are not worth
+    # re-investigating: only RDoc's competing Markdown parser
+    # (`rdoc/markdown.rb`) ever constructs them, never the plain
+    # `:rdoc`-dialect parser this class sits behind.
     #
     class RDocToMarkdown < ::RDoc::Markup::ToMarkdown
       # A fenced code block's opening delimiter, plus its info string.

@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# What only classes have, on top of everything `module/agentdocs` renders:
+# the `**Superclass:**`/`**Includes:**`/`**Extends:**` metadata lines and
+# the synthetic `.new` entry sourced from `#initialize`.
+
 include T("default/module/agentdocs")
 
 def class_method_objects(namespace = object)

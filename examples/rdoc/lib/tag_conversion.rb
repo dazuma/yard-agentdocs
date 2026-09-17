@@ -5,10 +5,9 @@
 #
 # A character outside plain word characters or whitespace, inside any
 # styled delimiter, converts to literal HTML instead of the equivalent
-# Markdown span — see "RDoc::Markup::ToMarkdown raw-HTML leaks" under
-# "Decisions" in docs/dev/DESIGN.md. Covers the plain shorthand (+word+,
-# `word`, *word*, _word_) and the HTML-ish tag form (<tt>, <code>, <b>,
-# <i>, <em>, <s>, <del>) alike.
+# Markdown span. Covers the plain shorthand (+word+, `word`, *word*,
+# _word_) and the HTML-ish tag form (<tt>, <code>, <b>, <i>, <em>, <s>,
+# <del>) alike.
 #
 # Punctuated shorthand: +valid?+, +save!+, +name=+, +Foo::Bar+, `x[0]`,
 # *bold?*, _em!_.

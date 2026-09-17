@@ -14,9 +14,7 @@ module YARD
     # summary, and from there reaches the `description:` frontmatter, the
     # `index.md` entry, and the parent's `## Member Summary` entry. It
     # carries nothing the rendered page doesn't already state — the
-    # `**Defined in:**` line names the same files. See "RBS provenance
-    # markers in `.rbs`-sourced docstrings" under "Decisions" in
-    # docs/dev/DESIGN.md, and issue #1.
+    # `**Defined in:**` line names the same files. See issue #1.
     #
     # Deliberately *not* a general HTML-comment strip: an HTML comment is
     # legitimate documentation content elsewhere (`REXML::Comment`

@@ -15,7 +15,7 @@ When a skill mentions a role (e.g. "apply the agent-ready triage label"), use th
 **On `ready-for-agent`:** it means the issue is specified well enough for an
 agent to do the implementation work *with* a human, not that the work is
 unattended. Several of this repo's workflows are explicitly human-gated — the
-`docs/dev/DESIGN.md` TDD loop, for instance, requires human review of proposed
+coverage workflow in `CLAUDE.md`, for instance, requires human review of proposed
 `examples/` changes before any implementation — so an "AFK-ready" reading of
 this label would promise something the process does not deliver.
 

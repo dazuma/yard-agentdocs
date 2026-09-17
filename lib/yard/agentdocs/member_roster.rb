@@ -10,8 +10,16 @@ module YARD
     # module — the same "one reliable hop" set {CrossReferencing}'s
     # `superclass_line`/`includes_line`/`extends_line` already link to),
     # listing just the member *names* it contributes that this object
-    # doesn't already list itself. See docs/dev/DESIGN.md's "Names-only
-    # inherited/mixin member roster" decision.
+    # doesn't already list itself.
+    #
+    # One hop is a deliberate, permanent gap rather than an unfinished
+    # walk: the roster can never reflect `Enumerable`, `Object`, or any
+    # other ancestor outside the parsed source. Reading the raw source has
+    # the identical blind spot, and it is the same honesty policy
+    # `**Superclass:**` already commits to — one reliable hop beats a
+    # chain that is silently incomplete. `bundle.md`'s "Inherited and
+    # mixed-in members aren't duplicated in full" bullet says so, so an
+    # agent doesn't over-trust the roster as exhaustive.
     #
     # Requires the including template to provide `object`, plus
     # {MemberListing} (for `constant_objects`/`class_attribute_objects`/

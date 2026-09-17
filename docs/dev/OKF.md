@@ -1,5 +1,11 @@
 # OKF and yard-agentdocs
 
+> **`DESIGN.md` is gone.** Every reference to it below is historical. That document
+> was dissolved: its rendering decisions are recorded by the `examples/*/doc`
+> fixtures, its cross-class invariants by `docs/adr/`, its YARD quirks by
+> `docs/dev/YARD-notes.md`, and everything else by the code it governs. This file
+> has not been revised to match; it is kept as-is pending its own pass.
+
 Analysis of the **Open Knowledge Format (OKF)** spec and what it means for
 this project. Rewritten 2026-08-03 against OKF **v0.2**, superseding the
 July 2026 writeup against v0.1.
