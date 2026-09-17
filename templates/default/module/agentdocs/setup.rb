@@ -54,7 +54,7 @@ def page
   erb(:page)
 end
 
-# @group Frontmatter (OKF conformance — see docs/dev/OKF.md)
+# @group Frontmatter (OKF conformance — see docs/adr/0005-okf-bundle-conformance.md)
 
 def frontmatter_type
   "Ruby #{object.type == :class ? 'Class' : 'Module'}"
@@ -120,12 +120,11 @@ end
 # the comment, regardless of parse order — verified directly against
 # `CodeObjects::Base#files`). But when the object has *no* docstring
 # anywhere (e.g. a bare `module Foo; end` stub, reopened only to nest
-# something else inside it — settled rendering, see "Intentionally
-# undocumented objects"), `object.file` falls back to whichever file YARD's
-# parser happened to register first, which silently depends on `Dir.glob`'s
-# directory-traversal order rather than anything meaningful (caught via
-# `Geometry::ThreeD`: glob visits the `three_d/` subdirectory, and thus
-# `three_d/point.rb`, before the sibling `three_d.rb`, even though
+# something else inside it), `object.file` falls back to whichever file
+# YARD's parser happened to register first, which silently depends on
+# `Dir.glob`'s directory-traversal order rather than anything meaningful
+# (caught via `Geometry::ThreeD`: glob visits the `three_d/` subdirectory,
+# and thus `three_d/point.rb`, before the sibling `three_d.rb`, even though
 # `three_d.rb` sorts first lexicographically). To keep this line
 # deterministic and independent of glob/parse order in that case, fall back
 # to the lexicographically-first path among all the object's files instead.
@@ -134,6 +133,19 @@ end
 # switching to a per-path bulleted list like {#summary_suffix}'s callers do,
 # since a bare path (no per-entry description, and no line number at this
 # whole-object granularity) doesn't need one.
+#
+# On dropping `**Defined in:**` lines to save tokens — this line, and the
+# per-entry `* **Defined in:** path:line` ones in `method_entry.erb`,
+# `constant_entry.erb`, and `attribute_entry.erb`. The cost was measured
+# across seven real gems during the dogfood runs: 8.6% to 13.0% of bundle
+# bytes on six of them, and 29.2% on `parser`, whose Racc-generated
+# mega-classes are almost entirely undocumented members. So the proposal
+# buys roughly a tenth of the corpus, and ADR-0001 requires an argument
+# from terseness or search cost before dropping what a human template
+# renders. There isn't one: these lines are the only path from a page
+# back to the source that defines it, which is the hop an agent takes
+# when the docs don't answer the question — precisely the case where
+# it cannot afford to search.
 def defined_in_line
   member_files = object.children.reject { |c| c.is_a?(CodeObjects::NamespaceObject) }.map(&:file)
   primary = object.docstring.empty? ? object.files.map(&:first).min : object.file

@@ -1,4 +1,15 @@
 ---
+<%#- Declaring a version asserts that this tree was checked against that
+     release of the OKF spec, which is an obligation and not just a label:
+     a future OKF release makes the claim stale until someone re-verifies
+     the tree and bumps this literal here and in both fixture trees'
+     `index.md`. Quoted because unquoted it is a YAML float, and a float
+     cannot carry a version: `0.10` and `0.1` both load as 0.1, so the
+     day OKF reaches 0.10 the declaration silently claims 0.1. Dropping
+     the key instead was rejected: §12 makes it optional, but a consumer
+     that cannot tell which spec version produced a tree has to guess, and
+     the whole point of conforming is to spare it that. See
+     docs/adr/0005-okf-bundle-conformance.md. -%>
 okf_version: "0.2"
 ---
 

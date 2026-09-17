@@ -42,9 +42,7 @@ end
 # `index.md` preamble, then a standalone `navigating.md`; merging them here
 # means one file answers both "how do I read this tree" and "is it still
 # true", and the cold agent that follows `index.md` into the reading
-# conventions gets the freshness signal at no extra read. See "Bundle-level
-# `bundle.md`: freshness plus reading conventions in one file" under
-# "Decisions".
+# conventions gets the freshness signal at no extra read.
 #
 # The page is almost entirely constant text — only the `generated:` pair in
 # its OKF v0.2 concept header varies per build — so `bundle.erb` holds it
@@ -93,8 +91,7 @@ end
 # filename), never a guaranteed-safe identifier. No `description`: unlike
 # a docstring, an extra file's body is unstructured, dialect-dependent
 # prose with its own real heading structure, and OKF only requires
-# `type` — see "Frontmatter on README/`--files` guide pages" under
-# "Decisions".
+# `type`.
 #
 # The dialect, unlike a docstring's, is resolved *per file* rather than
 # from the run-wide `--markup` flag, exactly as YARD's own template does
@@ -135,7 +132,7 @@ end
 # (used everywhere else in the tree — Member Summary bullets, Params,
 # etc.): those stay `" — "` (em dash), unaffected. Only `index.md`'s own
 # `* [Title](url) - description` rows use OKF's `" - "` (spaced hyphen)
-# surface form, per §6 — see docs/dev/OKF.md.
+# surface form, per §8 — see docs/adr/0005-okf-bundle-conformance.md.
 def index_summary_suffix(object)
   self.object = object
   markdown = markdownify(smart_summary(object.docstring))

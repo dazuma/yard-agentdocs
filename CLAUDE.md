@@ -67,6 +67,12 @@ return values, usage) currently have to search through source files or a human-o
 which burns a lot of input tokens and requires multi-step exploration. This gem should let an agent fetch
 exactly the reference info it needs (e.g. one method's docs) with a single, cheap file read.
 
+Note that this is a claim about the cost of *one lookup*, and deliberately not about the size of
+the corpus. Measured across seven real gems, a bundle ranged from 86.6% smaller than its source
+tree to 74.1% larger: the ratio tracks a codebase's docs-to-code density, not whether the input is
+a toy fixture or a real gem. "Reading the docs is cheaper than reading the source" is therefore
+not a claim this project can make about corpus size, and should not be reached for as a pitch.
+
 ## Design
 
 The output format is designed example-first. `examples/geometry/lib` holds hand-written

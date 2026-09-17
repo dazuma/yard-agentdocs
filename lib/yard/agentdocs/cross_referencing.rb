@@ -107,9 +107,7 @@ module YARD
       # ` — description`" split every other multi-entry tag
       # (`@raise`/`@param`/...) already uses, rather than folding the
       # description into the link's own display text the way an inline
-      # `{url label}` reference does. See "`@see`: bulleted `**See
-      # also:**` list, target and description dash-joined" under
-      # "Decisions".
+      # `{url label}` reference does.
       #
       # @param tag [::YARD::Tags::Tag]
       # @return [String] markdown
