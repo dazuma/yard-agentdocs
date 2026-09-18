@@ -1,11 +1,26 @@
 inherit_mode:
   merge:
     - Exclude
+    - Include
 
 AllCops:
   NewCops: disable
   SuggestExtensions: false
   TargetRubyVersion: 3.4
+  # RuboCop skips hidden directories, so the repo-internal tools under
+  # `.toys/` and their implementation classes under `.toys/.lib/` are invisible
+  # to it unless named here. Both patterns are needed: a `**` wildcard will not
+  # descend into `.lib` either.
+  #
+  # These add to RuboCop's own defaults only because `Include` is listed under
+  # `inherit_mode: merge` above. Without that, naming anything here *replaces*
+  # the default `**/*.rb`, and the linter silently stops seeing the rest of the
+  # repo — `toys rubocop` still passes, on a fraction of the files.
+  Include:
+    - ".toys/**/*.rb"
+    - ".toys/.lib/**/*.rb"
+    - ".toys/.toys.rb"
+    - ".toys/**/.toys.rb"
   Exclude:
     - "examples/**/*"
 

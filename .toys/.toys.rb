@@ -5,7 +5,11 @@ expand :clean do |t|
   t.preserve = [".claude/plans", ".claude/settings.local.json"]
 end
 
-expand :minitest, libs: ["lib", "test"], bundler: true
+# `.toys/.lib` is on the list because the repo-internal tools under `.toys/`
+# keep their implementation classes there rather than in `lib/`, which ships
+# in the gem. Without it those classes would be the only ones in the repo that
+# no test could require.
+expand :minitest, libs: ["lib", "test", ".toys/.lib"], bundler: true
 
 expand :rubocop, bundler: true
 

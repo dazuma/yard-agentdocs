@@ -1,0 +1,70 @@
+# Hand-maintained input to `toys corpus manifest`.
+#
+# The manifest that tool writes is generated in full on every run and holds
+# nothing worth preserving. Everything a human decides about the corpus lives
+# here instead, so regenerating never destroys a judgment call.
+#
+# Every entry carries a `reason`. A pin or an exclusion without one cannot be
+# re-evaluated later by anyone who wasn't there, and the consistency test in
+# `test/test_corpus_files.rb` requires it.
+
+# Gems always included, whatever the rankings say. Exempt from the family caps
+# below, but counted against `--count` like any other entry.
+#
+# A pin names a gem and never a version: a pinned gem tracks current releases
+# exactly like a ranked one, and pinning a version would quietly rot.
+pins:
+  - name: fileutils
+    reason: >-
+      Its own docstring prose contains `##` headings, so an H2 appears before
+      `## Member Summary`. One of the four gems that broke the naive form of
+      that invariant when it was checked ad hoc during the #4 design.
+  - name: psych
+    reason: >-
+      Same shape as fileutils: `##` headings in docstring prose put an H2
+      ahead of `## Member Summary`.
+  - name: did_you_mean
+    reason: >-
+      Same shape as fileutils. Also small, which makes it cheap to keep in
+      the corpus permanently.
+  - name: tsort
+    reason: >-
+      The `TSort` module reached through Bundler was the fourth case of an H2
+      before `## Member Summary`.
+
+# Gems never included, whatever the rankings say.
+#
+# This is for gems that cost more than they teach — one that hangs YARD, or
+# takes so long to document that it dominates a corpus build. Nothing has
+# earned a place here yet; an entry should say what went wrong, so that a
+# later reader can test whether it still does.
+exclude: []
+
+# Caps on families of near-identical bundles.
+#
+# Popularity ranking pulls in whole families of gems generated from the same
+# source with the same structure. The fifteenth `action*` bundle teaches an
+# invariant checker nothing the first did not, and it costs the same build
+# time as a structurally novel gem would.
+#
+# `match` is a regex against the gem name. Prefer an explicit alternation
+# over a loose prefix: `^active` would also capture `activerecord-import` and
+# other third-party gems, which are *not* generated from a shared source and
+# are exactly the structural variety the corpus wants.
+families:
+  - name: aws-sdk
+    match: "^aws-sdk-"
+    cap: 2
+    reason: >-
+      Generated from service definitions, so every bundle has the same
+      structure at enormous size. Deliberately scoped to `aws-sdk-*`: the
+      hand-written support gems (`aws-sigv4`, `aws-eventstream`,
+      `aws-partitions`) are structurally distinct and are not capped.
+  - name: rails
+    match: "^(action(cable|mailbox|mailer|pack|text|view)|active(job|model|record|storage|support)|rail(s|ties))$"
+    cap: 3
+    reason: >-
+      The Rails component gems share a house style and a documentation
+      toolchain closely enough that a handful covers what all fifteen would.
+      Anchored and enumerated rather than prefix-matched, so that gems merely
+      named after Rails are left alone.

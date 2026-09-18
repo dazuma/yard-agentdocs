@@ -39,3 +39,20 @@ arguments and documentation) but the bulk of the implementation is delegated to
 a class under `lib/` so it can be unit tested easily via tests under `test/`.
 Detailed design information about a tool is recorded in the class that
 implements it.
+
+## Repo-internal tools
+
+Not every tool in this repo ships in the gem. The `.toys/` directory holds
+tools that exist only for developing it — `toys ci`, `toys release`, and
+`toys corpus manifest` — and is left out of the gemspec's file list, so
+`toys do --gem=yard-agentdocs` never sees them.
+
+They follow the same architecture as the shipped tools, with one difference:
+their implementation classes live under `.toys/.lib/` rather than `lib/`,
+because `lib/` ships. Toys puts `.toys/.lib` on the load path for those tools
+automatically, and `.toys/.toys.rb` adds it to the test load path as well, so
+the classes are unit tested under `test/` like any other.
+
+RuboCop does not descend into hidden directories on its own, so `.rubocop.yml`
+names these paths explicitly in `AllCops: Include`. Without that they would be
+the only Ruby in the repo the linter never sees.
