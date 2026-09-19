@@ -15,14 +15,21 @@ describe "agentdocs template" do
   let(:generated_by) { "yard-agentdocs/0.0.0" }
   let(:generated_at) { ::Time.utc(2026, 1, 1) }
 
-  # Builds a Yardoc CLI with the pinned `generated:` options already set.
-  # They have to be assigned before #run, which never resets the options
-  # object it was given at construction.
-  def yardoc_cli
+  # Builds a Yardoc CLI with the pinned `generated:` options already set and
+  # runs it with the given arguments. The options have to be assigned before
+  # #run, which never resets the options object it was given at construction.
+  #
+  # YARD's logger is quieted to errors for the duration of the run. The
+  # fixture sources under `examples/` deliberately include docstrings YARD
+  # warns about — the stale `@param seconds`/`@param millis` pair on
+  # `Stopwatch#reset` is one — and those `[warn]` lines would otherwise print
+  # on every test run. ERROR rather than FATAL, so a generation error that
+  # the fixture comparison alone wouldn't explain still reaches the output.
+  def run_yardoc(*)
     cli = ::YARD::CLI::Yardoc.new
     cli.options[:agentdocs_generated_by] = generated_by
     cli.options[:agentdocs_generated_at] = generated_at
-    cli
+    log.enter_level(::YARD::Logger::ERROR) { cli.run(*) }
   end
 
   # Runs from the project root so recorded source paths (used in "Defined in"
@@ -40,7 +47,7 @@ describe "agentdocs template" do
       # programmatically, `YARD::CLI::Yardoc` otherwise auto-loads this
       # project's own `.yardopts` from the working directory and merges in
       # its file list, parsing `lib/` alongside the intended fixture source.
-      yardoc_cli.run(
+      run_yardoc(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
         "-t", "default",
@@ -67,7 +74,7 @@ describe "agentdocs template" do
       # `sig/**/*.rbs` half is what reaches the RBS provenance-marker
       # coverage.
       files = ::Dir.glob("examples/rdoc/lib/**/*.rb") + ::Dir.glob("examples/rdoc/sig/**/*.rbs")
-      yardoc_cli.run(
+      run_yardoc(
         "--no-yardopts", "--no-save", "--no-stats",
         "-o", output_dir,
         "-t", "default",

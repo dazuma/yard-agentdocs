@@ -6,6 +6,52 @@ require "minitest/rg"
 
 require "yard-agentdocs"
 
+# YARD's own source emits two Ruby warnings under `-w`, which `toys test`
+# passes, and each fires exactly once per process:
+#
+#  * `hybrid_markdown.rb:558: character class has duplicated range`, from
+#    compiling a regexp literal, so it lands when that file is first required.
+#  * `yardoc.rb:230: setting Encoding.default_internal`, from the *first*
+#    `YARD::CLI::Yardoc` built; its `unless == utf8` guard leaves every later
+#    one silent.
+#
+# Neither is actionable from here, and neither belongs to any one test: every
+# example that documents a fixture gem would emit them, so which one actually
+# does depends on the random seed. Provoking both up front, with `$stderr`
+# swapped out, retires them before the first test runs — and, as a bonus,
+# makes the `Encoding` defaults that second warning is about settle at a fixed
+# point rather than partway through a seed-dependent run.
+#
+# `capture_io` is the right shape for these because Ruby routes warnings
+# through `$stderr`. It is *not* interchangeable with `log.enter_level` for
+# YARD's own `[warn]` lines: `log.io` holds the `STDOUT` constant, which
+# swapping `$stdout` does not touch.
+begin
+  require "stringio"
+  original_stderr = $stderr
+  $stderr = ::StringIO.new
+  require "yard/templates/helpers/markup/hybrid_markdown"
+  ::YARD::CLI::Yardoc.new
+ensure
+  $stderr = original_stderr
+end
+
+# `YARD::CLI::Yardoc#run` switches YARD's progress bar on for the duration of
+# every run, and `Logger#show_progress` only declines it when the level is INFO
+# or lower — so quieting the logger, which several examples here do, leaves the
+# bar on. On a TTY it then writes `\e[2K`, cursor-hide/show sequences and a
+# bare `\r` over minitest's own output, repainting from a background thread
+# every 0.05s: the line flickers and progress dots get overwritten. Redirect
+# the run to a file and it disappears, which is why it only shows up
+# interactively.
+#
+# `--no-progress` is the CLI's own lever but reaches only the runs a test
+# assembles arguments for, not the ones driven through `Builder#run_yardoc` or
+# `GemBuilder`, which build their own. Pinning the predicate off here disables
+# exactly the progress rendering, for every path into YARD, and leaves the log
+# level free to mean what it says elsewhere.
+log.define_singleton_method(:show_progress) { false }
+
 module AgentdocsTestHelper
   ##
   # Builds a small "template-like" holder object for exercising one or more

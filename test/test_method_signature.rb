@@ -543,15 +543,20 @@ describe ::YARD::AgentDocs::MethodSignature do
     end
 
     it "drops tags naming a nonexistent parameter, keeping real ones in signature order" do
-      holder = holder_for(<<~RUBY, "Foo")
-        class Foo
-          # @param to [Integer]
-          # @param seconds [Integer]
-          # @param millis [Integer]
-          def reset(to)
+      # The out-of-sync `seconds`/`millis` tags are the whole point of this
+      # example, and YARD logs a `[warn]` for each one while parsing. Quieted
+      # to ERROR (not FATAL) so a genuine parse failure would still surface.
+      holder = log.enter_level(::YARD::Logger::ERROR) do
+        holder_for(<<~RUBY, "Foo")
+          class Foo
+            # @param to [Integer]
+            # @param seconds [Integer]
+            # @param millis [Integer]
+            def reset(to)
+            end
           end
-        end
-      RUBY
+        RUBY
+      end
       meth = holder.object.meths(inherited: false).find { |m| m.name.to_s == "reset" }
       ordered = holder.ordered_param_tags(meth, meth.tags(:param))
       assert_equal(["to"], ordered.map(&:name))
