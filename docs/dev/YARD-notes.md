@@ -51,6 +51,23 @@ line that records one.
 `"new(0, 0)"` — not `"Point.new(0, 0)"`. The registry does no expansion and
 neither does this template.
 
+**`yard doc` parses `sig/**/*.rbs` by default.** 0.9.45's default globs are
+`{lib,app}/**/*.{rb,rbs}`, `sig/**/*.rbs`, and `ext/**/*.{c,cc,cxx,cpp,rb}`.
+RBS declarations merge into the same registry as the Ruby source, and the last
+one parsed at a given path wins. Ruby files are parsed before `sig/`, so an
+RBS `module` can replace a Ruby constant at the same path. Code that held the
+old object, such as a mixin list, still points to the replaced one.
+
+**Code objects compare by path, not identity.** `CodeObjects::Base#==` and
+even `#equal?` return true for two distinct objects with the same path, for
+example a stale `ConstantObject` and the `ModuleObject` that replaced it. To
+tell such objects apart, compare `class`/`type` or `object_id`.
+
+**A resolved `Proxy` reports the resolved object's class.** `Proxy#is_a?` and
+`#===` delegate to the resolved object. So `is_a?(Proxy)` is true only for a
+proxy that is still unresolved, and a resolved one passes
+`is_a?(ModuleObject)`. Use `instance_of?(Proxy)` to detect proxy-ness itself.
+
 ## Harmless noise
 
 **Three "method redefined" warnings on first parse.** The first time anything
