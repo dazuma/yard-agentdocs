@@ -5,7 +5,7 @@
 A Bundle is a directory tree of markdown files. That shape is also the
 [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)'s,
 and the overlap is not a coincidence this project can ignore: `README.md`
-advertises conformance as a feature, and `CONTEXT.md` takes **Bundle** and
+advertises conformance as a feature, and `GLOSSARY.md` takes **Bundle** and
 **Concept** from OKF's vocabulary, with `description:` named as "OKF's key name,
 fixed by interop".
 
