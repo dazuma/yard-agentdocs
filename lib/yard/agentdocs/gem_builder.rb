@@ -41,6 +41,19 @@ module YARD
     # the same run that parses also generates. It goes *before* the caller's
     # arguments so a caller that really does want a database can say so.
     #
+    # Each gem is built in a forked child process. Honoring a gem's
+    # `.yardopts` means letting it change YARD's process-global state —
+    # `--tag` and `--hide-tag` edit the tag library, `--template-path`
+    # registers a template directory, `--plugin` and `--load` require
+    # arbitrary code — and YARD never undoes any of it, so in a single process
+    # every gem would be built under the accumulated settings of all the gems
+    # built before it. Snapshotting and restoring that state between builds
+    # was rejected: it covers only the state someone thought to list, and
+    # nothing can undo a `require`. The fork also confines a build that
+    # raises, or that a gem's code ends with `exit` or a crash, to that one
+    # gem. Where `fork` is unavailable (Windows, JRuby), gems are built
+    # in-process instead, without that isolation.
+    #
     class GemBuilder
       ##
       # The path, relative to the XDG data home, that bundles are written
@@ -418,10 +431,58 @@ module YARD
       # bundle or nothing at all.
       def build_and_publish(spec, output)
         temp = temp_dir_for(spec)
-        return :failed unless build_with_builder(spec, temp)
+        built = fork_available? ? build_in_child(spec, temp) : build_with_builder(spec, temp)
+        return :failed unless built
         publish(temp, output) ? :built : :failed
       ensure
         ::FileUtils.rm_rf(temp)
+      end
+
+      def fork_available?
+        ::Process.respond_to?(:fork)
+      end
+
+      # Runs {#build_with_builder} in a forked child, returning whether it
+      # succeeded. See the class documentation for why.
+      #
+      # The child leaves with `exit!`, from an `ensure` so that even an
+      # `Interrupt` takes that route, so the parent's `at_exit` hooks don't
+      # run a second time in it — Minitest's, for one, would start the test
+      # suite over. That also skips Ruby's flushing of buffered output, so
+      # {#build_child} flushes first. An interrupt reaching the parent
+      # mid-build ends the child and reaps it before the caller deletes the
+      # staging directory, so nothing goes on writing into a directory that
+      # is already gone.
+      def build_in_child(spec, temp)
+        pid = ::Process.fork do
+          ok = false
+          ok = build_child(spec, temp)
+        ensure
+          exit!(ok ? 0 : 1)
+        end
+        _, status = ::Process.wait2(pid)
+        pid = nil
+        status.success?
+      ensure
+        kill_child(pid) if pid
+      end
+
+      # The child's whole job. A `StandardError` is reported here, since the
+      # child's only other channel back to the parent is its exit status.
+      def build_child(spec, temp)
+        build_with_builder(spec, temp)
+      rescue ::StandardError => e
+        log.error("yard-agentdocs: #{spec.full_name}: #{e.class}: #{e.message}")
+        false
+      ensure
+        [$stdout, $stderr, log.io].uniq.each(&:flush)
+      end
+
+      def kill_child(pid)
+        ::Process.kill(:KILL, pid)
+        ::Process.wait(pid)
+      rescue ::SystemCallError
+        nil
       end
 
       # Moves a finished build to its canonical path, replacing any bundle

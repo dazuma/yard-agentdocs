@@ -43,7 +43,10 @@ describe ::YARD::AgentDocs::GemBuilder do
         def spin; end
       end
     RUBY
-    ::File.write(::File.join(gem_dir, ".yardopts"), yardopts) if yardopts
+    # Removed when not given, so reinstalling a gem over one installed with a
+    # `.yardopts` really does replace it.
+    yardopts_path = ::File.join(gem_dir, ".yardopts")
+    yardopts ? ::File.write(yardopts_path, yardopts) : ::FileUtils.rm_f(yardopts_path)
     gem_dir
   end
 
@@ -76,14 +79,27 @@ describe ::YARD::AgentDocs::GemBuilder do
     ::File.join(output_root, ::YARD::AgentDocs::GemBuilder::TEMP_SUBDIR)
   end
 
-  # Stands in for a build killed partway through: the builder writes part of
-  # a tree into the directory it was handed, then dies without unwinding.
-  def interrupt_during_build(builder)
+  # Stands in for a Ctrl-C partway through a build. The build, running in the
+  # child process, writes part of a tree into the directory it was handed,
+  # then interrupts the builder's process — as a terminal's SIGINT would —
+  # and waits to be dealt with. The child records its pid in +pid_file+, if
+  # given, so a test can check what became of it.
+  #
+  # The builder's pid is captured here rather than read as `Process.ppid` in
+  # the child, and the build raises instead of signalling when it finds itself
+  # in that same process: either way, a build that isn't forked must not send
+  # SIGINT to whatever launched the test run. The sleep is bounded so a
+  # builder that never ends the child fails the test rather than hanging it.
+  def interrupt_during_build(builder, pid_file: nil)
+    builder_pid = ::Process.pid
     builder.define_singleton_method(:build_with_builder) do |_spec, output|
+      ::File.write(pid_file, ::Process.pid.to_s) if pid_file
       ::FileUtils.mkdir_p(::File.join(output, "Widget"))
       ::File.write(::File.join(output, "index.md"), "# partial\n")
       ::File.write(::File.join(output, "Widget", "spin.md"), "# spin\n")
-      raise ::Interrupt
+      raise ::Interrupt if ::Process.pid == builder_pid
+      ::Process.kill(:INT, builder_pid)
+      sleep(10)
     end
     builder
   end
@@ -505,6 +521,51 @@ describe ::YARD::AgentDocs::GemBuilder do
     end
   end
 
+  describe "isolation" do
+    # A gem's `.yardopts` can change YARD's process-global state — here a
+    # `--tag` definition, as sass's does — and nothing would ever undo it, so
+    # every gem built after it in the same run would see it too.
+    it "keeps a gem's changes to YARD's global state out of the builder's process" do
+      with_gem_home do |home, output_root|
+        tag = :"leaked_tag_#{object_id}"
+        install_gem(home, "widget", "1.0.0", yardopts: "--tag #{tag}\n")
+        assert(gem_builder(home, output_root, requests: ["widget"]).build)
+        refute(::YARD::Tags::Library.labels.key?(tag), "the tag definition leaked out of the build")
+      end
+    end
+
+    it "counts a gem whose build raises as failed and builds the rest" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        install_gem(home, "gadget", "2.0.0")
+        builder = gem_builder(home, output_root, all: true)
+        original = builder.method(:build_with_builder)
+        builder.define_singleton_method(:build_with_builder) do |spec, output|
+          raise "boom" if spec.name == "gadget"
+          original.call(spec, output)
+        end
+        refute(builder.build)
+        refute(::File.exist?(::File.join(output_root, "gadget-2.0.0")))
+        assert_path_exists(::File.join(output_root, "widget-1.0.0", "index.md"))
+      end
+    end
+
+    it "builds in-process where fork is unavailable" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        builder = gem_builder(home, output_root, requests: ["widget"])
+        builder.define_singleton_method(:fork_available?) { false }
+        builder.define_singleton_method(:build_with_builder) do |_spec, output|
+          ::FileUtils.mkdir_p(output)
+          ::File.write(::File.join(output, "pid"), ::Process.pid.to_s)
+          true
+        end
+        assert(builder.build)
+        assert_equal(::Process.pid.to_s, ::File.read(::File.join(output_root, "widget-1.0.0", "pid")))
+      end
+    end
+  end
+
   describe "atomicity" do
     # A build staged in place would leave these files at the canonical path,
     # where the next `rebuild: false` run counts any nonempty directory as a
@@ -534,6 +595,20 @@ describe ::YARD::AgentDocs::GemBuilder do
         assert_raises(::Interrupt) { builder.build }
         assert(gem_builder(home, output_root, requests: ["widget"], rebuild: false).build)
         assert_path_exists(::File.join(output_root, "widget-1.0.0", "Widget.md"))
+      end
+    end
+
+    # The child gets no chance to finish on its own, so the builder has to end
+    # it: a child left running could go on writing into a staging directory
+    # that has already been deleted, and one left unreaped is a zombie.
+    it "kills and reaps the child of an interrupted build" do
+      with_gem_home do |home, output_root|
+        install_gem(home, "widget", "1.0.0")
+        pid_file = ::File.join(home, "child.pid")
+        builder = interrupt_during_build(gem_builder(home, output_root, requests: ["widget"]),
+                                         pid_file: pid_file)
+        assert_raises(::Interrupt) { builder.build }
+        assert_raises(::Errno::ESRCH) { ::Process.kill(0, ::File.read(pid_file).to_i) }
       end
     end
 
