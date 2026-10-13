@@ -31,7 +31,11 @@ require "yard/agentdocs/version"
                [".yardopts"]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "rdoc", ">= 6.0"
+  # Capped deliberately: `YARD::AgentDocs::RDocToMarkdown` overrides rdoc
+  # internals (`emit_inline`, `ToRdoc#wrap`'s instance variables), which a
+  # major release may change without warning. Raise the cap only after
+  # running the tests against the new major.
+  spec.add_dependency "rdoc", "~> 8.0"
   spec.add_dependency "simple_xdg", "~> 0.1"
   spec.add_dependency "yard", "~> 0.9"
   spec.required_ruby_version = ">= 3.4"
