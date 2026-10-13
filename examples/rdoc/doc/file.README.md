@@ -5,7 +5,4 @@ title: "README"
 
 # Greeter example
 
-A minimal **RDoc**-dialect fixture accompanying `Greeter`, exercising this
-format's README-rendering path under the `rdoc` markup dialect, independently
-of the main Markdown-dialect example. See [`Greeter#greet`](Greeter.md) for the one
-documented method.
+A minimal **RDoc**-dialect fixture accompanying `Greeter`, exercising this format's README-rendering path under the `rdoc` markup dialect, independently of the main Markdown-dialect example. See [`Greeter#greet`](Greeter.md) for the one documented method.

@@ -23,3 +23,5 @@ okf_version: "0.2"
 * [`Greeter`](Greeter.md) - Builds a greeting string.
 * [`Provenance`](Provenance.md) - Exercises RBS provenance-marker stripping.
 * [`TagConversion`](TagConversion.md) - Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.
+* [`WrappedProse`](WrappedProse.md) - Exercises rdoc-dialect prose whose summary sentence runs on past a single source line, as most real-world RDoc summaries eventually do.
+* [`WrappedProse::Member`](WrappedProse/Member.md) - Stands in for a nested member whose summary is long enough to have wrapped in its parent's Member Summary bullet.

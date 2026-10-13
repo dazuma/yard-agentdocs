@@ -11,25 +11,15 @@ description: "Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug."
 
 Exercises RDoc::Markup::ToMarkdown's raw-HTML-leak bug.
 
-A character outside plain word characters or whitespace, inside any styled
-delimiter, converts to literal HTML instead of the equivalent Markdown span.
-Covers the plain shorthand (`word`, `word`, **word**, *word*) and the HTML-ish
-tag form (<tt>, <code>, <b>, <i>, <em>, <s>, <del>) alike.
+A character outside plain word characters or whitespace, inside any styled delimiter, converts to literal HTML instead of the equivalent Markdown span. Covers the plain shorthand (`word`, `word`, **word**, *word*) and the HTML-ish tag form (<tt>, <code>, <b>, <i>, <em>, <s>, <del>) alike.
 
-Punctuated shorthand: `valid?`, `save!`, `name=`, `Foo::Bar`, `x[0]`,
-**bold?**, *em!*.
+Punctuated shorthand: `valid?`, `save!`, `name=`, `Foo::Bar`, `x[0]`, **bold?**, *em!*.
 
-Punctuated tag form: `=~`, `a.b`, **foo=~bar**, *a.b*, *foo!*, ~~strike!~~,
-~~del?~~.
+Punctuated tag form: `=~`, `a.b`, **foo=~bar**, *a.b*, *foo!*, ~~strike!~~, ~~del?~~.
 
-Nested styled content — multiple inline nodes inside one styled tag, not just
-punctuated single-string content: **foo **bar** baz**, *foo **bar** baz*,
-~~foo **bar** baz~~. `foo <b>bar</b> baz` looks similar but isn't: RDoc's own
-parser captures tt/code content as one literal string, never nested nodes, so
-it already rendered correctly before this fix.
+Nested styled content — multiple inline nodes inside one styled tag, not just punctuated single-string content: **foo **bar** baz**, *foo **bar** baz*, ~~foo **bar** baz~~. `foo <b>bar</b> baz` looks similar but isn't: RDoc's own parser captures tt/code content as one literal string, never nested nodes, so it already rendered correctly before this fix.
 
-A verbatim example — the literal angle-bracket text below must survive
-untouched, unlike the prose above:
+A verbatim example — the literal angle-bracket text below must survive untouched, unlike the prose above:
 
     example_code = "<code>literal</code>"
     another_line <tt>also literal</tt>

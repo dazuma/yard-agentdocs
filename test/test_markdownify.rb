@@ -79,6 +79,20 @@ describe ::YARD::AgentDocs::Markdownify do
       assert_equal("#### Heading", holder.markdownify("= Heading"))
     end
 
+    describe "a paragraph or list item longer than 78 columns" do
+      let(:words) { ::Array.new(20) { |i| "word#{i}" } }
+
+      it "is emitted on one line, joining its source lines" do
+        source = "#{words[0, 10].join(' ')}\n#{words[10, 10].join(' ')}"
+        assert_equal(words.join(" "), holder.markdownify(source))
+      end
+
+      it "is emitted on one line as a list item" do
+        source = "* #{words[0, 10].join(' ')}\n  #{words[10, 10].join(' ')}\n* short"
+        assert_equal("*   #{words.join(' ')}\n*   short", holder.markdownify(source))
+      end
+    end
+
     it "leaves an unresolvable bare {Foo#bar} inline reference untouched" do
       assert_equal("See {Foo#bar} for details.", holder.markdownify("See {Foo#bar} for details."))
     end

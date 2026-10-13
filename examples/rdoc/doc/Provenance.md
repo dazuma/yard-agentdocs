@@ -11,11 +11,9 @@ description: "Exercises RBS provenance-marker stripping."
 
 Exercises RBS provenance-marker stripping.
 
-The single-line Form A marker above must not reach the rendered body, the
-`description` frontmatter, or the `index.md` entry.
+The single-line Form A marker above must not reach the rendered body, the `description` frontmatter, or the `index.md` entry.
 
-RBS emits a marker at the head of every doc comment it imports from RDoc. See
-issue #1.
+RBS emits a marker at the head of every doc comment it imports from RDoc. See issue #1.
 
 ## Member Summary
 
@@ -34,8 +32,7 @@ provenance.render(text) → String
 
 Renders `text`.
 
-The multi-line Form B marker above carries RDoc call-seq lines. Left
-unstripped, they render as a stray indented code block.
+The multi-line Form B marker above carries RDoc call-seq lines. Left unstripped, they render as a stray indented code block.
 
 **Params:**
 
@@ -55,8 +52,7 @@ provenance.width() → Integer
 
 Declared only in the signature file.
 
-Its docstring has no Ruby-source counterpart to override, which is the shape
-`Prime.each` has.
+Its docstring has no Ruby-source counterpart to override, which is the shape `Prime.each` has.
 
 **Returns:**
 

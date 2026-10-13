@@ -5,10 +5,10 @@ require "rdoc/markup/to_markdown"
 module YARD
   module AgentDocs
     ##
-    # A `::RDoc::Markup::ToMarkdown` that fixes two fidelity gaps in the
+    # A `::RDoc::Markup::ToMarkdown` that fixes three fidelity gaps in the
     # stdlib converter: it never falls back to raw HTML for styled inline
-    # text, and it never flattens a block construct RDoc's own markup
-    # gives no meaning to.
+    # text, it never flattens a block construct RDoc's own markup gives no
+    # meaning to, and it never re-wraps a paragraph or list item.
     #
     # **Inline: no raw-HTML fallback** for `<tt>`/`<code>`, `<b>`/`<i>`/
     # `<em>`, `<s>`/`<del>`, and their `+word+`/`` `word` ``/`*word*`/
@@ -62,6 +62,14 @@ module YARD
     # RDoc's visitor design already separates verbatim content from
     # inline-formatted prose, so intervening here excludes that
     # false-positive class by construction.
+    #
+    # **No re-wrapping.** The upstream `wrap` breaks every paragraph and
+    # list item at 78 columns. RDoc has already joined the author's source
+    # lines by then, so those breaks are the converter's own invention, and
+    # they split a summary — which must stay on one line to be greppable —
+    # across lines. {#wrap} emits the text on one line instead. Fixing this
+    # in the output string instead would leave runs of spaces where a
+    # list item's continuation indent had been. See issue #20.
     #
     # `::RDoc::Markup::Raw` nodes need no handling and are not worth
     # re-investigating: only RDoc's competing Markdown parser
@@ -145,6 +153,21 @@ module YARD
           traverse_inline_nodes(nodes)
           emit_inline(simple_tag)
         end
+      end
+
+      ##
+      # Emits +text+ on one line, rather than wrapping it at a fixed width
+      # as the upstream implementation does. The `:rdoc` parser never
+      # produces a hard break, so +text+ never contains a newline.
+      #
+      # @param text [String] a paragraph or list item's converted text
+      # @return [void]
+      #
+      def wrap(text)
+        return if text.nil? || text.empty?
+
+        @res << (@prefix || (" " * @indent)) << text << "\n"
+        @prefix = nil
       end
 
       private

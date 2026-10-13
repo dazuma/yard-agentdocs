@@ -79,9 +79,10 @@ eviewed before any implementation code is touched.
 1. The user picks what to tackle next.
 2. Claude proposes the `examples/<tree>/lib` source exercising it and the
    `examples/<tree>/doc` output it should produce, asking about any design
-   choice not already settled. For multi-line tag or docstring text, mirror the
-   source comment's exact line breaks — the template preserves raw text verbatim
-   rather than rewrapping.
+   choice not already settled. For multi-line tag or docstring text under the
+   `markdown` dialect, mirror the source comment's exact line breaks — the
+   template preserves raw text verbatim rather than rewrapping. Under the
+   `rdoc` dialect, RDoc joins each paragraph or list item onto one line.
 3. The user reviews and iterates on those `examples/` changes. Nothing outside
    `examples/` is touched yet.
 4. Once the user explicitly approves, Claude implements: confirm `toys test`

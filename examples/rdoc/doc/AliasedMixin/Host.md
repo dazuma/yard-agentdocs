@@ -13,8 +13,7 @@ description: "Includes and extends the aliased mixin."
 
 Includes and extends the aliased mixin.
 
-Its Ruby `include` and `extend` run before the alias is assigned, as in
-`oauth2`, where the including class lives in a file parsed first.
+Its Ruby `include` and `extend` run before the alias is assigned, as in `oauth2`, where the including class lives in a file parsed first.
 
 ## Member Summary
 
