@@ -8,8 +8,10 @@ long_desc \
     " at the repository root, one `<name>-<version>` directory per gem.",
   "",
   "This is a repo-internal development tool. It is not part of the" \
-    " `yard-agentdocs` gem and is not run by `toys ci`. A full build takes" \
-    " hours.",
+    " `yard-agentdocs` gem and is not run by `toys ci`. How long a full" \
+    " build takes depends on the manifest and the machine; for a manifest" \
+    " of about 250 gems on a typical development machine, expect minutes," \
+    " not hours.",
   "",
   "## Where the gems come from",
   "",
