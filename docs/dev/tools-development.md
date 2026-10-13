@@ -43,9 +43,9 @@ implements it.
 ## Repo-internal tools
 
 Not every tool in this repo ships in the gem. The `.toys/` directory holds
-tools that exist only for developing it — `toys ci`, `toys release`, and
-`toys corpus manifest` — and is left out of the gemspec's file list, so
-`toys do --gem=yard-agentdocs` never sees them.
+tools that exist only for developing it — `toys ci`, `toys release`,
+`toys corpus manifest`, and `toys corpus build` — and is left out of the
+gemspec's file list, so `toys do --gem=yard-agentdocs` never sees them.
 
 They follow the same architecture as the shipped tools, with one difference:
 their implementation classes live under `.toys/.lib/` rather than `lib/`,

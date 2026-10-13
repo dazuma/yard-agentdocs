@@ -22,6 +22,17 @@ A Bundle for one installed gem release, written by `agentdocs gems` to
 `<XDG data home>/yard-agentdocs/gems/<name>-<version>`. Its input is immutable, and
 its identity lives only in that path — nothing inside the tree names the gem or version.
 
+**Corpus**:
+The fixed set of gem versions named by the committed corpus manifest, chosen to check
+properties that must hold across real gems rather than only across the examples. A
+Corpus contains many Bundles and is not itself one.
+
+**Corpus bundle**:
+A Bundle built from one gem version in the Corpus. It is a Gems bundle in every respect
+except where it lives, under the repository's own `corpus/` directory, and where its
+gem's sources came from: always fetched for the Corpus, never borrowed from whatever
+happens to be installed.
+
 **Build tree**:
 A Bundle for a project directory, written by `agentdocs build`. Its input is mutable,
 so it can be stale with respect to the source it describes.

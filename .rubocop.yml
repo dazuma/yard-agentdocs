@@ -21,7 +21,11 @@ AllCops:
     - ".toys/.lib/**/*.rb"
     - ".toys/.toys.rb"
     - ".toys/**/.toys.rb"
+  # `corpus/` is gitignored, but RuboCop does not read `.gitignore`, and
+  # `toys corpus build` fills it with the unpacked sources of a few hundred
+  # third-party gems.
   Exclude:
+    - "corpus/**/*"
     - "examples/**/*"
 
 # The `agentdocs gems` tool file is named for the tool, not for Bundler's
