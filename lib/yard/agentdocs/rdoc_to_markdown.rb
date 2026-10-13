@@ -87,8 +87,10 @@ module YARD
     # matters most for a label with no text followed by a bullet list
     # (nokogiri's `[Parameters]` sections), where RDoc parses the bullet
     # list as a sibling, not as the item's content. The label is bold
-    # rather than a code span because it can carry inline markup. See
-    # issue #24.
+    # rather than a code span because it can carry inline markup. A label's
+    # pending prefix is flushed before a nested list or a blank line, but
+    # needs no flush before a verbatim block: RDoc always parses an item's
+    # first indented line as its paragraph, never as verbatim. See issue #24.
     #
     # **Single-line mode** (`single_line: true`) is for a Summary, which
     # must stay on one line on every surface it renders on. A Summary
