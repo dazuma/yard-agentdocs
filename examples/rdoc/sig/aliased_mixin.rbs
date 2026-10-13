@@ -1,0 +1,12 @@
+module AliasedMixin
+  class Host
+    include AliasedMixin::Filtering
+    extend AliasedMixin::Filtering
+  end
+
+  # Removes secrets from text.
+  module Filtering
+    # Returns the text that replaces a secret.
+    def placeholder: () -> String
+  end
+end

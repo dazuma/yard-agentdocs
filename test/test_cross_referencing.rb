@@ -545,4 +545,60 @@ describe ::YARD::AgentDocs::CrossReferencing do
       assert_equal("Baz.md", holder.link_path(target))
     end
   end
+
+  describe "#direct_mixins" do
+    # The `oauth2` shape: the Ruby `include`/`extend` names a constant alias
+    # assigned after it, and the signature file re-declares the class's
+    # mixins before declaring a module at the alias's path.
+    let(:alias_source) do
+      <<~RUBY
+        module Foo
+          class Host
+            include Filtering
+            extend Filtering
+          end
+
+          Filtering = Vendor::Filtering
+        end
+      RUBY
+    end
+
+    let(:alias_signature) do
+      <<~RBS
+        module Foo
+          class Host
+            include Foo::Filtering
+            extend Foo::Filtering
+          end
+
+          module Filtering
+          end
+        end
+      RBS
+    end
+
+    it "keeps resolved modules and unresolved proxies, in order" do
+      holder = holder_for(<<~RUBY, "Foo")
+        module Known; end
+
+        class Foo
+          include Known
+          include Unknown
+          extend Known
+        end
+      RUBY
+      assert_equal(["Unknown", "Known"], holder.direct_mixins(:instance).map(&:path))
+      assert_equal(["Known"], holder.direct_mixins(:class).map(&:path))
+    end
+
+    it "drops a stale constant and its same-path duplicate" do
+      holder = holder_for(alias_source, "Foo::Host")
+      ::YARD.parse_string(alias_signature, :rbs)
+      [:instance, :class].each do |scope|
+        mixins = holder.direct_mixins(scope)
+        assert_equal(["Foo::Filtering"], mixins.map(&:path))
+        assert_kind_of(::YARD::CodeObjects::ModuleObject, mixins.first)
+      end
+    end
+  end
 end

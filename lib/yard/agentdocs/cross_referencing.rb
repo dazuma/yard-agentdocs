@@ -216,6 +216,33 @@ module YARD
         target_file.relative_path_from(current_dir).to_s
       end
 
+      ##
+      # The object currently being rendered's direct mixins for +scope+,
+      # keeping only modules (resolved, or an unresolved `Proxy`) and
+      # dropping repeats of the same path. Every reader of
+      # `object.mixins` goes through here rather than reading it raw.
+      #
+      # The raw list can hold a `ConstantObject`, and a second entry with
+      # the same path. YARD's RBS mixin handler, unlike its Ruby one, never
+      # checks whether a mixin name resolves to a constant: an RBS `include`
+      # of a name the Ruby source assigns as a constant alias appends that
+      # `ConstantObject` directly. When the RBS file then declares a module
+      # at the same path, the module replaces the constant in the registry,
+      # but the mixin list keeps the stale constant, next to the Ruby
+      # `include`'s proxy, which now resolves to the module.
+      # `OAuth2::FilteredAttributes` in the `oauth2` gem has this shape.
+      #
+      # @param scope [:instance, :class] `:instance` for `include`d modules,
+      #   `:class` for `extend`ed ones
+      # @return [Array<::YARD::CodeObjects::NamespaceObject,
+      #   ::YARD::CodeObjects::Proxy>]
+      #
+      def direct_mixins(scope)
+        object.mixins(scope)
+              .select { |mod| mod.is_a?(::YARD::CodeObjects::NamespaceObject) || mod.is_a?(::YARD::CodeObjects::Proxy) }
+              .uniq(&:path)
+      end
+
       private
 
       # Resolves +name+ against the object currently being rendered, then —

@@ -16,6 +16,9 @@ okf_version: "0.2"
 
 ## Classes & modules
 
+* [`AliasedMixin`](AliasedMixin.md) - Exercises a constant alias that a signature file redeclares as a module.
+* [`AliasedMixin::Filtering`](AliasedMixin/Filtering.md) - Removes secrets from text.
+* [`AliasedMixin::Host`](AliasedMixin/Host.md) - Includes and extends the aliased mixin.
 * [`BlockMarkup`](BlockMarkup.md) - Exercises the block constructs RDoc's own markup gives no meaning to.
 * [`Greeter`](Greeter.md) - Builds a greeting string.
 * [`Provenance`](Provenance.md) - Exercises RBS provenance-marker stripping.

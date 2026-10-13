@@ -84,7 +84,7 @@ end
 # in transitively by a superclass (which {superclass_line} deliberately
 # doesn't walk, so we can't know those either).
 def includes_line
-  mixin_line("Includes", object.mixins(:instance))
+  mixin_line("Includes", direct_mixins(:instance))
 end
 
 # Modules/classes `extend`ed directly in the parsed source (their instance
@@ -99,7 +99,7 @@ end
 # it surfaces the fact via an "Extended by" line but doesn't duplicate the
 # method into a second listing.
 def extends_line
-  mixin_line("Extends", object.mixins(:class))
+  mixin_line("Extends", direct_mixins(:class))
 end
 
 # A class/module reopened purely to nest another class/module inside it

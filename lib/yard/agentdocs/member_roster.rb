@@ -25,7 +25,7 @@ module YARD
     # {MemberListing} (for `constant_objects`/`class_attribute_objects`/
     # `instance_attribute_objects`/`class_method_objects`/
     # `instance_method_objects`, each accepting an optional namespace
-    # argument) and
+    # argument) and {CrossReferencing#direct_mixins}/
     # {CrossReferencing#link_path}/{CrossReferencing#self_reference?}.
     #
     module MemberRoster
@@ -79,7 +79,7 @@ module YARD
       # (`def self.foo` on a module stays solely on the module; `include`
       # never brings those along).
       def include_roster_lines(own)
-        object.mixins(:instance).filter_map do |mod|
+        direct_mixins(:instance).filter_map do |mod|
           next nil if mod.is_a?(::YARD::CodeObjects::Proxy)
           headings = (include_headings(mod) - own).sort
           headings.empty? ? nil : roster_line("Included from", mod, headings)
@@ -109,7 +109,7 @@ module YARD
       # not fabricating a second listing for it — metadata-only, matching
       # YARD's own default HTML template.
       def extend_roster_lines(own)
-        object.mixins(:class).filter_map do |mod|
+        direct_mixins(:class).filter_map do |mod|
           next nil if mod.is_a?(::YARD::CodeObjects::Proxy) || self_reference?(mod)
           headings = (extend_headings(mod) - own).sort
           headings.empty? ? nil : roster_line("Extended from", mod, headings)
