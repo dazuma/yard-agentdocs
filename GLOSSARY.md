@@ -51,7 +51,8 @@ The first sentence — or the first paragraph, when there is no sentence-ending
 period — extracted from an object's docstring. One piece of text, rendered on
 three surfaces: the `description:` frontmatter key of the object's own Concept,
 the object's entry in `index.md`, and its entry in the parent's
-`## Member Summary`. `description:` is OKF's key name, fixed by interop — it is
+`## Member Summary` — always a single line on each, so one `grep` returns
+all of it. `description:` is OKF's key name, fixed by interop — it is
 not a fourth concept.
 _Avoid_: description, blurb, abstract.
 
