@@ -10,6 +10,11 @@
 #
 module LabeledSummary
   ##
+  # [NOTE:] Retained for compatibility with 1.x, in a label ending in a colon.
+  #
+  LEGACY = true
+
+  ##
   # Supported versions:: 2.0 and later, in the double-colon form.
   #
   SUPPORTED = ">= 2.0"

@@ -9,7 +9,8 @@ module YARD
     # stdlib converter: it never falls back to raw HTML for styled inline
     # text, it never flattens a block construct RDoc's own markup gives no
     # meaning to, and it never re-wraps a paragraph or list item. It also
-    # has a single-line mode, for text that must stay on one line.
+    # renders label lists as CommonMark, and has a single-line mode, for
+    # text that must stay on one line.
     #
     # **Inline: no raw-HTML fallback** for `<tt>`/`<code>`, `<b>`/`<i>`/
     # `<em>`, `<s>`/`<del>`, and their `+word+`/`` `word` ``/`*word*`/
@@ -72,13 +73,31 @@ module YARD
     # in the output string instead would leave runs of spaces where a
     # list item's continuation indent had been. See issue #20.
     #
+    # **Label lists as CommonMark bullets.** RDoc has two label-list
+    # syntaxes, `[label] text` and `label:: text`. The upstream converter
+    # renders them as a PHP-Markdown-Extra definition list
+    # (`label\n:   text`), which is not CommonMark, follows the list with
+    # two blank lines, and drops the outer label of a nested item. This
+    # class renders each item as `-   **label:** text` instead, in one
+    # tight list. Labels sharing an item render as `**a**, **b:**`, after
+    # YARD's HTML, which shares one `<dd>` between them. A label with no
+    # text gets no colon. A nested item becomes a sub-list, keeping every
+    # label. The marker is `-` rather than the `*` of upstream bullets
+    # because CommonMark merges adjacent lists that share a marker. That
+    # matters most for a label with no text followed by a bullet list
+    # (nokogiri's `[Parameters]` sections), where RDoc parses the bullet
+    # list as a sibling, not as the item's content. The label is bold
+    # rather than a code span because it can carry inline markup. See
+    # issue #24.
+    #
     # **Single-line mode** (`single_line: true`) is for a Summary, which
     # must stay on one line on every surface it renders on. A Summary
     # reaches the converter as one line of source, and two constructs turn
     # one line into several. One is a label list (`[label] text` or
     # `label:: text`). Its upstream form, `label\n:   text`, is multi-line
     # by construction (and not CommonMark), so this mode renders each item
-    # inline as `label: text` instead. Items nest recursively the same way:
+    # inline as `label: text` instead, adding no second colon to a label
+    # that already ends in one. Items nest recursively the same way:
     # joining a two-line `Author:: x` / `Copyright:: y` header makes RDoc
     # parse a note item whose text is a second one, and the upstream
     # converter drops the outer label there. Prose RDoc misreads as a label
@@ -185,34 +204,65 @@ module YARD
       end
 
       ##
-      # In single-line mode, appends a label-list item's labels to the
-      # pending prefix as `label: `, rather than starting a definition
-      # list. The prefix is still pending when a nested item starts, so
-      # nested labels accumulate in order.
+      # Starts a label-list item as a bullet, `-   **label:** `, rather
+      # than as a definition list. In single-line mode, instead appends
+      # the item's labels to the pending prefix as `label: `. The prefix
+      # is still pending when a nested item starts, so nested labels
+      # accumulate in order.
       #
       # @param list_item [::RDoc::Markup::ListItem]
       # @return [void]
       #
       def accept_list_item_start(list_item)
-        return super unless inline_label_item?
+        return super unless label_item?
 
-        labels = Array(list_item.label).map { |label| "#{attributes(label).strip}: " }
-        @prefix = "#{@prefix}#{labels.join}"
+        labels = Array(list_item.label).map { |label| attributes(label).strip }
+        if @single_line
+          @prefix = "#{@prefix}#{labels.map { |label| "#{with_colon(label)} " }.join}"
+        else
+          @prefix = (" " * @indent) + "-   #{bold_labels(labels, list_item)} "
+          @indent += 4
+        end
       end
 
       ##
-      # In single-line mode, ends a label-list item without the upstream
-      # trailing blank line. A label with no text is emitted on its own.
+      # Ends a label-list item without the upstream trailing blank line,
+      # so consecutive items form one tight list. A label with no text is
+      # emitted on its own.
       #
       # @param list_item [::RDoc::Markup::ListItem]
       # @return [void]
       #
       def accept_list_item_end(list_item)
-        return super unless inline_label_item?
-        return if @prefix.nil?
+        return super unless label_item?
 
-        @res << @prefix.rstrip << "\n"
-        @prefix = nil
+        flush_label_prefix
+        @indent -= 4 unless @single_line
+      end
+
+      ##
+      # Emits a pending label-item prefix before a nested list starts,
+      # rather than letting the nested item's own prefix overwrite it, as
+      # the upstream converter does.
+      #
+      # @param list [::RDoc::Markup::List]
+      # @return [void]
+      #
+      def accept_list_start(list)
+        flush_label_prefix if label_item? && !@single_line
+        super
+      end
+
+      ##
+      # Emits a pending label-item prefix before a blank line, so that a
+      # label with no text stays ahead of whatever follows it.
+      #
+      # @param blank_line [::RDoc::Markup::BlankLine]
+      # @return [void]
+      #
+      def accept_blank_line(blank_line)
+        flush_label_prefix if label_item? && !@single_line
+        super
       end
 
       ##
@@ -269,10 +319,31 @@ module YARD
 
       private
 
-      # Whether the list item being visited is a label-list item to render
-      # inline, in single-line mode.
-      def inline_label_item?
-        @single_line && [:NOTE, :LABEL].include?(@list_type.last)
+      # Whether the innermost list being visited is a label list.
+      def label_item?
+        [:NOTE, :LABEL].include?(@list_type.last)
+      end
+
+      # +label+ followed by a colon, unless it already ends in one.
+      def with_colon(label)
+        label.end_with?(":") ? label : "#{label}:"
+      end
+
+      # The bold labels of a body-mode item: `**a**, **b:**`. The colon
+      # introduces the item's content, so a label with none gets none.
+      def bold_labels(labels, list_item)
+        has_content = list_item.parts.any? { |part| !part.is_a?(::RDoc::Markup::BlankLine) }
+        *leading, last = labels
+        last = with_colon(last) if has_content
+        (leading + [last]).map { |label| "**#{label}**" }.join(", ")
+      end
+
+      # Emits the pending label-item prefix, if any, on a line of its own.
+      def flush_label_prefix
+        return if @prefix.nil?
+
+        @res << @prefix.rstrip << "\n"
+        @prefix = nil
       end
 
       # Splits +text+ into `[:prose, lines]` and `[:passthrough, lines]`

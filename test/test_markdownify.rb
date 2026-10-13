@@ -94,8 +94,46 @@ describe ::YARD::AgentDocs::Markdownify do
     end
 
     describe "a label-list item" do
-      it "renders as a definition list by default" do
-        assert_equal("Label\n:   text", holder.markdownify("[Label] text"))
+      it "renders as a bullet with a bold label by default" do
+        assert_equal("-   **Label:** text", holder.markdownify("[Label] text"))
+      end
+
+      it "renders consecutive items as one tight list" do
+        assert_equal("-   **a:** one
+-   **b:** two", holder.markdownify("a:: one
+b:: two"))
+      end
+
+      it "separates the list from following prose by one blank line" do
+        assert_equal("-   **Label:** text
+
+More prose.", holder.markdownify("[Label] text
+
+More prose."))
+      end
+
+      it "joins several labels on one item" do
+        assert_equal("-   **a**, **b:** text", holder.markdownify("[a]
+[b] text"))
+      end
+
+      it "does not add a second colon to a label ending in one" do
+        assert_equal("-   **NOTE:** text", holder.markdownify("[NOTE:] text"))
+      end
+
+      it "renders a nested item as a sub-list, keeping the outer label" do
+        assert_equal("-   **Author:**
+    -   **Jane Copyright:** 2026",
+                     holder.markdownify("Author:: Jane Copyright:: 2026"))
+      end
+
+      it "renders a label with no text without a colon, ahead of a following list" do
+        assert_equal("-   **Label**
+
+*   a
+*   b", holder.markdownify("[Label]
+* a
+* b"))
       end
 
       it "renders a bracketed label inline in single-line mode" do
@@ -113,6 +151,10 @@ describe ::YARD::AgentDocs::Markdownify do
 
       it "converts inline markup in the label in single-line mode" do
         assert_equal("`code`: text", holder.markdownify("[+code+] text", single_line: true))
+      end
+
+      it "does not add a second colon to a label ending in one in single-line mode" do
+        assert_equal("NOTE: text", holder.markdownify("[NOTE:] text", single_line: true))
       end
 
       it "renders a label with no text in single-line mode" do

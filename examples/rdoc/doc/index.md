@@ -21,6 +21,7 @@ okf_version: "0.2"
 * [`AliasedMixin::Host`](AliasedMixin/Host.md) - Includes and extends the aliased mixin.
 * [`BlockMarkup`](BlockMarkup.md) - Exercises the block constructs RDoc's own markup gives no meaning to.
 * [`Greeter`](Greeter.md) - Builds a greeting string.
+* [`LabelList`](LabelList.md) - Exercises RDoc label lists in page bodies and tag text.
 * [`LabeledSummary`](LabeledSummary.md) - EXPERIMENTAL: Exercises summaries that open with an RDoc label-list item.
 * [`LabeledSummary::Header`](LabeledSummary/Header.md) - Author: Jane Doe Copyright: Copyright (c) 2026 Example Corp.
 * [`Provenance`](Provenance.md) - Exercises RBS provenance-marker stripping.
