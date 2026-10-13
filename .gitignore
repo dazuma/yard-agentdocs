@@ -2,6 +2,7 @@
 /.ruby-lsp/
 /.claude/
 /agentdocs/
+/corpus/
 /doc/
 /pkg/
 /tmp/
