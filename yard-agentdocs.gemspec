@@ -37,7 +37,9 @@ require "yard/agentdocs/version"
   # running the tests against the new major.
   spec.add_dependency "rdoc", "~> 8.0"
   spec.add_dependency "simple_xdg", "~> 0.1"
-  spec.add_dependency "yard", "~> 0.9"
+  # Floor: `Builder` forces YARD's built-in `yard` markup provider, which
+  # older releases lack.
+  spec.add_dependency "yard", "~> 0.9", ">= 0.9.45"
   spec.required_ruby_version = ">= 3.4"
 
   spec.metadata["bug_tracker_uri"] = "https://github.com/dazuma/yard-agentdocs/issues"

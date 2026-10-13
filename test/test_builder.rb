@@ -91,6 +91,16 @@ describe ::YARD::AgentDocs::Builder do
     end
   end
 
+  # YARD refuses to run when a pinned markup provider can't be loaded, even
+  # though this template never renders through one. The gem name is made up
+  # so the example holds on a machine that has any real provider installed.
+  it "overrides a markup provider set in .yardopts" do
+    with_project(yardopts: "--markup markdown --markup-provider no_such_gem_xyz\n") do |dir|
+      assert(build(dir))
+      assert_includes(read_output(dir, "Widget.md"), "# class Widget")
+    end
+  end
+
   # Source paths recorded in the output are relative to wherever YARD ran, so
   # they pin down that the build really happened inside the input directory
   # and not in the shell's own.

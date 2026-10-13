@@ -11,11 +11,13 @@ long_desc \
   "",
   ["    toys agentdocs build --markup markdown --title \"My API\" - README.md"],
   "",
-  "Three YARD settings are always forced, and cannot be overridden from" \
+  "Four YARD settings are always forced, and cannot be overridden from" \
     " `.yardopts` or the command line: the output format (`agentdocs`), the" \
     " template (`default`, which is where this gem's `agentdocs` renderers" \
-    " live), and the output directory (use `--output` to change it). The" \
-    " output directory is forced so that an agentdocs build never writes into" \
+    " live), the output directory (use `--output` to change it), and the" \
+    " markup provider (`yard`'s built-in one; agentdocs never renders through" \
+    " a provider, so a project's choice of one is irrelevant). The output" \
+    " directory is forced so that an agentdocs build never writes into" \
     " whatever directory the project uses for its human-facing HTML docs."
 
 flag :input, "-i", "--input DIR",
