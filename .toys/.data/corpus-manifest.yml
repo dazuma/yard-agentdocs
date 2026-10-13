@@ -4,7 +4,7 @@
 # family caps -- lives in corpus-config.yml and is merged in here on
 # every run. Editing this file by hand loses that edit on the next run.
 ---
-generated_at: '2026-09-18'
+generated_at: '2026-10-13'
 window_days: 90
 strategies:
 - downloads
@@ -12,18 +12,18 @@ strategies:
 count: 250
 gems:
 - name: activerecord
-  version: 8.1.3.1
+  version: 8.1.4
   ranks:
-    downloads: 55
+    downloads: 54
     dependents: 7
 - name: activeresource
   version: 6.2.0
   ranks:
     dependents: 140
 - name: activesupport
-  version: 8.1.3.1
+  version: 8.1.4
   ranks:
-    downloads: 9
+    downloads: 7
     dependents: 1
 - name: addressable
   version: 2.9.0
@@ -34,24 +34,24 @@ gems:
   version: 2.4.3
   ranks:
     downloads: 33
-    dependents: 967
+    dependents: 972
 - name: awesome_print
   version: 1.9.2
   ranks:
-    downloads: 393
-    dependents: 77
+    downloads: 397
+    dependents: 78
 - name: aws-eventstream
   version: 1.4.0
   ranks:
     downloads: 26
 - name: aws-partitions
-  version: 1.1287.0
+  version: 1.1294.0
   ranks:
     downloads: 15
 - name: aws-sdk
   version: 3.3.0
   ranks:
-    downloads: 652
+    downloads: 685
     dependents: 38
 - name: aws-sdk-core
   version: 3.257.0
@@ -59,29 +59,29 @@ gems:
     downloads: 13
     dependents: 70
 - name: aws-sdk-s3
-  version: 1.232.1
+  version: 1.233.2
   ranks:
     downloads: 27
     dependents: 132
 - name: aws-sigv4
   version: 1.12.1
   ranks:
-    downloads: 24
+    downloads: 25
     dependents: 89
 - name: base64
   version: 0.3.0
   ranks:
-    downloads: 7
+    downloads: 8
     dependents: 58
 - name: bcrypt
   version: 3.1.22
   ranks:
-    downloads: 151
+    downloads: 147
     dependents: 120
 - name: benchmark
   version: 0.5.0
   ranks:
-    downloads: 88
+    downloads: 96
     dependents: 488
 - name: bigdecimal
   version: 4.1.3
@@ -91,45 +91,51 @@ gems:
 - name: bootsnap
   version: 1.26.0
   ranks:
-    downloads: 126
+    downloads: 124
 - name: bootstrap-sass
   version: 3.4.1
   ranks:
+    downloads: 992
     dependents: 156
+- name: brakeman
+  version: 8.1.0
+  ranks:
+    downloads: 162
+    dependents: 603
 - name: builder
   version: 3.3.0
   ranks:
-    downloads: 60
+    downloads: 64
     dependents: 34
 - name: bundler
-  version: 4.0.21
+  version: 4.0.22
   ranks:
     downloads: 1
     dependents: 25
 - name: bunny
   version: 3.4.0
   ranks:
-    downloads: 715
+    downloads: 714
     dependents: 146
 - name: capistrano
   version: 3.20.1
   ranks:
-    downloads: 940
+    downloads: 936
     dependents: 26
 - name: capybara
   version: 3.40.0
   ranks:
-    downloads: 202
+    downloads: 200
     dependents: 86
 - name: carrierwave
   version: 3.1.4
   ranks:
-    downloads: 368
+    downloads: 376
     dependents: 126
 - name: cgi
   version: 0.5.2
   ranks:
-    downloads: 148
+    downloads: 136
     dependents: 280
 - name: chef
   version: 19.3.15
@@ -138,27 +144,27 @@ gems:
 - name: chronic
   version: 0.10.2
   ranks:
-    downloads: 541
+    downloads: 543
     dependents: 121
 - name: coderay
   version: 1.1.3
   ranks:
-    downloads: 129
+    downloads: 131
     dependents: 201
 - name: coffee-rails
   version: 5.0.0
   ranks:
-    downloads: 542
-    dependents: 97
+    downloads: 544
+    dependents: 96
 - name: colored
   version: '1.2'
   ranks:
-    downloads: 291
+    downloads: 298
     dependents: 134
 - name: colorize
   version: 1.1.0
   ranks:
-    downloads: 449
+    downloads: 444
     dependents: 16
 - name: commander
   version: 6.0.0
@@ -168,7 +174,7 @@ gems:
 - name: compass
   version: 1.0.3
   ranks:
-    dependents: 98
+    dependents: 99
 - name: concurrent-ruby
   version: 1.3.8
   ranks:
@@ -177,49 +183,49 @@ gems:
 - name: connection_pool
   version: 3.0.2
   ranks:
-    downloads: 21
+    downloads: 19
     dependents: 138
 - name: crack
   version: 1.0.1
   ranks:
-    downloads: 144
+    downloads: 145
     dependents: 181
 - name: crass
   version: 1.0.7
   ranks:
-    downloads: 64
+    downloads: 62
 - name: csv
   version: 3.3.6
   ranks:
-    downloads: 75
+    downloads: 73
     dependents: 92
 - name: cucumber
-  version: 11.1.1
+  version: 12.0.0
   ranks:
-    downloads: 643
+    downloads: 661
     dependents: 131
 - name: curb
-  version: 1.3.7
+  version: 1.4.0
   ranks:
     dependents: 105
 - name: daemons
   version: 1.4.1
   ranks:
-    downloads: 535
-    dependents: 111
+    downloads: 542
+    dependents: 110
 - name: date
-  version: 3.5.1
+  version: 3.6.0
   ranks:
-    downloads: 66
-    dependents: 814
+    downloads: 71
+    dependents: 807
 - name: declarative
   version: 0.0.20
   ranks:
-    downloads: 155
+    downloads: 151
 - name: devise
   version: 5.0.4
   ranks:
-    downloads: 211
+    downloads: 224
     dependents: 59
 - name: did_you_mean
   version: 2.0.0
@@ -227,7 +233,7 @@ gems:
 - name: diff-lcs
   version: 2.0.0
   ranks:
-    downloads: 38
+    downloads: 39
     dependents: 203
 - name: dm-core
   version: 1.2.1
@@ -236,51 +242,46 @@ gems:
 - name: docile
   version: 1.4.1
   ranks:
-    downloads: 141
-    dependents: 594
+    downloads: 153
+    dependents: 593
 - name: domain_name
-  version: 0.6.20260907
+  version: 0.7.20261007
   ranks:
-    downloads: 100
+    downloads: 98
 - name: dotenv
   version: 3.2.0
   ranks:
-    downloads: 90
+    downloads: 86
     dependents: 55
 - name: drb
   version: 2.2.3
   ranks:
-    downloads: 50
-    dependents: 948
-- name: dry-struct
-  version: 1.8.1
-  ranks:
-    downloads: 644
-    dependents: 157
+    downloads: 47
+    dependents: 953
 - name: erb
   version: 6.0.7
   ranks:
-    downloads: 94
-    dependents: 533
+    downloads: 91
+    dependents: 536
 - name: erubi
   version: 1.13.1
   ranks:
-    downloads: 78
+    downloads: 79
     dependents: 503
 - name: erubis
   version: 2.7.0
   ranks:
-    downloads: 551
+    downloads: 553
     dependents: 115
 - name: eventmachine
   version: 1.2.7
   ranks:
-    downloads: 296
+    downloads: 309
     dependents: 32
 - name: excon
-  version: 1.7.1
+  version: 1.7.3
   ranks:
-    downloads: 107
+    downloads: 108
     dependents: 100
 - name: faraday
   version: 2.14.4
@@ -290,119 +291,119 @@ gems:
 - name: faraday-excon
   version: 2.4.0
   ranks:
-    downloads: 153
+    downloads: 158
 - name: faraday-multipart
   version: 1.2.0
   ranks:
-    downloads: 99
+    downloads: 107
     dependents: 123
 - name: faraday-net_http
-  version: 3.4.4
+  version: 3.5.0
   ranks:
     downloads: 20
     dependents: 634
 - name: faraday-net_http_persistent
   version: 2.3.1
   ranks:
-    downloads: 156
+    downloads: 160
     dependents: 547
 - name: faraday-retry
   version: 2.4.0
   ranks:
-    downloads: 97
+    downloads: 104
     dependents: 127
 - name: faraday_middleware
   version: 1.2.1
   ranks:
-    downloads: 196
+    downloads: 214
     dependents: 20
 - name: ffi
   version: 1.17.4
   ranks:
-    downloads: 19
+    downloads: 21
     dependents: 35
 - name: fileutils
-  version: 1.8.0
+  version: 1.8.1
   pinned: true
   ranks:
-    dependents: 281
+    dependents: 283
 - name: fluentd
-  version: 1.19.3
+  version: 1.19.4
   ranks:
-    downloads: 755
+    downloads: 764
     dependents: 28
 - name: fog
   version: 2.3.0
   ranks:
-    dependents: 99
+    dependents: 98
 - name: gapic-common
-  version: 1.3.0
+  version: 1.5.1
   ranks:
-    downloads: 527
+    downloads: 529
     dependents: 141
 - name: git
   version: 5.6.0
   ranks:
-    downloads: 300
+    downloads: 306
     dependents: 56
 - name: gli
   version: 2.22.2
   ranks:
-    downloads: 420
+    downloads: 440
     dependents: 83
 - name: globalid
   version: 1.4.0
   ranks:
-    downloads: 76
-    dependents: 825
+    downloads: 72
+    dependents: 830
 - name: google-apis-core
-  version: 1.2.5
+  version: 1.3.1
   ranks:
-    downloads: 145
+    downloads: 140
     dependents: 74
 - name: google-cloud-env
-  version: 2.4.0
+  version: 2.4.1
   ranks:
-    downloads: 127
+    downloads: 126
 - name: google-cloud-errors
   version: 1.7.0
   ranks:
-    downloads: 168
+    downloads: 169
     dependents: 142
 - name: google-protobuf
   version: 4.36.2
   ranks:
-    downloads: 147
+    downloads: 144
     dependents: 224
 - name: googleauth
   version: 1.17.4
   ranks:
-    downloads: 102
-    dependents: 305
+    downloads: 101
+    dependents: 306
 - name: guard
   version: 2.20.2
   ranks:
-    downloads: 485
+    downloads: 494
     dependents: 122
 - name: haml
   version: 7.5.1
   ranks:
-    downloads: 381
+    downloads: 394
     dependents: 33
 - name: hashdiff
   version: 1.2.1
   ranks:
-    downloads: 134
-    dependents: 509
+    downloads: 137
+    dependents: 505
 - name: hashie
   version: 5.1.0
   ranks:
-    downloads: 132
+    downloads: 128
     dependents: 18
 - name: highline
   version: 3.1.2
   ranks:
-    downloads: 176
+    downloads: 172
     dependents: 24
 - name: hoe
   version: 4.7.2
@@ -420,62 +421,62 @@ gems:
 - name: http
   version: 6.0.4
   ranks:
-    downloads: 305
+    downloads: 307
     dependents: 53
 - name: http-cookie
   version: 1.1.6
   ranks:
-    downloads: 85
+    downloads: 88
     dependents: 564
 - name: httparty
-  version: 0.24.2
+  version: 0.24.3
   ranks:
-    downloads: 159
+    downloads: 156
     dependents: 8
 - name: httpclient
   version: 2.9.0
   ranks:
-    downloads: 122
+    downloads: 125
     dependents: 65
 - name: i18n
   version: 1.15.2
   ranks:
-    downloads: 8
+    downloads: 9
     dependents: 22
 - name: io-console
   version: 0.9.4
   ranks:
-    downloads: 58
+    downloads: 53
     dependents: 909
 - name: irb
   version: 1.18.0
   ranks:
-    downloads: 77
+    downloads: 81
     dependents: 502
 - name: jekyll
   version: 4.4.1
   ranks:
-    downloads: 789
+    downloads: 820
     dependents: 14
 - name: jekyll-feed
-  version: 0.17.0
+  version: 0.18.0
   ranks:
     dependents: 128
 - name: jekyll-seo-tag
-  version: 2.9.0
+  version: 2.9.1
   ranks:
     dependents: 94
 - name: jmespath
   version: 1.6.2
   ranks:
-    downloads: 42
+    downloads: 43
 - name: jquery-rails
   version: 4.6.1
   ranks:
-    downloads: 330
+    downloads: 329
     dependents: 31
 - name: json
-  version: 3.0.2
+  version: 3.1.0
   ranks:
     downloads: 2
     dependents: 3
@@ -486,7 +487,7 @@ gems:
 - name: jwt
   version: 3.3.0
   ranks:
-    downloads: 41
+    downloads: 46
     dependents: 46
 - name: kaminari
   version: 1.2.2
@@ -496,35 +497,35 @@ gems:
 - name: knapsack
   version: 4.0.0
   ranks:
-    downloads: 160
+    downloads: 159
 - name: kramdown
   version: 2.5.2
   ranks:
-    downloads: 222
+    downloads: 233
     dependents: 106
 - name: language_server-protocol
   version: 3.17.0.6
   ranks:
-    downloads: 62
+    downloads: 65
 - name: launchy
   version: 3.1.1
   ranks:
-    downloads: 244
+    downloads: 246
     dependents: 76
 - name: lint_roller
   version: 1.1.0
   ranks:
-    downloads: 106
+    downloads: 103
     dependents: 382
 - name: liquid
   version: 5.14.0
   ranks:
-    downloads: 332
+    downloads: 350
     dependents: 108
 - name: listen
-  version: 3.10.0
+  version: 3.10.1
   ranks:
-    downloads: 171
+    downloads: 174
     dependents: 104
 - name: lita
   version: 4.8.0
@@ -542,7 +543,7 @@ gems:
 - name: logging
   version: 2.4.0
   ranks:
-    downloads: 730
+    downloads: 735
     dependents: 137
 - name: logstash-codec-plain
   version: 3.1.0
@@ -551,17 +552,17 @@ gems:
 - name: loofah
   version: 2.25.2
   ranks:
-    downloads: 61
+    downloads: 59
     dependents: 484
 - name: mail
   version: 2.9.1
   ranks:
-    downloads: 71
+    downloads: 70
     dependents: 81
 - name: marcel
   version: 2.1.0
   ranks:
-    downloads: 103
+    downloads: 100
     dependents: 312
 - name: mechanize
   version: 2.14.1
@@ -570,27 +571,27 @@ gems:
 - name: method_source
   version: 1.1.0
   ranks:
-    downloads: 113
+    downloads: 115
     dependents: 360
 - name: mime-types
   version: 3.7.0
   ranks:
-    downloads: 125
+    downloads: 129
     dependents: 39
 - name: mime-types-data
-  version: 3.2026.0701
+  version: 3.2026.1006
   ranks:
-    downloads: 124
+    downloads: 127
 - name: mini_magick
   version: 5.4.0
   ranks:
-    downloads: 115
-    dependents: 96
+    downloads: 113
+    dependents: 97
 - name: mini_mime
   version: 1.1.5
   ranks:
-    downloads: 29
-    dependents: 923
+    downloads: 28
+    dependents: 931
 - name: minitest
   version: 6.0.6
   ranks:
@@ -599,7 +600,7 @@ gems:
 - name: mongo
   version: 2.26.0
   ranks:
-    downloads: 710
+    downloads: 692
     dependents: 116
 - name: mongoid
   version: 9.1.1
@@ -613,75 +614,75 @@ gems:
 - name: multi_json
   version: 1.21.2
   ranks:
-    downloads: 32
+    downloads: 34
     dependents: 15
 - name: multi_xml
   version: 0.9.1
   ranks:
-    downloads: 110
+    downloads: 112
     dependents: 178
 - name: multipart-post
   version: 2.4.1
   ranks:
-    downloads: 84
+    downloads: 89
     dependents: 176
 - name: mutex_m
   version: 0.3.0
   ranks:
-    downloads: 118
-    dependents: 434
+    downloads: 120
+    dependents: 435
 - name: mysql2
   version: 0.5.7
   ranks:
-    downloads: 366
+    downloads: 374
     dependents: 109
 - name: net-http
-  version: 0.9.1
+  version: 0.10.0
   ranks:
-    downloads: 89
-    dependents: 285
+    downloads: 90
+    dependents: 286
 - name: net-imap
-  version: 0.6.7
+  version: 0.6.8
   ranks:
-    downloads: 57
+    downloads: 69
 - name: net-pop
   version: 0.1.2
   ranks:
-    downloads: 149
+    downloads: 141
 - name: net-protocol
   version: 0.4.0
   ranks:
-    downloads: 95
+    downloads: 87
 - name: net-smtp
-  version: 0.5.1
+  version: 0.5.2
   ranks:
-    downloads: 119
-    dependents: 618
+    downloads: 114
+    dependents: 619
 - name: net-ssh
-  version: 7.3.3
+  version: 7.3.6
   ranks:
-    downloads: 170
+    downloads: 163
     dependents: 50
 - name: netrc
   version: 0.11.0
   ranks:
-    downloads: 158
+    downloads: 157
     dependents: 278
 - name: nio4r
   version: 2.7.5
   ranks:
-    downloads: 45
+    downloads: 51
     dependents: 746
 - name: nokogiri
   version: 1.19.4
   ranks:
-    downloads: 22
+    downloads: 24
     dependents: 4
 - name: oauth
   version: 1.1.8
   ranks:
-    downloads: 372
-    dependents: 78
+    downloads: 349
+    dependents: 77
 - name: oauth2
   version: 2.0.25
   ranks:
@@ -690,81 +691,81 @@ gems:
 - name: octokit
   version: 10.0.0
   ranks:
-    downloads: 197
+    downloads: 199
     dependents: 63
 - name: oj
-  version: 3.17.6
+  version: 3.17.7
   ranks:
-    downloads: 201
+    downloads: 216
     dependents: 48
 - name: omniauth
   version: 2.1.4
   ranks:
-    downloads: 262
+    downloads: 258
     dependents: 41
 - name: omniauth-oauth2
   version: 1.9.0
   ranks:
-    downloads: 318
+    downloads: 315
     dependents: 37
 - name: os
   version: 1.1.4
   ranks:
-    downloads: 120
+    downloads: 119
     dependents: 208
 - name: ostruct
   version: 0.6.3
   ranks:
-    downloads: 82
+    downloads: 77
     dependents: 119
 - name: paperclip
   version: 6.1.0
   ranks:
     dependents: 133
 - name: parallel
-  version: 2.2.0
+  version: 2.3.0
   ranks:
-    downloads: 30
+    downloads: 32
     dependents: 93
 - name: parser
   version: 3.3.12.0
   ranks:
-    downloads: 28
+    downloads: 30
     dependents: 171
 - name: pastel
   version: 0.8.0
   ranks:
-    downloads: 445
-    dependents: 148
+    downloads: 452
+    dependents: 149
 - name: pg
-  version: 1.6.3
+  version: 1.7.0
   ranks:
     downloads: 133
     dependents: 44
 - name: pp
   version: 0.6.4
   ranks:
-    downloads: 96
+    downloads: 95
 - name: prettyprint
-  version: 0.2.0
+  version: 0.2.1
   ranks:
-    downloads: 114
+    downloads: 109
 - name: prism
   version: 1.9.0
   ranks:
-    downloads: 34
+    downloads: 29
     dependents: 301
 - name: pry
   version: 0.16.0
   ranks:
-    downloads: 128
+    downloads: 132
     dependents: 62
 - name: psych
   version: 5.5.0
   pinned: true
   ranks:
-    downloads: 131
-    dependents: 246
+    downloads: 146
+    dependents: 247
 - name: public_suffix
   version: 7.0.5
   ranks:
@@ -773,7 +774,7 @@ gems:
 - name: puma
   version: 8.0.2
   ranks:
-    downloads: 74
+    downloads: 85
     dependents: 124
 - name: rabbit
   version: 4.0.1
@@ -782,8 +783,8 @@ gems:
 - name: racc
   version: 1.8.1
   ranks:
-    downloads: 35
-    dependents: 627
+    downloads: 36
+    dependents: 628
 - name: rack
   version: 3.2.7
   ranks:
@@ -792,12 +793,12 @@ gems:
 - name: rack-protection
   version: 4.2.1
   ranks:
-    downloads: 150
+    downloads: 148
     dependents: 642
 - name: rack-session
   version: 2.1.2
   ranks:
-    downloads: 105
+    downloads: 102
 - name: rack-test
   version: 2.2.0
   ranks:
@@ -806,22 +807,22 @@ gems:
 - name: rackup
   version: 2.3.1
   ranks:
-    downloads: 109
+    downloads: 110
     dependents: 300
 - name: rails
-  version: 8.1.3.1
+  version: 8.1.4
   ranks:
-    downloads: 69
+    downloads: 68
     dependents: 2
 - name: rails-dom-testing
   version: 2.3.0
   ranks:
-    downloads: 91
+    downloads: 92
 - name: rails-html-sanitizer
   version: 1.7.1
   ranks:
-    downloads: 65
-    dependents: 977
+    downloads: 63
+    dependents: 979
 - name: rainbow
   version: 3.1.1
   ranks:
@@ -835,154 +836,159 @@ gems:
 - name: rb-fsevent
   version: 0.11.2
   ranks:
-    downloads: 142
-    dependents: 467
+    downloads: 143
+    dependents: 465
 - name: rb-inotify
   version: 0.11.1
   ranks:
-    downloads: 161
+    downloads: 164
     dependents: 486
 - name: rbs
   version: 4.2.0
   ranks:
-    downloads: 135
-    dependents: 555
+    downloads: 118
+    dependents: 559
 - name: rdoc
-  version: 8.0.0
+  version: 8.1.0
   ranks:
-    downloads: 79
+    downloads: 74
     dependents: 217
 - name: redcarpet
   version: 3.6.1
   ranks:
-    downloads: 347
+    downloads: 345
     dependents: 69
 - name: redis
   version: 6.0.0
   ranks:
-    downloads: 146
+    downloads: 142
     dependents: 19
 - name: regexp_parser
-  version: 2.12.0
+  version: 2.13.1
   ranks:
-    downloads: 39
+    downloads: 38
 - name: reline
   version: 0.7.0
   ranks:
-    downloads: 68
-    dependents: 603
+    downloads: 60
+    dependents: 602
 - name: representable
-  version: 3.2.0
+  version: 3.3.1
   ranks:
-    downloads: 154
-    dependents: 718
+    downloads: 149
+    dependents: 723
 - name: require_all
   version: 3.0.0
   ranks:
-    downloads: 626
+    downloads: 624
     dependents: 143
 - name: resque
   version: 3.1.0
   ranks:
-    dependents: 110
+    dependents: 111
 - name: rest-client
   version: 2.1.0
   ranks:
-    downloads: 219
+    downloads: 223
     dependents: 9
 - name: retriable
   version: 5.0.1
   ranks:
     downloads: 123
-    dependents: 415
+    dependents: 413
 - name: rexml
   version: 3.4.4
   ranks:
-    downloads: 25
+    downloads: 23
     dependents: 160
 - name: rmagick
-  version: 7.1.4
+  version: 7.2.0
   ranks:
-    downloads: 854
+    downloads: 836
     dependents: 88
 - name: rouge
   version: 5.1.0
   ranks:
-    downloads: 137
-    dependents: 149
+    downloads: 139
+    dependents: 148
 - name: rspec
   version: 3.13.2
   ranks:
-    downloads: 92
+    downloads: 97
     dependents: 21
 - name: rspec-core
   version: 3.13.6
   ranks:
-    downloads: 47
+    downloads: 48
     dependents: 216
 - name: rspec-expectations
   version: 3.13.5
   ranks:
-    downloads: 48
+    downloads: 50
     dependents: 351
 - name: rspec-mocks
   version: 3.13.8
   ranks:
-    downloads: 46
-    dependents: 779
+    downloads: 49
+    dependents: 781
 - name: rspec-support
   version: 3.13.7
   ranks:
-    downloads: 44
+    downloads: 45
 - name: rubocop
-  version: 1.91.0
+  version: 1.92.0
   ranks:
     downloads: 40
     dependents: 51
 - name: rubocop-ast
   version: 1.50.0
   ranks:
-    downloads: 53
-    dependents: 896
+    downloads: 56
+    dependents: 897
 - name: rubocop-performance
   version: 1.27.0
   ranks:
     downloads: 121
     dependents: 218
 - name: rubocop-rails
-  version: 2.37.0
+  version: 2.38.0
   ranks:
-    downloads: 136
+    downloads: 134
     dependents: 223
+- name: rubocop-rspec
+  version: 3.10.2
+  ranks:
+    downloads: 165
+    dependents: 183
 - name: ruby-progressbar
   version: 1.13.0
   ranks:
-    downloads: 43
+    downloads: 41
     dependents: 114
 - name: ruby2_keywords
   version: 0.0.5
   ranks:
-    downloads: 117
-    dependents: 983
+    downloads: 122
+    dependents: 984
 - name: rubyzip
   version: 3.7.0
   ranks:
-    downloads: 54
+    downloads: 58
     dependents: 29
 - name: sass
   version: 3.7.4
   ranks:
-    downloads: 461
+    downloads: 473
     dependents: 47
 - name: sass-rails
   version: 6.0.0
   ranks:
-    downloads: 412
+    downloads: 419
     dependents: 66
 - name: savon
   version: 2.17.5
   ranks:
-    downloads: 520
+    downloads: 513
     dependents: 75
 - name: securerandom
   version: 0.4.1
@@ -990,7 +996,7 @@ gems:
     downloads: 52
     dependents: 572
 - name: selenium-webdriver
-  version: 4.49.0
+  version: 4.51.0
   ranks:
     downloads: 207
     dependents: 112
@@ -999,42 +1005,38 @@ gems:
   ranks:
     dependents: 139
 - name: sequel
-  version: 5.108.0
+  version: 5.109.0
   ranks:
-    downloads: 664
+    downloads: 680
     dependents: 43
 - name: sidekiq
   version: 8.1.7
   ranks:
-    downloads: 187
+    downloads: 186
     dependents: 71
 - name: signet
   version: 0.22.0
   ranks:
-    downloads: 108
-    dependents: 748
+    downloads: 111
+    dependents: 747
 - name: simple_form
   version: 5.4.1
   ranks:
-    downloads: 559
+    downloads: 567
     dependents: 130
 - name: simplecov
-  version: 1.3.0
+  version: 1.3.2
   ranks:
-    downloads: 116
+    downloads: 117
     dependents: 207
 - name: simplecov-html
   version: 0.13.2
   ranks:
-    downloads: 143
-- name: simplecov_json_formatter
-  version: 0.1.4
-  ranks:
-    downloads: 163
+    downloads: 155
 - name: sinatra
   version: 4.2.1
   ranks:
-    downloads: 250
+    downloads: 263
     dependents: 13
 - name: sinatra-contrib
   version: 4.2.1
@@ -1043,7 +1045,7 @@ gems:
 - name: slop
   version: 4.10.1
   ranks:
-    downloads: 748
+    downloads: 740
     dependents: 95
 - name: spree_core
   version: 5.6.1
@@ -1052,22 +1054,22 @@ gems:
 - name: sprockets
   version: 4.4.1
   ranks:
-    downloads: 162
+    downloads: 161
     dependents: 91
 - name: sqlite3
   version: 2.9.6
   ranks:
-    downloads: 289
+    downloads: 286
     dependents: 42
 - name: stringio
   version: 3.2.0
   ranks:
-    downloads: 140
-    dependents: 759
+    downloads: 152
+    dependents: 761
 - name: term-ansicolor
   version: 1.11.3
   ranks:
-    downloads: 981
+    downloads: 975
     dependents: 113
 - name: terminal-table
   version: 4.0.0
@@ -1077,26 +1079,26 @@ gems:
 - name: thin
   version: 2.0.1
   ranks:
-    downloads: 837
+    downloads: 845
     dependents: 82
 - name: thor
   version: 1.5.0
   ranks:
-    downloads: 23
+    downloads: 22
     dependents: 5
 - name: tilt
   version: 2.9.0
   ranks:
-    downloads: 104
+    downloads: 106
     dependents: 67
 - name: timeout
   version: 0.6.1
   ranks:
-    downloads: 67
+    downloads: 78
 - name: trailblazer-option
   version: 0.1.2
   ranks:
-    downloads: 157
+    downloads: 154
 - name: trollop
   version: 2.9.10
   ranks:
@@ -1105,11 +1107,11 @@ gems:
   version: 0.2.0
   pinned: true
   ranks:
-    downloads: 112
+    downloads: 105
 - name: tty-prompt
   version: 0.23.1
   ranks:
-    downloads: 537
+    downloads: 535
     dependents: 87
 - name: twitter
   version: 8.3.2
@@ -1118,7 +1120,7 @@ gems:
 - name: typhoeus
   version: 1.6.0
   ranks:
-    downloads: 194
+    downloads: 197
     dependents: 30
 - name: tzinfo
   version: 2.0.6
@@ -1128,82 +1130,82 @@ gems:
 - name: uber
   version: 0.1.0
   ranks:
-    downloads: 152
+    downloads: 150
 - name: unicode-display_width
-  version: 3.2.0
+  version: 3.3.0
   ranks:
     downloads: 16
     dependents: 548
 - name: unicode-emoji
-  version: 4.2.0
+  version: 4.3.0
   ranks:
-    downloads: 98
+    downloads: 94
 - name: uri
-  version: 1.1.1
+  version: 1.1.2
   ranks:
-    downloads: 49
-    dependents: 336
+    downloads: 42
+    dependents: 334
 - name: useragent
   version: 0.16.11
   ranks:
-    downloads: 138
-    dependents: 897
+    downloads: 135
+    dependents: 894
 - name: uuid
   version: 2.3.9
   ranks:
-    downloads: 903
+    downloads: 933
     dependents: 145
 - name: uuidtools
   version: 3.0.0
   ranks:
-    downloads: 682
+    downloads: 695
     dependents: 117
 - name: virtus
   version: 2.0.0
   ranks:
-    downloads: 680
+    downloads: 687
     dependents: 80
 - name: webmock
-  version: 3.26.4
+  version: 3.30.0
   ranks:
-    downloads: 139
+    downloads: 138
     dependents: 290
 - name: webrick
   version: 1.9.2
   ranks:
-    downloads: 111
+    downloads: 116
     dependents: 166
 - name: websocket-driver
   version: 0.8.2
   ranks:
-    downloads: 73
-    dependents: 541
+    downloads: 84
+    dependents: 543
 - name: websocket-extensions
   version: 0.1.5
   ranks:
-    downloads: 101
+    downloads: 99
 - name: will_paginate
   version: 4.0.1
   ranks:
-    downloads: 612
+    downloads: 618
     dependents: 129
 - name: xml-simple
   version: 1.1.9
   ranks:
-    downloads: 627
+    downloads: 639
     dependents: 103
 - name: yajl-ruby
   version: 1.4.3
   ranks:
-    downloads: 681
+    downloads: 677
     dependents: 64
 - name: yard
   version: 0.9.45
   ranks:
-    downloads: 241
+    downloads: 250
     dependents: 154
 - name: zeitwerk
   version: 2.8.3
   ranks:
-    downloads: 36
+    downloads: 35
     dependents: 36
