@@ -158,8 +158,15 @@ module YARD
       # tripped, and an exception otherwise. The first two are normalized to
       # `false` here so a caller gets a plain boolean instead of having its
       # process killed out from under it.
+      #
+      # `--fail-on-warning` asks the logger whether a warning has been logged,
+      # but the logger is process-global and only ever sets that flag, so it
+      # is cleared first. Otherwise a warning from an earlier build in the
+      # same process — one gem among many in a {GemBuilder} run — would fail
+      # every later build whose `.yardopts` sets `--fail-on-warning`.
       def run_yardoc
         args = yard_args + ["-o", output_dir, "-t", "default", "-f", "agentdocs"]
+        log.warned = false
         ::YARD::CLI::Yardoc.new.run(*args) ? true : false
       rescue ::SystemExit => e
         e.success?

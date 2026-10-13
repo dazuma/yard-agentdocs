@@ -222,4 +222,39 @@ describe ::YARD::AgentDocs::Builder do
       refute(build(dir, yard_args: ["--markup", "no_such_markup"]))
     end
   end
+
+  # Runs +block+ with YARD's logger at WARN level, writing to a discarded
+  # buffer. YARD records a warning for `--fail-on-warning` only when it is
+  # actually emitted, so the FATAL level {#with_project} sets would hide
+  # every warning from these examples.
+  def with_warnings_emitted(&)
+    saved_io = log.io
+    saved_warned = log.warned
+    log.io = ::StringIO.new
+    log.enter_level(::YARD::Logger::WARN, &)
+  ensure
+    log.io = saved_io
+    log.warned = saved_warned
+  end
+
+  # YARD's logger remembers that a warning was ever logged for the life of
+  # the process, and `--fail-on-warning` consults that memory. A warning from
+  # some earlier run in the same process must not fail this one.
+  it "ignores warnings logged before the build under --fail-on-warning" do
+    with_project(yardopts: "--fail-on-warning\n") do |dir|
+      with_warnings_emitted do
+        log.warn("a warning from some earlier build")
+        assert(build(dir))
+      end
+    end
+  end
+
+  it "fails on the project's own warnings under --fail-on-warning" do
+    with_project(yardopts: "--fail-on-warning\n") do |dir|
+      ::File.write(::File.join(dir, "lib", "gadget.rb"), "# @no_such_tag\nclass Gadget; end\n")
+      with_warnings_emitted do
+        refute(build(dir))
+      end
+    end
+  end
 end
