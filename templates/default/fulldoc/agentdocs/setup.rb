@@ -135,7 +135,7 @@ end
 # surface form, per §8 — see docs/adr/0005-okf-bundle-conformance.md.
 def index_summary_suffix(object)
   self.object = object
-  markdown = markdownify(smart_summary(object.docstring))
+  markdown = markdownify(smart_summary(object.docstring), single_line: true)
   markdown.empty? ? "" : " - #{indent_continuation(markdown)}"
 end
 

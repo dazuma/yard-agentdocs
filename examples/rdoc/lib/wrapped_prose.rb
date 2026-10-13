@@ -16,6 +16,16 @@ module WrappedProse
   #
   class Member
     ##
+    # Directive letters, one per line:<br>
+    # %w - a word<br>
+    # %s - the separator
+    #
+    # Each <tt><br></tt> is a hard break, which the summary surfaces render
+    # as a space.
+    #
+    DIRECTIVES = %w[w s].freeze
+
+    ##
     # Joins +words+ with +separator+, in a summary sentence long enough to have
     # been split across lines by a 78-column re-wrap.
     #

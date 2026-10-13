@@ -52,18 +52,22 @@ module YARD
       #   `fulldoc/agentdocs/setup.rb`), where there's no structural
       #   heading to collide with and demoting would just flatten the
       #   file's own heading hierarchy.
+      # @param single_line [Boolean] whether +text+ is a Summary, which
+      #   must convert to a single line (see {RDocToMarkdown}). Defaults to
+      #   `false`. Has no effect on Markdown-dialect text, which passes
+      #   through unconverted.
       # @return [String] equivalent Markdown, stripped of surrounding
       #   whitespace, with any colliding heading demoted (unless disabled)
       #   and inline `{Name}` cross-references resolved
       #
-      def markdownify(text, markup: options.markup, demote_headings: true)
+      def markdownify(text, markup: options.markup, demote_headings: true, single_line: false)
         text = strip_provenance(text)
         converted =
           case markup.to_sym
           when :markdown
             text
           when :rdoc
-            RDocToMarkdown.new.convert(text)
+            RDocToMarkdown.new(single_line: single_line).convert(text)
           else
             log.error "yard-agentdocs: unsupported markup type `#{markup.to_sym.inspect}` " \
                        "(only :markdown and :rdoc are supported) — passing prose through unconverted"

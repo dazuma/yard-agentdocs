@@ -8,7 +8,8 @@ module YARD
     # A `::RDoc::Markup::ToMarkdown` that fixes three fidelity gaps in the
     # stdlib converter: it never falls back to raw HTML for styled inline
     # text, it never flattens a block construct RDoc's own markup gives no
-    # meaning to, and it never re-wraps a paragraph or list item.
+    # meaning to, and it never re-wraps a paragraph or list item. It also
+    # has a single-line mode, for text that must stay on one line.
     #
     # **Inline: no raw-HTML fallback** for `<tt>`/`<code>`, `<b>`/`<i>`/
     # `<em>`, `<s>`/`<del>`, and their `+word+`/`` `word` ``/`*word*`/
@@ -71,6 +72,24 @@ module YARD
     # in the output string instead would leave runs of spaces where a
     # list item's continuation indent had been. See issue #20.
     #
+    # **Single-line mode** (`single_line: true`) is for a Summary, which
+    # must stay on one line on every surface it renders on. A Summary
+    # reaches the converter as one line of source, and two constructs turn
+    # one line into several. One is a label list (`[label] text` or
+    # `label:: text`). Its upstream form, `label\n:   text`, is multi-line
+    # by construction (and not CommonMark), so this mode renders each item
+    # inline as `label: text` instead. Items nest recursively the same way:
+    # joining a two-line `Author:: x` / `Copyright:: y` header makes RDoc
+    # parse a note item whose text is a second one, and the upstream
+    # converter drops the outer label there. Prose RDoc misreads as a label
+    # (`Uses Foo:: as a prefix.`) loses one colon, which YARD's HTML
+    # misreads the same way. Keeping the source form instead was rejected:
+    # it leaks RDoc syntax, and a leading `[label]` reads as a Markdown
+    # shortcut reference. The other is a `<br>` hard break, which this mode
+    # renders as a space, absorbing the whitespace that follows it, since
+    # the author's line break after a `<br>` has already become one. See
+    # issue #23.
+    #
     # `::RDoc::Markup::Raw` nodes need no handling and are not worth
     # re-investigating: only RDoc's competing Markdown parser
     # (`rdoc/markdown.rb`) ever constructs them, never the plain
@@ -100,6 +119,16 @@ module YARD
       # prose line opening with an operator like `>= 0`.
       BLOCKQUOTE_MARKER = /\A>(?:[ \t]|\z)/
       private_constant :BLOCKQUOTE_MARKER
+
+      ##
+      # @param single_line [Boolean] whether to render each label-list item
+      #   inline, so that one line of source converts to one line of
+      #   output (see the class docs)
+      #
+      def initialize(single_line: false)
+        super()
+        @single_line = single_line
+      end
 
       ##
       # Converts +text+ to Markdown, emitting any fenced code block, GFM
@@ -156,9 +185,77 @@ module YARD
       end
 
       ##
+      # In single-line mode, appends a label-list item's labels to the
+      # pending prefix as `label: `, rather than starting a definition
+      # list. The prefix is still pending when a nested item starts, so
+      # nested labels accumulate in order.
+      #
+      # @param list_item [::RDoc::Markup::ListItem]
+      # @return [void]
+      #
+      def accept_list_item_start(list_item)
+        return super unless inline_label_item?
+
+        labels = Array(list_item.label).map { |label| "#{attributes(label).strip}: " }
+        @prefix = "#{@prefix}#{labels.join}"
+      end
+
+      ##
+      # In single-line mode, ends a label-list item without the upstream
+      # trailing blank line. A label with no text is emitted on its own.
+      #
+      # @param list_item [::RDoc::Markup::ListItem]
+      # @return [void]
+      #
+      def accept_list_item_end(list_item)
+        return super unless inline_label_item?
+        return if @prefix.nil?
+
+        @res << @prefix.rstrip << "\n"
+        @prefix = nil
+      end
+
+      ##
+      # In single-line mode, emits a hard break as a space, rather than as
+      # a Markdown hard line break.
+      #
+      # @return [void]
+      #
+      def handle_HARD_BREAK
+        return super unless @single_line
+
+        emit_inline(" ")
+        @after_hard_break = true
+      end
+
+      ##
+      # Drops the whitespace that follows a single-line-mode hard break,
+      # which {#handle_HARD_BREAK} has already emitted as a space.
+      #
+      # @param text [String] plain inline text
+      # @return [void]
+      #
+      def handle_TEXT(text)
+        super(@after_hard_break ? text.sub(/\A[ \t]+/, "") : text)
+      end
+
+      ##
+      # Tracks whether anything has been emitted since the last
+      # single-line-mode hard break, for {#handle_TEXT}.
+      #
+      # @param text [String] the inline text to emit
+      # @return [void]
+      #
+      def emit_inline(text)
+        @after_hard_break = false
+        super
+      end
+
+      ##
       # Emits +text+ on one line, rather than wrapping it at a fixed width
-      # as the upstream implementation does. The `:rdoc` parser never
-      # produces a hard break, so +text+ never contains a newline.
+      # as the upstream implementation does. +text+ contains a newline
+      # only where the author wrote a `<br>` hard break, outside
+      # single-line mode.
       #
       # @param text [String] a paragraph or list item's converted text
       # @return [void]
@@ -171,6 +268,12 @@ module YARD
       end
 
       private
+
+      # Whether the list item being visited is a label-list item to render
+      # inline, in single-line mode.
+      def inline_label_item?
+        @single_line && [:NOTE, :LABEL].include?(@list_type.last)
+      end
 
       # Splits +text+ into `[:prose, lines]` and `[:passthrough, lines]`
       # runs, in source order, every line landing in exactly one run.

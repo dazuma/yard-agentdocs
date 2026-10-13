@@ -21,10 +21,12 @@ module YARD
       # already-parenthesized type).
       #
       # @param text [String, ::YARD::Docstring, nil]
+      # @param single_line [Boolean] whether +text+ is a Summary, passed
+      #   through to {Markdownify#markdownify}
       # @return [String]
       #
-      def summary_suffix(text)
-        markdown = markdownify(text)
+      def summary_suffix(text, single_line: false)
+        markdown = markdownify(text, single_line: single_line)
         markdown.empty? ? "" : " — #{indent_continuation(markdown)}"
       end
 

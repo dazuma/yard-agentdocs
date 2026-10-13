@@ -93,6 +93,47 @@ describe ::YARD::AgentDocs::Markdownify do
       end
     end
 
+    describe "a label-list item" do
+      it "renders as a definition list by default" do
+        assert_equal("Label\n:   text", holder.markdownify("[Label] text"))
+      end
+
+      it "renders a bracketed label inline in single-line mode" do
+        assert_equal("Label: text", holder.markdownify("[Label] text", single_line: true))
+      end
+
+      it "renders a double-colon label inline in single-line mode" do
+        assert_equal("Label: text", holder.markdownify("Label:: text", single_line: true))
+      end
+
+      it "keeps every label of a nested item in single-line mode" do
+        assert_equal("Author: Jane Copyright: 2026",
+                     holder.markdownify("Author:: Jane Copyright:: 2026", single_line: true))
+      end
+
+      it "converts inline markup in the label in single-line mode" do
+        assert_equal("`code`: text", holder.markdownify("[+code+] text", single_line: true))
+      end
+
+      it "renders a label with no text in single-line mode" do
+        assert_equal("Label:", holder.markdownify("[Label]", single_line: true))
+      end
+    end
+
+    describe "a <br> hard break" do
+      it "renders as a Markdown hard line break by default" do
+        assert_equal("one  \n two", holder.markdownify("one<br>\ntwo"))
+      end
+
+      it "renders as one space in single-line mode, absorbing the joined line break" do
+        assert_equal("one two", holder.markdownify("one<br>\ntwo", single_line: true))
+      end
+
+      it "renders as one space in single-line mode before styled text" do
+        assert_equal("one `two` three", holder.markdownify("one<br>+two+ three", single_line: true))
+      end
+    end
+
     it "leaves an unresolvable bare {Foo#bar} inline reference untouched" do
       assert_equal("See {Foo#bar} for details.", holder.markdownify("See {Foo#bar} for details."))
     end

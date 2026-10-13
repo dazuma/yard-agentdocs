@@ -67,7 +67,7 @@ end
 # docstring, so {#frontmatter} can omit the key entirely rather than
 # render `description: ""`.
 def frontmatter_description
-  summary = markdownify(smart_summary(object.docstring))
+  summary = markdownify(smart_summary(object.docstring), single_line: true)
   return nil if summary.empty?
 
   yaml_quote(summary)
@@ -209,11 +209,11 @@ end
 def nested_summary_line(nested)
   suffix = private_api_annotation_short(nested)
   link = "[`#{nested.name}`](#{link_path(nested)})"
-  "- #{link}#{" (#{suffix})" if suffix}#{summary_suffix(smart_summary(nested.docstring))}"
+  "- #{link}#{" (#{suffix})" if suffix}#{summary_suffix(smart_summary(nested.docstring), single_line: true)}"
 end
 
 def constant_summary_line(const)
-  "- `#{const.name}`#{summary_suffix(smart_summary(const.docstring))}"
+  "- `#{const.name}`#{summary_suffix(smart_summary(const.docstring), single_line: true)}"
 end
 
 # Same `**Type:**` fallback as {AttributeInfo#attribute_type}: a constant
@@ -228,11 +228,11 @@ end
 def attribute_summary_line(attr)
   suffix = ([attribute_annotation_short(attr)].compact + annotation_lines_short(attr.source_method)).join(", ")
   summary = attribute_docstring_summary(attr)
-  "- `#{attribute_heading(attr)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(summary)}"
+  "- `#{attribute_heading(attr)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(summary, single_line: true)}"
 end
 
 def method_summary_line(meth)
   suffix = (annotation_lines_short(meth) + [overrides_annotation_short(meth)].compact).join(", ")
   summary = meth.is_alias? ? "**Alias for:** `#{alias_original_heading(meth)}`" : smart_summary(meth.docstring)
-  "- `#{member_heading(meth)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(summary)}"
+  "- `#{member_heading(meth)}`#{" (#{suffix})" unless suffix.empty?}#{summary_suffix(summary, single_line: true)}"
 end
