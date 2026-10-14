@@ -1,0 +1,16 @@
+# @title A Textile guide
+
+h1. A Textile guide
+
+This guide is written in Textile, a dialect agentdocs cannot convert, so it is
+included verbatim. A reference to {Greeter} is left as written, and so is
+*strong* and _emphasized_ text.
+
+# A numbered item, which Markdown would read as a heading
+## A nested item
+
+bc.. A Markdown fence inside the guide:
+
+```ruby
+Greeter.new.greet
+```

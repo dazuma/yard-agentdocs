@@ -273,22 +273,39 @@ More prose."))
     end
   end
 
+  # Every caller screens these out first, so reaching one is a bug.
   describe "an unsupported markup type" do
-    let(:holder) { holder_for(:textile) }
+    it "raises" do
+      error = assert_raises(::ArgumentError) { holder_for(:textile).markdownify("Some *textile* text.") }
+      assert_match(/cannot convert markup type `:textile`/, error.message)
+    end
+  end
 
-    it "logs an error and passes the raw text through unconverted" do
-      logger = ::YARD::Logger.instance
-      original_io = logger.io
-      captured = ::StringIO.new
-      logger.io = captured
-      begin
-        result = holder.markdownify("Some *textile* text.")
-      ensure
-        logger.io = original_io
+  describe ".provider_less?" do
+    it "is true of every dialect YARD renders without a provider" do
+      [:text, :pre, :none, :html, :ruby].each do |markup|
+        assert(::YARD::AgentDocs::Markdownify.provider_less?(markup), markup.inspect)
       end
+    end
 
-      assert_equal("Some *textile* text.", result)
-      assert_match(/unsupported markup type `:textile`/, captured.string)
+    it "is false of a dialect YARD needs a provider for, or doesn't know" do
+      [:markdown, :rdoc, :textile, :no_such_markup].each do |markup|
+        refute(::YARD::AgentDocs::Markdownify.provider_less?(markup), markup.inspect)
+      end
+    end
+  end
+
+  describe ".unsupported?" do
+    it "is false of a converted or provider-less dialect" do
+      [:markdown, :rdoc, :text, "markdown"].each do |markup|
+        refute(::YARD::AgentDocs::Markdownify.unsupported?(markup), markup.inspect)
+      end
+    end
+
+    it "is true of a provider-backed dialect or an unknown one" do
+      [:textile, :textile_strict, :org, :asciidoc, "markdwon"].each do |markup|
+        assert(::YARD::AgentDocs::Markdownify.unsupported?(markup), markup.inspect)
+      end
     end
   end
 
@@ -311,9 +328,10 @@ More prose."))
       assert_equal(fenced, holder_for(:rdoc).markdownify(fenced, markup: "markdown"))
     end
 
-    it "logs an error and passes through for a dialect this template doesn't support" do
+    it "logs an error and passes through for a provider-less dialect" do
       # What a `.txt` extra file resolves to: YARD maps the extension to
-      # `:text`, which has no Markdown conversion here.
+      # `:text`, which has no Markdown conversion here yet
+      # (dazuma/yard-agentdocs#31).
       logger = ::YARD::Logger.instance
       original_io = logger.io
       captured = ::StringIO.new

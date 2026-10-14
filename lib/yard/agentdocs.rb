@@ -33,6 +33,7 @@ require "yard/agentdocs/skill_installer"
 require "yard/agentdocs/text_layout"
 require "yard/agentdocs/version"
 require "yard/agentdocs/visibility_info"
+require "yard/agentdocs/yardoc"
 
 ##
 # See https://yardoc.org for info on YARD itself.

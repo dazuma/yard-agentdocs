@@ -91,10 +91,11 @@ describe ::YARD::AgentDocs::Builder do
     end
   end
 
-  # YARD refuses to run when a pinned markup provider can't be loaded, even
-  # though this template never renders through one. The gem name is made up
-  # so the example holds on a machine that has any real provider installed.
-  it "overrides a markup provider set in .yardopts" do
+  # YARD's own `yardoc` refuses to run when a pinned markup provider can't be
+  # loaded, even though this template never renders through one. The gem
+  # name is made up so the example holds on a machine that has any real
+  # provider installed.
+  it "ignores a markup provider set in .yardopts" do
     with_project(yardopts: "--markup markdown --markup-provider no_such_gem_xyz\n") do |dir|
       assert(build(dir))
       assert_includes(read_output(dir, "Widget.md"), "# class Widget")
@@ -233,18 +234,62 @@ describe ::YARD::AgentDocs::Builder do
     end
   end
 
-  # Runs +block+ with YARD's logger at WARN level, writing to a discarded
-  # buffer. YARD records a warning for `--fail-on-warning` only when it is
-  # actually emitted, so the FATAL level {#with_project} sets would hide
-  # every warning from these examples.
-  def with_warnings_emitted(&)
+  # Runs +block+ with YARD's logger at WARN level, writing to a buffer that
+  # is yielded to it. YARD records a warning for `--fail-on-warning` only
+  # when it is actually emitted, so the FATAL level {#with_project} sets
+  # would hide every warning from these examples.
+  def with_warnings_emitted
     saved_io = log.io
     saved_warned = log.warned
     log.io = ::StringIO.new
-    log.enter_level(::YARD::Logger::WARN, &)
+    log.enter_level(::YARD::Logger::WARN) { yield log.io }
   ensure
     log.io = saved_io
     log.warned = saved_warned
+  end
+
+  # The message has to name the dialect: YARD's own would blame the markup
+  # provider instead.
+  it "fails with a clear message for an unsupported run-wide markup" do
+    with_project do |dir|
+      with_warnings_emitted do |io|
+        refute(build(dir, yard_args: ["--markup", "textile"]))
+        assert_match(/markup dialect `textile` is not supported/, io.string)
+      end
+    end
+  end
+
+  # What a `.txt` guide resolves to. It has no conversion yet, but must not
+  # fail the build (dazuma/yard-agentdocs#31).
+  it "accepts a run-wide markup YARD renders without a provider" do
+    with_project do |dir|
+      assert(build(dir, yard_args: ["--markup", "text"]))
+      assert_path_exists(::File.join(dir, "agentdocs", "Widget.md"))
+    end
+  end
+
+  it "includes an unsupported extra file verbatim, with a warning" do
+    with_project(yardopts: "- NOTES.textile\n") do |dir|
+      ::File.write(::File.join(dir, "NOTES.textile"), "h1. Notes\n\n# first\n")
+      with_warnings_emitted do |io|
+        assert(build(dir))
+        assert_match(/`NOTES.textile` is written in the `textile` markup dialect/, io.string)
+      end
+      assert_includes(read_output(dir, "file.NOTES.md"), "```textile\nh1. Notes\n\n# first\n```")
+    end
+  end
+
+  # A misspelled shebang names a dialect YARD doesn't know at all, which is
+  # handled the same way as one it knows but can't render here.
+  it "includes an extra file with an unknown shebang dialect verbatim" do
+    with_project(yardopts: "- NOTES.md\n") do |dir|
+      ::File.write(::File.join(dir, "NOTES.md"), "#!markdwon\n# Notes\n")
+      with_warnings_emitted do |io|
+        assert(build(dir))
+        assert_match(/`NOTES.md` is written in the `markdwon` markup dialect/, io.string)
+      end
+      assert_includes(read_output(dir, "file.NOTES.md"), "```markdwon\n# Notes\n```")
+    end
   end
 
   # YARD's logger remembers that a warning was ever logged for the life of

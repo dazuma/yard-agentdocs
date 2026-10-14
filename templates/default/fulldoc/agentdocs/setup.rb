@@ -101,12 +101,35 @@ end
 # file's extension through `MarkupHelper::MARKUP_EXTENSIONS`; failing
 # that it falls back to `options.markup`. A gem documenting a Markdown
 # README under YARD's `rdoc` default is the common case this exists for.
+#
+# A file in a dialect this template can't convert (see
+# `Markdownify.unsupported?`) is included verbatim instead, with a warning,
+# rather than failing the build — see {YARD::AgentDocs::Yardoc} for why.
 def serialize_extra_file(file)
   self.object = ::YARD::Registry.root
   frontmatter = "---\ntype: Guide\ntitle: #{yaml_quote(file.title)}\n---\n\n"
-  file.attributes[:markup] ||= markup_for_file("", file.filename)
-  content = markdownify(file.contents, markup: file.attributes[:markup], demote_headings: false)
+  markup = file.attributes[:markup] ||= markup_for_file("", file.filename)
+  content =
+    if ::YARD::AgentDocs::Markdownify.unsupported?(markup)
+      log.warn "yard-agentdocs: `#{file.filename}` is written in the `#{markup}` markup dialect, " \
+               "which can't be converted to Markdown; including it verbatim"
+      verbatim_block(file.contents, markup)
+    else
+      markdownify(file.contents, markup: markup, demote_headings: false)
+    end
   Templates::Engine.with_serializer("file.#{file.name}.md", options.serializer) { "#{frontmatter}#{content}" }
+end
+
+# +text+, minus surrounding blank lines, as one fenced code block tagged
+# with its +dialect+. Nothing inside is converted or resolved, and the
+# fence keeps a foreign dialect's own syntax (Textile's `#` numbered items,
+# say) from being read as Markdown, while its info string names the
+# dialect. The fence is one backtick longer than the longest backtick run
+# anywhere in +text+, so no line inside can close it early.
+def verbatim_block(text, dialect)
+  text = text.sub(/\A(?:[ \t]*\n)+/, "").rstrip
+  fence = "`" * [3, (text.scan(/`+/).map(&:length).max || 0) + 1].max
+  "#{fence}#{dialect}\n#{text}\n#{fence}"
 end
 
 def serialize_index(objects)

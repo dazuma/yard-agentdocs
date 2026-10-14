@@ -30,6 +30,12 @@ long_desc \
   "",
   ["    toys agentdocs gems toys:0.23.0 --markup markdown"],
   "",
+  "Only the `markdown` and `rdoc` markup dialects are converted. The plain" \
+    " dialects YARD needs no provider gem for (`text`, `pre`, `none`, `html`," \
+    " `ruby`) pass through unconverted. A gem whose `--markup` names anything" \
+    " else (`textile`, `org`, `asciidoc`, ...) fails to build, and an extra" \
+    " file written in one is included verbatim, with a warning.",
+  "",
   "Default gems — the ones shipped with Ruby itself — are left out of" \
     " `--all` and `--all-latest` unless `--include-default` is given, since" \
     " many of them are C-backed and document poorly. Naming one explicitly" \

@@ -13,6 +13,7 @@ okf_version: "0.2"
 * [`README`](file.README.md)
 * [`A Markdown guide under --markup rdoc`](file.markdown_guide.md)
 * [`Shebang-declared Markdown`](file.shebang_guide.md)
+* [`A Textile guide`](file.textile_guide.md)
 
 ## Classes & modules
 

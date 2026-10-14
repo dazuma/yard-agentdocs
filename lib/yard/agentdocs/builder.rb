@@ -13,7 +13,7 @@ module YARD
     # DSL layer.
     #
     # The build honors the target project's own `.yardopts`, plus any extra
-    # YARD arguments passed through, but forces four settings so a project's
+    # YARD arguments passed through, but forces three settings so a project's
     # existing doc configuration can't derail an agentdocs run:
     #
     # * `-f agentdocs` — the output format, the entire point of the run.
@@ -24,21 +24,17 @@ module YARD
     # * `-o` — the output directory ({#output_dir}). Left alone, a project's
     #   `.yardopts` would drop markdown into the same directory as its
     #   human-facing HTML docs.
-    # * `-M yard` — the markup provider, YARD's built-in one. This template
-    #   converts prose itself and never renders through a provider, but YARD
-    #   still refuses to run when a provider pinned by a project's
-    #   `.yardopts` (kramdown, maruku, even redcarpet) isn't installed, so
-    #   whether a build succeeded would otherwise depend on which markup gems
-    #   the machine happens to have. A consequence: a markup type the `yard`
-    #   provider doesn't cover (textile, org, asciidoc) now fails the build.
-    #   That is deliberate, since this template can't convert those dialects
-    #   anyway.
     #
     # Everything else — source globs, `--markup`, `--title`, extra files, and
     # so on — is left to `.yardopts` and the caller. Forcing works simply by
     # ordering: YARD parses `.document`, then `.yardopts`, then the command
     # line into one options object, so the arguments this class appends last
     # win.
+    #
+    # YARD runs as {Yardoc} rather than its own `yardoc` command, which
+    # changes markup verification: a project's `--markup-provider` is
+    # ignored, since no provider is ever loaded, and a run-wide `--markup`
+    # this template can't convert fails the build with a message saying so.
     #
     class Builder
       ##
@@ -161,12 +157,12 @@ module YARD
       # Invokes YARD with the caller's arguments followed by this gem's
       # forced settings.
       #
-      # `YARD::CLI::Yardoc#run` reports failure three different ways: a falsy
-      # return when argument parsing rejected something (an unregistered
-      # markup type, for instance), an `abort` when `--fail-on-warning`
-      # tripped, and an exception otherwise. The first two are normalized to
-      # `false` here so a caller gets a plain boolean instead of having its
-      # process killed out from under it.
+      # `YARD::CLI::Yardoc#run`, which {Yardoc} inherits, reports failure
+      # three different ways: a falsy return when argument parsing rejected
+      # something (an unsupported markup dialect, for instance), an `abort`
+      # when `--fail-on-warning` tripped, and an exception otherwise. The
+      # first two are normalized to `false` here so a caller gets a plain
+      # boolean instead of having its process killed out from under it.
       #
       # `--fail-on-warning` asks the logger whether a warning has been logged,
       # but the logger is process-global and only ever sets that flag, so it
@@ -174,9 +170,9 @@ module YARD
       # same process — one gem among many in a {GemBuilder} run — would fail
       # every later build whose `.yardopts` sets `--fail-on-warning`.
       def run_yardoc
-        args = yard_args + ["-o", output_dir, "-t", "default", "-f", "agentdocs", "-M", "yard"]
+        args = yard_args + ["-o", output_dir, "-t", "default", "-f", "agentdocs"]
         log.warned = false
-        ::YARD::CLI::Yardoc.new.run(*args) ? true : false
+        Yardoc.new.run(*args) ? true : false
       rescue ::SystemExit => e
         e.success?
       end

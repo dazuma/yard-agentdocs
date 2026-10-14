@@ -34,6 +34,41 @@ module YARD
       HEADING_MARKER = /^\#{1,3}(?=[ \t]|$)/
 
       ##
+      # The markup dialects {#markdownify} converts to Markdown.
+      #
+      CONVERTED_DIALECTS = [:markdown, :rdoc].freeze
+
+      ##
+      # Whether +markup+ is one of the dialects YARD renders without any
+      # provider gem (`:text`, `:pre`, `:none`, `:html`, `:ruby`) — the
+      # types whose `MARKUP_PROVIDERS` entry is empty. Read from YARD's own
+      # table rather than listed here, so {Yardoc} and this module can't
+      # disagree with YARD about which dialects those are.
+      #
+      # @param markup [Symbol, String] a markup dialect
+      # @return [Boolean]
+      #
+      def self.provider_less?(markup)
+        ::YARD::Templates::Helpers::MarkupHelper::MARKUP_PROVIDERS[markup.to_sym] == []
+      end
+
+      ##
+      # Whether +markup+ is a dialect this template can neither convert nor
+      # pass through: one YARD needs a provider gem for (`textile`, `org`,
+      # `asciidoc`, ...), or one YARD doesn't know at all, such as a
+      # misspelled `#!markdwon` shebang. {Yardoc} fails a build whose
+      # run-wide `--markup` is one of these, and `fulldoc/agentdocs/setup.rb`
+      # includes an extra file written in one verbatim, so {#markdownify}
+      # never sees one.
+      #
+      # @param markup [Symbol, String] a markup dialect
+      # @return [Boolean]
+      #
+      def self.unsupported?(markup)
+        !CONVERTED_DIALECTS.include?(markup.to_sym) && !provider_less?(markup)
+      end
+
+      ##
       # @param text [String, ::YARD::Docstring, nil] prose in the dialect
       #   named by +markup+
       # @param markup [Symbol, String] the dialect +text+ is written in.
@@ -69,6 +104,13 @@ module YARD
           when :rdoc
             RDocToMarkdown.new(single_line: single_line).convert(text)
           else
+            # Callers screen out every unsupported dialect first (see
+            # {.unsupported?}), so reaching this with one is a bug.
+            unless Markdownify.provider_less?(markup)
+              raise ::ArgumentError, "yard-agentdocs: cannot convert markup type `#{markup.to_sym.inspect}`"
+            end
+            # Interim: a provider-less dialect passes through unconverted
+            # until it gets a real conversion (dazuma/yard-agentdocs#31).
             log.error "yard-agentdocs: unsupported markup type `#{markup.to_sym.inspect}` " \
                        "(only :markdown and :rdoc are supported) — passing prose through unconverted"
             text

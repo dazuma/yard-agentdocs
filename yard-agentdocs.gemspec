@@ -37,8 +37,9 @@ require "yard/agentdocs/version"
   # running the tests against the new major.
   spec.add_dependency "rdoc", "~> 8.0"
   spec.add_dependency "simple_xdg", "~> 0.1"
-  # Floor: `Builder` forces YARD's built-in `yard` markup provider, which
-  # older releases lack.
+  # Floor: the tested release. `YARD::AgentDocs::Yardoc` replaces
+  # `verify_markup_options` outright, so a newer YARD's version of it needs
+  # checking against the replacement.
   spec.add_dependency "yard", "~> 0.9", ">= 0.9.45"
   spec.required_ruby_version = ">= 3.4"
 

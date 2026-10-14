@@ -458,18 +458,11 @@ describe ::YARD::AgentDocs::GemBuilder do
   end
 
   describe "failure" do
-    # An unavailable markup provider makes YARD reject its arguments, the same
-    # lever `Builder`'s own tests use to force a failed build.
-    #
-    # The markup name has to be one no test has used before, though: YARD
-    # caches markup lookups process-wide and caches the *failures* too (see
-    # `MarkupHelper#load_markup_provider`), so a second run naming the same
-    # bogus markup sails right through. A counter keeps each failing gem's
-    # name unique regardless of what order the examples run in.
+    # An unsupported markup dialect makes `YARD::AgentDocs::Yardoc` reject
+    # its arguments, the same lever `Builder`'s own tests use to force a
+    # failed build.
     def install_failing_gem(home, name, version)
-      @failure_counter = (@failure_counter || 0) + 1
-      markup = "no_such_markup_#{object_id}_#{@failure_counter}"
-      install_gem(home, name, version, yardopts: "--markup #{markup}\n")
+      install_gem(home, name, version, yardopts: "--markup no_such_markup\n")
     end
 
     it "leaves no bundle at the canonical path when a gem's build fails" do

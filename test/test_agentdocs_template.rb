@@ -19,6 +19,9 @@ describe "agentdocs template" do
   # runs it with the given arguments. The options have to be assigned before
   # #run, which never resets the options object it was given at construction.
   #
+  # The CLI is `YARD::AgentDocs::Yardoc`, the one {Builder} runs, not YARD's
+  # own: its markup verification is what lets the Textile guide through.
+  #
   # YARD's logger is quieted to errors for the duration of the run. The
   # fixture sources under `examples/` deliberately include docstrings YARD
   # warns about — the stale `@param seconds`/`@param millis` pair on
@@ -26,7 +29,7 @@ describe "agentdocs template" do
   # on every test run. ERROR rather than FATAL, so a generation error that
   # the fixture comparison alone wouldn't explain still reaches the output.
   def run_yardoc(*)
-    cli = ::YARD::CLI::Yardoc.new
+    cli = ::YARD::AgentDocs::Yardoc.new
     cli.options[:agentdocs_generated_by] = generated_by
     cli.options[:agentdocs_generated_at] = generated_at
     log.enter_level(::YARD::Logger::ERROR) { cli.run(*) }
@@ -84,6 +87,7 @@ describe "agentdocs template" do
         "--readme", "examples/rdoc/README.rdoc",
         "--files", "examples/rdoc/docs/markdown_guide.md",
         "--files", "examples/rdoc/docs/shebang_guide.rdoc",
+        "--files", "examples/rdoc/docs/textile_guide.textile",
         *files
       )
     end
