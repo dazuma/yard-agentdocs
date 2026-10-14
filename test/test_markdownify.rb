@@ -281,6 +281,104 @@ More prose."))
     end
   end
 
+  # The dialects YARD renders with no provider. Each is the Markdown
+  # counterpart of YARD's own `html_markup_*` helper for it: a fence where
+  # YARD shows the author's characters as written, verbatim where YARD
+  # passes HTML through. Inline, where a fence can't sit, each collapses
+  # onto one line instead.
+  describe "a provider-less dialect" do
+    it "fences :text, :pre, and :none as text" do
+      [:text, :pre, :none].each do |markup|
+        result = holder_for(markup).markdownify("One line\nand *another*.\n")
+        assert_equal("```text\nOne line\nand *another*.\n```", result, markup.inspect)
+      end
+    end
+
+    it "fences :ruby as Ruby" do
+      assert_equal("```ruby\nputs 1\n```", holder_for(:ruby).markdownify("puts 1"))
+    end
+
+    it "lengthens the fence past the longest backtick run inside" do
+      source = "Before\n```ruby\nx\n```"
+      assert_equal("````text\n#{source}\n````", holder_for(:text).markdownify(source))
+    end
+
+    it "strips surrounding blank lines, inside the fence" do
+      assert_equal("```text\n  indented\n```", holder_for(:text).markdownify("\n\n  indented\n\n"))
+    end
+
+    it "leaves a fenced heading-shaped line and reference literal" do
+      assert_equal("```text\n# Not a heading {Other}\n```", holder_for(:text).markdownify("# Not a heading {Other}"))
+    end
+
+    it "returns an empty string for blank or nil text, rather than an empty fence" do
+      assert_equal("", holder_for(:text).markdownify("  \n"))
+      assert_equal("", holder_for(:ruby).markdownify(nil))
+    end
+
+    it "passes :html through verbatim" do
+      source = "<p>Some <em>HTML</em>.</p>\n\n<pre>\nx = 1\n</pre>"
+      assert_equal(source, holder_for(:html).markdownify(source))
+    end
+
+    it "still demotes a colliding heading in :html" do
+      assert_equal("<p>Intro.</p>\n\n#### Heading", holder_for(:html).markdownify("<p>Intro.</p>\n\n# Heading"))
+    end
+
+    it "still resolves a reference in :html" do
+      holder = holder_with_object(:html, <<~RUBY, "Widget")
+        class Widget; end
+
+        class Other
+          def m; end
+        end
+      RUBY
+      assert_equal("<p>See [`Other#m`](Other.md).</p>", holder.markdownify("<p>See {Other#m}.</p>"))
+    end
+
+    it "logs nothing" do
+      logger = ::YARD::Logger.instance
+      original_io = logger.io
+      captured = ::StringIO.new
+      logger.io = captured
+      begin
+        [:text, :pre, :none, :html, :ruby].each { |markup| holder_for(markup).markdownify("Some text.") }
+      ensure
+        logger.io = original_io
+      end
+      assert_empty(captured.string)
+    end
+
+    describe "inline" do
+      it "collapses every whitespace run onto one line, and otherwise passes through" do
+        [:text, :pre, :none, :html, :ruby].each do |markup|
+          result = holder_for(markup).markdownify("  One *line*\n  and\tanother.\n", inline: true)
+          assert_equal("One *line* and another.", result, markup.inspect)
+        end
+      end
+
+      it "is implied by single_line:" do
+        result = holder_for(:text).markdownify("One line\nand another.", single_line: true)
+        assert_equal("One line and another.", result)
+      end
+
+      it "still resolves a reference" do
+        holder = holder_with_object(:text, <<~RUBY, "Widget")
+          class Widget; end
+
+          class Other
+            def m; end
+          end
+        RUBY
+        assert_equal("See [`Other#m`](Other.md).", holder.markdownify("See\n{Other#m}.", inline: true))
+      end
+
+      it "leaves :markdown and :rdoc unaffected" do
+        assert_equal("Two\nlines.", holder_for(:markdown).markdownify("Two\nlines.", inline: true))
+      end
+    end
+  end
+
   describe ".provider_less?" do
     it "is true of every dialect YARD renders without a provider" do
       [:text, :pre, :none, :html, :ruby].each do |markup|
@@ -328,22 +426,9 @@ More prose."))
       assert_equal(fenced, holder_for(:rdoc).markdownify(fenced, markup: "markdown"))
     end
 
-    it "logs an error and passes through for a provider-less dialect" do
-      # What a `.txt` extra file resolves to: YARD maps the extension to
-      # `:text`, which has no Markdown conversion here yet
-      # (dazuma/yard-agentdocs#31).
-      logger = ::YARD::Logger.instance
-      original_io = logger.io
-      captured = ::StringIO.new
-      logger.io = captured
-      begin
-        result = holder_for(:rdoc).markdownify("Plain +text+, unconverted.", markup: :text)
-      ensure
-        logger.io = original_io
-      end
-
-      assert_equal("Plain +text+, unconverted.", result)
-      assert_match(/unsupported markup type `:text`/, captured.string)
+    it "converts a provider-less dialect, the form a `.txt` extra file resolves to" do
+      result = holder_for(:rdoc).markdownify("Plain +text+, unconverted.", markup: :text)
+      assert_equal("```text\nPlain +text+, unconverted.\n```", result)
     end
   end
 end

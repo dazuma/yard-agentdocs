@@ -120,18 +120,6 @@ def serialize_extra_file(file)
   Templates::Engine.with_serializer("file.#{file.name}.md", options.serializer) { "#{frontmatter}#{content}" }
 end
 
-# +text+, minus surrounding blank lines, as one fenced code block tagged
-# with its +dialect+. Nothing inside is converted or resolved, and the
-# fence keeps a foreign dialect's own syntax (Textile's `#` numbered items,
-# say) from being read as Markdown, while its info string names the
-# dialect. The fence is one backtick longer than the longest backtick run
-# anywhere in +text+, so no line inside can close it early.
-def verbatim_block(text, dialect)
-  text = text.sub(/\A(?:[ \t]*\n)+/, "").rstrip
-  fence = "`" * [3, (text.scan(/`+/).map(&:length).max || 0) + 1].max
-  "#{fence}#{dialect}\n#{text}\n#{fence}"
-end
-
 def serialize_index(objects)
   @indexed_objects = objects.select { |o| [:class, :module].include?(o.type) }.sort_by(&:path)
   Templates::Engine.with_serializer("index.md", options.serializer) { erb(:index) }

@@ -106,7 +106,7 @@ module YARD
         tag = obj.tag(:since)
         return nil unless tag
 
-        "* **Since:** #{indent_continuation(markdownify(tag.text))}"
+        "* **Since:** #{indent_continuation(markdownify(tag.text, inline: true))}"
       end
 
       ##
@@ -117,7 +117,7 @@ module YARD
         tag = obj.tag(:version)
         return nil unless tag
 
-        "* **Version:** #{indent_continuation(markdownify(tag.text))}"
+        "* **Version:** #{indent_continuation(markdownify(tag.text, inline: true))}"
       end
 
       ##
@@ -131,7 +131,7 @@ module YARD
         tags = obj.tags(:author)
         return nil if tags.empty?
 
-        text = tags.map { |tag| markdownify(tag.text) }.join(", ")
+        text = tags.map { |tag| markdownify(tag.text, inline: true) }.join(", ")
         "* **Author:** #{indent_continuation(text)}"
       end
 
@@ -140,7 +140,7 @@ module YARD
       def deprecated_line(obj)
         return nil unless obj.has_tag?(:deprecated)
 
-        text = markdownify(obj.tag(:deprecated).text)
+        text = markdownify(obj.tag(:deprecated).text, inline: true)
         text.empty? ? "* **Deprecated.**" : "* **Deprecated.** #{indent_continuation(text)}"
       end
 
@@ -149,7 +149,7 @@ module YARD
         return nil if tags.empty?
 
         tags.map do |tag|
-          text = markdownify(tag.text)
+          text = markdownify(tag.text, inline: true)
           text.empty? ? "* **Note:**" : "* **Note:** #{indent_continuation(text)}"
         end.join("\n")
       end
@@ -157,14 +157,14 @@ module YARD
       def abstract_line(obj)
         return nil unless obj.has_tag?(:abstract)
 
-        text = markdownify(obj.tag(:abstract).text)
+        text = markdownify(obj.tag(:abstract).text, inline: true)
         text.empty? ? "* **Abstract.**" : "* **Abstract.** #{indent_continuation(text)}"
       end
 
       def todo_line(obj)
         return nil unless obj.has_tag?(:todo)
 
-        text = markdownify(obj.tag(:todo).text)
+        text = markdownify(obj.tag(:todo).text, inline: true)
         text.empty? ? "* **Todo:**" : "* **Todo:** #{indent_continuation(text)}"
       end
     end

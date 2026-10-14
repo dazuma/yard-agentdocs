@@ -7,6 +7,7 @@ describe "agentdocs template" do
   let(:project_root) { ::File.expand_path("..", __dir__) }
   let(:geometry_doc_dir) { ::File.join(project_root, "examples/geometry/doc") }
   let(:rdoc_doc_dir) { ::File.join(project_root, "examples/rdoc/doc") }
+  let(:text_doc_dir) { ::File.join(project_root, "examples/text/doc") }
 
   # Pinned `generated:` values for the `bundle.md` frontmatter, so the
   # byte-exact fixture comparison survives both the clock and a release bump.
@@ -88,7 +89,32 @@ describe "agentdocs template" do
         "--files", "examples/rdoc/docs/markdown_guide.md",
         "--files", "examples/rdoc/docs/shebang_guide.rdoc",
         "--files", "examples/rdoc/docs/textile_guide.textile",
+        "--files", "examples/rdoc/docs/text_guide.txt",
+        "--files", "examples/rdoc/docs/pre_guide.rdoc",
+        "--files", "examples/rdoc/docs/none_guide.rdoc",
+        "--files", "examples/rdoc/docs/html_guide.html",
+        "--files", "examples/rdoc/docs/ruby_guide.rb",
         *files
+      )
+    end
+  end
+
+  # A small, separate fixture run with `--markup text`, covering a
+  # provider-less dialect used run-wide: a docstring body in block position
+  # (fenced) alongside tag text and Summaries in inline position (collapsed
+  # onto one line), which a guide alone can't reach.
+  def generate_text(output_dir)
+    ::YARD::Registry.clear
+    ::Dir.chdir(project_root) do
+      run_yardoc(
+        "--no-yardopts", "--no-save", "--no-stats",
+        "-o", output_dir,
+        "-t", "default",
+        "-f", "agentdocs",
+        "--markup", "text",
+        "--title", "yard-agentdocs text-dialect fixture — API Reference",
+        "--readme", "examples/text/README.txt",
+        *::Dir.glob("examples/text/lib/**/*.rb")
       )
     end
   end
@@ -129,6 +155,13 @@ describe "agentdocs template" do
     ::Dir.mktmpdir do |output_dir|
       generate_rdoc(output_dir)
       assert_matches_fixture(output_dir, rdoc_doc_dir)
+    end
+  end
+
+  it "renders --markup text output identical to the examples/text/doc fixture" do
+    ::Dir.mktmpdir do |output_dir|
+      generate_text(output_dir)
+      assert_matches_fixture(output_dir, text_doc_dir)
     end
   end
 end

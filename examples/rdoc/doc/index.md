@@ -14,6 +14,11 @@ okf_version: "0.2"
 * [`A Markdown guide under --markup rdoc`](file.markdown_guide.md)
 * [`Shebang-declared Markdown`](file.shebang_guide.md)
 * [`A Textile guide`](file.textile_guide.md)
+* [`A plain-text guide`](file.text_guide.md)
+* [`A preformatted guide`](file.pre_guide.md)
+* [`An unformatted guide`](file.none_guide.md)
+* [`An HTML guide`](file.html_guide.md)
+* [`A Ruby example`](file.ruby_guide.md)
 
 ## Classes & modules
 

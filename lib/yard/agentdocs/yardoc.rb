@@ -29,7 +29,7 @@ module YARD
     #
     # * {Markdownify::CONVERTED_DIALECTS} pass.
     # * Dialects YARD renders without a provider ({Markdownify.provider_less?})
-    #   pass, and {Markdownify} passes their prose through.
+    #   pass, and {Markdownify} converts them too.
     # * Anything else ({Markdownify.unsupported?}) fails the build with a
     #   message naming the dialect. Every docstring is written in the
     #   run-wide dialect, so there is no useful partial output.

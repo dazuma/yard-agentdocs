@@ -1,0 +1,18 @@
+# @title A plain-text guide
+
+A plain-text guide
+==================
+
+This guide is plain text, which YARD shows exactly as written, so it is
+fenced rather than read as Markdown. A reference to {Greeter} stays
+literal, and so does *strong* and _emphasized_ text.
+
+# A top-of-line hash, which Markdown would read as a heading
+
+    A 4-space indent, which Markdown would read as a code block
+
+A Markdown fence inside the guide lengthens the outer one:
+
+```ruby
+Greeter.new.greet
+```

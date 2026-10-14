@@ -26,7 +26,7 @@ module YARD
       # @return [String]
       #
       def summary_suffix(text, single_line: false)
-        markdown = markdownify(text, single_line: single_line)
+        markdown = markdownify(text, single_line: single_line, inline: true)
         markdown.empty? ? "" : " — #{indent_continuation(markdown)}"
       end
 
@@ -44,7 +44,7 @@ module YARD
       # @return [String]
       #
       def dash_join(prefix, text)
-        markdown = markdownify(text)
+        markdown = markdownify(text, inline: true)
         [prefix, indent_continuation(markdown)].reject { |s| s.to_s.empty? }.join(" — ")
       end
 

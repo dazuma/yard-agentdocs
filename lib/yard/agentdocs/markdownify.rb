@@ -91,11 +91,16 @@ module YARD
       #   must convert to a single line (see {RDocToMarkdown}). Defaults to
       #   `false`. Has no effect on Markdown-dialect text, which passes
       #   through unconverted.
+      # @param inline [Boolean] whether the result is spliced onto a line
+      #   after other text (tag text after a `* **Since:** ` or ` — `
+      #   prefix), rather than starting a block of its own. Matters only to
+      #   a provider-less dialect (see {#convert_provider_less}). Defaults
+      #   to +single_line+, since a Summary is always inline.
       # @return [String] equivalent Markdown, stripped of surrounding
       #   whitespace, with any colliding heading demoted (unless disabled)
       #   and inline `{Name}` cross-references resolved
       #
-      def markdownify(text, markup: options.markup, demote_headings: true, single_line: false)
+      def markdownify(text, markup: options.markup, demote_headings: true, single_line: false, inline: single_line)
         text = strip_provenance(text)
         converted =
           case markup.to_sym
@@ -109,18 +114,62 @@ module YARD
             unless Markdownify.provider_less?(markup)
               raise ::ArgumentError, "yard-agentdocs: cannot convert markup type `#{markup.to_sym.inspect}`"
             end
-            # Interim: a provider-less dialect passes through unconverted
-            # until it gets a real conversion (dazuma/yard-agentdocs#31).
-            log.error "yard-agentdocs: unsupported markup type `#{markup.to_sym.inspect}` " \
-                       "(only :markdown and :rdoc are supported) — passing prose through unconverted"
-            text
+            convert_provider_less(text, markup.to_sym, inline: inline)
           end
         converted = converted.strip
         converted = self.demote_headings(converted) if demote_headings
         resolve_references(converted)
       end
 
+      ##
+      # +text+, minus surrounding blank lines, as one fenced code block whose
+      # info string is +info+. Nothing inside is converted, demoted, or
+      # resolved. The fence is one backtick longer than the longest backtick
+      # run anywhere in +text+, so no line inside can close it early.
+      #
+      # @param text [String]
+      # @param info [String, Symbol] the fence's info string, naming
+      #   +text+'s language or dialect
+      # @return [String] the fenced block, or an empty string when +text+
+      #   is blank
+      #
+      def verbatim_block(text, info)
+        text = text.to_s.sub(/\A(?:[ \t]*\n)+/, "").rstrip
+        return "" if text.empty?
+        fence = "`" * [3, (text.scan(/`+/).map(&:length).max || 0) + 1].max
+        "#{fence}#{info}\n#{text}\n#{fence}"
+      end
+
       private
+
+      # Converts prose in one of the dialects YARD renders without a
+      # provider gem ({.provider_less?}), mirroring YARD's own
+      # `HtmlHelper#html_markup_*` for each.
+      #
+      # In block position, `:text`, `:pre`, and `:none` become a `text`
+      # fence, and `:ruby` a `ruby` fence. YARD shows each as the author's
+      # characters, line by line, and a fence is Markdown's way to say that.
+      # The literal alternative, YARD's escaped text with hard line breaks,
+      # would mean backslash-escaping every Markdown-significant character:
+      # more tokens, and text a plain `grep` no longer matches. The fence
+      # also keeps a top-of-line `#` from reading as a heading, and leaves
+      # any `{...}` literal — in plain text, far likelier a hash or block
+      # than a YARD reference. `:html` passes through verbatim, as YARD does,
+      # since Markdown already allows raw HTML.
+      #
+      # A fence can't sit after a `* **Since:** ` or ` — ` prefix, so inline
+      # every one of these dialects collapses its whitespace onto one line
+      # and otherwise passes through unescaped: the author's own characters,
+      # which is what an agent reading the raw Markdown wants.
+      def convert_provider_less(text, markup, inline:)
+        return text.gsub(/\s+/, " ") if inline
+
+        case markup
+        when :html then text
+        when :ruby then verbatim_block(text, "ruby")
+        else verbatim_block(text, "text")
+        end
+      end
 
       # Demotes every top-of-line, 1-3-`#` ATX heading in +text+ to a fixed
       # 4 `#`s, so a prose-embedded heading (RDoc `=`/`==`/`===`, or a
